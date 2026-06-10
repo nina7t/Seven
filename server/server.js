@@ -213,10 +213,6 @@ app.get('/api/youtube/search', rateLimit, async (req, res) => {
       }
       
       throw error;
-        }
-      }
-      
-      throw error;
     }
   })();
 

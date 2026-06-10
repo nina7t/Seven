@@ -5798,13 +5798,13 @@ async function loadCategoryImages() {
   const cached = sessionStorage.getItem(cacheKey);
   const imgs = cached ? JSON.parse(cached) : {};
 
-  await Promise.allSettled(CAT_ARTISTS.map(async ({ query, wiki, page }) => {
+  await Promise.allSettled(CAT_ARTISTS.map(async ({ query, wiki, page, img }) => {
     const card = document.querySelector(`.cat-card[data-query="${query}"]`);
     if (!card) return;
     const iconEl = card.querySelector('.cat-icon');
     if (!iconEl) return;
 
-    let url = imgs[page];
+    let url = img || imgs[page];
     if (!url) {
       try {
         const res = await fetch(`https://${wiki}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(page)}`);

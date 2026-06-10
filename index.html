@@ -210,6 +210,9 @@
 .search-results-list .action-btn.added {
   color: var(--green);
 }
+.search-results-list .action-btn.offline-btn.added {
+  color: #4CAF50;
+}
 .search-results-list .play-icon {
   width: 44px;
   height: 44px;
@@ -3047,6 +3050,7 @@ h1, h2, h3 {
     <div class="player-info">
       <div class="player-title" id="playerTitle">Pas de lecture</div>
       <div class="player-artist" id="playerArtist">-</div>
+      <span id="offlineBadge" style="display:none;margin-left:8px;font-size:10px;background:#4CAF50;color:#fff;padding:2px 6px;border-radius:4px"><i class="ti ti-wifi-off"></i> Offline</span>
     </div>
     <button class="player-like" id="playerLike"><i class="ti ti-heart"></i></button>
   </div>
@@ -3609,6 +3613,28 @@ function bindResultClicks() {
       showAddToPlaylist(id, title, channel, thumb, duration ? parseInt(duration) : null);
     });
   });
+
+  document.querySelectorAll('.action-btn[data-action="offline"]').forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+      e.stopPropagation();
+      const { id, title, channel, thumb } = this.dataset;
+      const track = { id, title, channel, thumb };
+      
+      // Toggle offline status
+      const isOffline = await isTrackOffline(id);
+      if (isOffline) {
+        await removeOfflineTrack(id);
+        this.classList.remove('added');
+        this.title = 'Disponible hors-ligne';
+        showToast('Retiré du mode offline');
+      } else {
+        await saveTrackOffline(track);
+        this.classList.add('added');
+        this.title = 'Disponible hors-ligne ✓';
+        showToast('Sauvegardé pour le mode offline');
+      }
+    });
+  });
 }
 
 function createResultRow(item, i, durationSec) {
@@ -3650,6 +3676,11 @@ function createResultRow(item, i, durationSec) {
           data-id="${track.id}" data-title="${esc(track.title)}" data-channel="${esc(track.channel)}" data-thumb="${track.thumb || ''}" data-duration="${durationSec || ''}"
           title="Ajouter à une playlist">
           <i class="ti ti-playlist-add"></i>
+        </button>
+        <button class="action-btn offline-btn" data-action="offline"
+          data-id="${track.id}" data-title="${esc(track.title)}" data-channel="${esc(track.channel)}" data-thumb="${track.thumb || ''}"
+          title="Disponible hors-ligne">
+          <i class="ti ti-wifi-off"></i>
         </button>
       </div>
     </div>
@@ -3711,6 +3742,12 @@ function playTrack(index) {
   document.getElementById('playerTitle').textContent = track.title;
   document.getElementById('playerArtist').textContent = track.channel;
   document.getElementById('playerCover').innerHTML = track.thumb ? `<img src="${track.thumb}" alt="">` : '';
+
+  // Check and show offline badge
+  isTrackOffline(track.id).then(isOffline => {
+    const badge = document.getElementById('offlineBadge');
+    if (badge) badge.style.display = isOffline ? 'inline-block' : 'none';
+  });
 
   if (S.player?.loadVideoById) {
     S.player.loadVideoById(track.id);
@@ -6252,6 +6289,132 @@ initFirebase();
 </div>
 
 <script>
+// ════════════════════════════════════════════════════════════
+// OFFLINE MODE - IndexedDB Cache pour écoute hors-ligne
+// ════════════════════════════════════════════════════════════
+
+const OFFLINE_DB = {
+  name: 'SevenzOffline',
+  version: 1,
+  store: 'cachedTracks',
+  maxStorage: 500 * 1024 * 1024 // 500MB max
+};
+
+let _offlineDB = null;
+
+async function initOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(OFFLINE_DB.name, OFFLINE_DB.version);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => { _offlineDB = request.result; resolve(_offlineDB); };
+    
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(OFFLINE_DB.store)) {
+        const store = db.createObjectStore(OFFLINE_DB.store, { keyPath: 'videoId' });
+        store.createIndex('cachedAt', 'cachedAt', { unique: false });
+        store.createIndex('artist', 'artist', { unique: false });
+      }
+    };
+  });
+}
+
+// Sauvegarder un track pour le mode offline
+async function saveTrackOffline(track) {
+  if (!_offlineDB) await initOfflineDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = _offlineDB.transaction(OFFLINE_DB.store, 'readwrite');
+    const store = tx.objectStore(OFFLINE_DB.store);
+    
+    const offlineTrack = {
+      videoId: track.id,
+      title: track.title,
+      artist: track.channel || track.artist,
+      thumbnail: track.thumb,
+      audioUrl: track.audioUrl || null, // Si on a l'audio direct
+      cachedAt: Date.now(),
+      duration: track.duration || null
+    };
+    
+    const request = store.put(offlineTrack);
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Récupérer un track depuis le cache offline
+async function getOfflineTrack(videoId) {
+  if (!_offlineDB) await initOfflineDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = _offlineDB.transaction(OFFLINE_DB.store, 'readonly');
+    const store = tx.objectStore(OFFLINE_DB.store);
+    const request = store.get(videoId);
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Vérifier si un track est en cache
+async function isTrackOffline(videoId) {
+  try {
+    const track = await getOfflineTrack(videoId);
+    return !!track;
+  } catch { return false; }
+}
+
+// Supprimer un track du cache
+async function removeOfflineTrack(videoId) {
+  if (!_offlineDB) await initOfflineDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = _offlineDB.transaction(OFFLINE_DB.store, 'readwrite');
+    const store = tx.objectStore(OFFLINE_DB.store);
+    const request = store.delete(videoId);
+    
+    request.onsuccess = () => resolve(true);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Lister tous les tracks offline
+async function listOfflineTracks() {
+  if (!_offlineDB) await initOfflineDB();
+  
+  return new Promise((resolve, reject) => {
+    const tx = _offlineDB.transaction(OFFLINE_DB.store, 'readonly');
+    const store = tx.objectStore(OFFLINE_DB.store);
+    const request = store.getAll();
+    
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Nettoyer les vieux tracks (plus de 30 jours)
+async function cleanupOldTracks() {
+  const tracks = await listOfflineTracks();
+  const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  
+  for (const track of tracks) {
+    if (track.cachedAt < thirtyDaysAgo) {
+      await removeOfflineTrack(track.videoId);
+    }
+  }
+}
+
+// Init au démarrage
+initOfflineDB().then(() => {
+  cleanupOldTracks(); // Nettoyage en arrière-plan
+}).catch(() => console.warn('Offline DB non disponible'));
+
+// ════════════════════════════════════════════════════════════
+// FIN OFFLINE MODE
+// ════════════════════════════════════════════════════════════
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }

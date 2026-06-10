@@ -164,7 +164,13 @@ app.get('/api/youtube/search', rateLimit, async (req, res) => {
       // Quota dépassé → passer sur Invidious (gratuit)
       if (error.response?.data?.error?.message?.includes('quota')) {
         console.warn('[YOUTUBE QUOTA] Passage sur Invidious (gratuit)...');
-        return await searchInvidious(q, maxResults);
+        try {
+          return await searchInvidious(q, maxResults);
+        } catch (invidiousError) {
+          // Invidious HS → utiliser données de fallback
+          console.warn('[INVIDIOUS FAIL] Utilisation fallback static...');
+          return getFallbackSearch(q, maxResults);
+        }
       }
       
       throw error;
@@ -283,7 +289,12 @@ app.get('/api/youtube/videos', rateLimit, async (req, res) => {
       
       if (error.response?.data?.error?.message?.includes('quota')) {
         console.warn('[YOUTUBE QUOTA] Passage sur Invidious...');
-        return await getVideosInvidious(ids);
+        try {
+          return await getVideosInvidious(ids);
+        } catch (invError) {
+          console.warn('[INV FAIL] Fallback aux données statiques pour vidéos');
+          return getFallbackVideos(ids);
+        }
       }
       
       throw error;

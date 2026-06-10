@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sevenz</string>
+    <string name="title_activity_main">Sevenz</string>
+    <string name="package_name">com.sevenz.app</string>
+    <string name="custom_url_scheme">com.sevenz.app</string>
+</resources>

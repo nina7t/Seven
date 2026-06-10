@@ -405,6 +405,54 @@ app.post('/api/admin/clear-cache', (req, res) => {
   res.json({ message: 'Cache vidé', key: key || 'all' });
 });
 
+// ════════════════════════════════════════════════════════════
+// STREAM URL - Pour lecture native en arrière-plan (ExoPlayer)
+// ════════════════════════════════════════════════════════════
+
+// Proxy vers ytdl-core pour extraire l'URL du stream audio
+app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
+  const { videoId } = req.params;
+  
+  if (!videoId || !videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
+    return res.status(400).json({ error: 'ID vidéo invalide' });
+  }
+  
+  try {
+    const ytdl = require('@distube/ytdl-core');
+    
+    // Récupère les infos de la vidéo
+    const info = await ytdl.getInfo(videoId);
+    
+    // Filtre pour avoir seulement les formats audio
+    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+    
+    if (audioFormats.length === 0) {
+      return res.status(404).json({ error: 'Aucun format audio disponible' });
+    }
+    
+    // Prend le meilleur format audio (highest bitrate)
+    const best = audioFormats.sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
+    
+    res.json({
+      videoId,
+      title: info.videoDetails.title,
+      author: info.videoDetails.author.name,
+      duration: parseInt(info.videoDetails.lengthSeconds),
+      audioUrl: best.url,
+      mimeType: best.mimeType.split(';')[0].trim(),
+      expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString() // expire dans 6h
+    });
+    
+  } catch (error) {
+    console.error('[STREAM ERROR]', error.message);
+    res.status(500).json({ error: 'Erreur extraction stream: ' + error.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// FIN STREAM URL
+// ════════════════════════════════════════════════════════════
+
 app.listen(PORT, () => {
   console.log(`🚀 Serveur proxy YouTube démarré sur http://localhost:${PORT}`);
   console.log(`📊 Cache activé: 6h pour recherches, 24h pour tendances`);

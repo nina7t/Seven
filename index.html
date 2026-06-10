@@ -3327,9 +3327,33 @@ async function doSearch(query) {
 
     if (token !== _searchToken) return;
     const isFallback = ytData.fallback === true;
-    if (ytData.error && !isFallback) throw new Error(ytData.error.message || 'Erreur API YouTube');
+    if (ytData.error && !isFallback) {
+      // YouTube en panne : afficher la carte artiste MusicBrainz quand même
+      clearTimeout(_wakeTimer);
+      const errMsg = typeof ytData.error === 'string' ? ytData.error : (ytData.error.message || 'Erreur API YouTube');
+      const isArtistQueryErr = query.trim().split(/\s+/).length <= 3;
+      if (isArtistQueryErr) {
+        resultsEl.innerHTML = `<div style="padding:24px;text-align:center;color:#e74c3c"><i class="ti ti-alert-circle" style="font-size:22px;margin-bottom:8px;display:block"></i>${esc(errMsg)}</div>`;
+        searchMusicBrainzArtist(query).then(mbArtist => {
+          if (token !== _searchToken || !mbArtist || mbArtist.score < 65) return;
+          resultsEl.insertAdjacentHTML('afterbegin', renderArtistCard(mbArtist, null));
+          fetchMusicBrainzAlbums(mbArtist.id).then(mbAlbums => {
+            if (token !== _searchToken || !mbAlbums.length) return;
+            resultsEl.insertAdjacentHTML('beforeend', renderAlbumsSection(mbArtist.name, mbAlbums));
+          }).catch(() => {});
+        }).catch(() => {});
+      } else {
+        throw new Error(errMsg);
+      }
+      return;
+    }
 
     let items = filterAI(ytData.items || []);
+    if (items.length === 0 && ytData.items && ytData.items.length > 0) {
+      // filterAI a tout filtré → on affiche les résultats bruts quand même
+      console.warn('[Search] filterAI a tout filtré, fallback sur résultats bruts');
+      items = ytData.items;
+    }
     if (items.length === 0) {
       resultsEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray)">Aucun résultat trouvé</div>';
       return;
@@ -4655,11 +4679,11 @@ const ARTIST_DB = [
   // Afro / RnB FR
   { name:'Tiakola',       genre:'afro-fr',    grad:'#1b5e20,#004d40' },
   { name:'Niska',         genre:'afro-fr',    grad:'#ff6f00,#e65100' },
-  { name:'Aya Nakamura',  genre:'pop-fr',     grad:'#c62828,#ad1457' },
+  { name:'Aya Nakamura',  genre:'pop-fr',     grad:'#c62828,#ad1457', img:'https://cdn-images.dzcdn.net/images/artist/c8bca3e6aed3da8de8cbe0edd91bc156/500x500-000000-80-0-0.jpg' },
   { name:'Angèle',        genre:'pop-fr',     grad:'#6a1b9a,#4a148c' },
   { name:'Stromae',       genre:'electro-fr', grad:'#0277bd,#1565c0' },
   // Rap US
-  { name:'Drake',         genre:'hiphop-us',  grad:'#004d40,#006064' },
+  { name:'Drake',         genre:'hiphop-us',  grad:'#004d40,#006064', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Drake_July_2016.jpg/330px-Drake_July_2016.jpg' },
   { name:'Travis Scott',  genre:'trap-us',    grad:'#33691e,#1b5e20' },
   { name:'Kendrick Lamar',genre:'hiphop-us',  grad:'#bf360c,#b71c1c' },
   { name:'J. Cole',       genre:'hiphop-us',  grad:'#4e342e,#3e2723' },
@@ -4753,10 +4777,13 @@ function obRenderArtist(artist, delay = 0) {
   card.className = 'ob-artist ob-anim' + (isSelected ? ' selected' : '');
   card.dataset.name = artist.name;
   card.style.animationDelay = delay + 'ms';
+  const bgStyle = artist.img
+    ? `background:url('${esc(artist.img)}') center/cover`
+    : `background:linear-gradient(135deg,#${artist.grad})`;
   card.innerHTML = `
-    <div class="ob-avatar" style="background:linear-gradient(135deg,#${artist.grad})">
+    <div class="ob-avatar" style="${bgStyle}">
       <span class="ob-check"><i class="ti ti-check"></i></span>
-      <span class="ob-initials" style="position:relative;z-index:0">${initials}</span>
+      ${artist.img ? '' : `<span class="ob-initials" style="position:relative;z-index:0">${initials}</span>`}
     </div>
     <div class="ob-artist-name">${esc(artist.name)}</div>
   `;
@@ -4846,8 +4873,9 @@ const NON_MUSIC_KEYWORDS = [
   'blind test', 'quiz', 'devinette', 'prank', 'caméra cachée',
   'asmr', 'mukbang', 'troll', 'funny moments', 'fails',
   'behind the scenes', 'making of', 'teaser trailer',
-  'live performance', 'concert live', 'live at', 'en concert',
-  'karaoke', 'cover by', 'remix video', 'visualizer', 'audio visualizer',
+  // Retirés : ces mots filteraient trop de musique légitime (lives, covers, mixtapes)
+  // 'live performance', 'concert live', 'live at', 'en concert',
+  // 'karaoke', 'cover by', 'remix video', 'visualizer', 'audio visualizer',
 ];
 const VIDEO_PENALTY_KEYWORDS = [
   'official video', 'clip officiel', 'music video', 'official mv',

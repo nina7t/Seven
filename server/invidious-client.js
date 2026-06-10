@@ -105,6 +105,7 @@ async function searchInvidious(query, maxResults = 12) {
     items,
     pageInfo: { totalResults: items.length, resultsPerPage: maxResults },
     source: 'invidious',
+    fallback: true,
     instance
   };
 }

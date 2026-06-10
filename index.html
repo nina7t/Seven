@@ -3177,11 +3177,69 @@ const BADGE_ICONS = {
   'electronic': '<i class="ti ti-device-desktop"></i>',
 };
 
+// ════════════════════════════════════════════════════════════
+// MEDIA SESSION API - Contrôles en arrière-plan
+// ════════════════════════════════════════════════════════════
+
+function updateMediaSession(track) {
+  if (!track) return;
+  
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title,
+      artist: track.channel || 'Unknown Artist',
+      album: 'Sevenz',
+      artwork: track.thumb ? [
+        { src: track.thumb, sizes: '512x512', type: 'image/jpeg' }
+      ] : []
+    });
+    
+    navigator.mediaSession.setActionHandler('play', () => {
+      S.player?.playVideo();
+    });
+    
+    navigator.mediaSession.setActionHandler('pause', () => {
+      S.player?.pauseVideo();
+    });
+    
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      playPrev();
+    });
+    
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      playNext();
+    });
+    
+    // Seek handlers
+    navigator.mediaSession.setActionHandler('seekbackward', () => {
+      const current = S.player?.getCurrentTime() || 0;
+      S.player?.seekTo(Math.max(0, current - 10));
+    });
+    
+    navigator.mediaSession.setActionHandler('seekforward', () => {
+      const current = S.player?.getCurrentTime() || 0;
+      const duration = S.player?.getDuration() || 0;
+      S.player?.seekTo(Math.min(duration, current + 10));
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// FIN MEDIA SESSION
+// ════════════════════════════════════════════════════════════
+
 // YouTube IFrame API
 window.onYouTubeIframeAPIReady = function() {
   S.player = new YT.Player('yt-player', {
     height: '0', width: '0',
-    playerVars: { autoplay: 0 },
+    playerVars: { 
+      autoplay: 0,
+      playsinline: 1,
+      controls: 0,
+      disablekb: 1,
+      fs: 0,
+      modestbranding: 1
+    },
     events: {
       onReady() { restorePlayerState(); },
       onStateChange(e) {
@@ -3189,6 +3247,7 @@ window.onYouTubeIframeAPIReady = function() {
           S.isPlaying = true;
           document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-pause-filled"></i>';
           startProgress();
+          updateMediaSession(S.currentTrack);
         } else if (e.data === YT.PlayerState.PAUSED) {
           S.isPlaying = false;
           document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-play-filled"></i>';
@@ -3756,6 +3815,9 @@ function playTrack(index) {
     document.getElementById('progressFill').style.width = '0%';
   }
 
+  // Update Media Session (controls in notification)
+  updateMediaSession(track);
+  
   updateLikeButton();
   saveToHistory(track);
 }

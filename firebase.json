@@ -10,7 +10,6 @@
       "build.js",
       "netlify.toml",
       "package-lock.json",
-      "config.js",
       "config.example.js"
     ],
     "rewrites": [

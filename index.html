@@ -3303,7 +3303,8 @@ async function doSearch(query) {
   if (!query.trim()) return;
 
   const token = ++_searchToken;
-  if (!spaNavigating) navigateTo('search', { query });
+  // Ne PAS appeler navigateTo ici - ça crée une boucle infinie avec applyView('search')
+  // Le caller (input event / navigateTo) gère la navigation
 
   hideAllViews();
   const resultsEl = document.getElementById('searchResults');

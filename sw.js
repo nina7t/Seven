@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sevenz-v1';
+const CACHE_NAME = 'sevenz-v2';
 const ASSETS = [
   '/index.html',
   '/config.js',

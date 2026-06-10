@@ -3319,7 +3319,7 @@ async function doSearch(query) {
     // YouTube uniquement en priorité - résultats immédiats
     const ytCacheKey = 'search:' + query.toLowerCase().trim();
     const ytData = _ytCache.get(ytCacheKey)
-      || await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=12`, { signal: AbortSignal.timeout(60000) }).then(r => {
+      || await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=12`, { signal: AbortSignal.timeout(15000) }).then(r => {
           if (r.status === 429) throw new Error('Quota dépassé - réessayez plus tard');
           return r.json();
         }).then(d => { _ytCache.set(ytCacheKey, d); return d; });

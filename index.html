@@ -4620,7 +4620,7 @@ document.addEventListener('click', e => {
 function showLikedTracks() { navigateTo('liked'); }
 
 // Home nav restores the home view
-document.querySelector('.nav-item[data-page="home"]').addEventListener('click', function() {
+document.querySelector('.nav-item[data-page="home"]')?.addEventListener('click', function() {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   this.classList.add('active');
   searchInput.value = '';

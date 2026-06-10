@@ -3095,7 +3095,7 @@ const S = {
   queue: [],
   currentIndex: 0,
   favorites: JSON.parse(localStorage.getItem('sevenz_favs') || '[]'),
-  playlists: JSON.parse(localStorage.getItem('sevenz_playlists') || '[]'),
+  playlists: (function(){ const pl=JSON.parse(localStorage.getItem('sevenz_playlists')||'[]'); const cv=JSON.parse(localStorage.getItem('sevenz_covers')||'{}'); return pl.map(p=>({...p,coverImage:cv[p.id]||p.coverImage||null})); })(),
   shuffle: false,
   repeat: false,
 };
@@ -3619,7 +3619,7 @@ function createResultRow(item, i, durationSec) {
     thumb: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url
   };
   const isLiked = S.favorites.some(f => f.id === track.id);
-  const playlists = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const playlists = S.playlists;
   const inPlaylist = playlists.some(p => p.tracks.some(t => t.id === track.id));
   const durStr = durationSec ? formatTime(durationSec) : '--:--';
   const ch = track.channel.toLowerCase();
@@ -3812,7 +3812,7 @@ function showHomeContent(html) {
 
 // ── Vue grille de toutes les playlists ────────────────────────────
 function showPlaylistsHome() {
-  const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const pls = S.playlists;
   if (pls.length === 0) {
     showHomeContent(`
       <div style="padding:24px">
@@ -3856,7 +3856,7 @@ function showPlaylistsHome() {
 
 // ── Vue détail d'une playlist ─────────────────────────────────────
 function openPlaylistDetail(id) {
-  const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const pls = S.playlists;
   const pl = pls.find(p => p.id === id);
   if (!pl) return;
 
@@ -3919,7 +3919,7 @@ function openPlaylistDetail(id) {
 }
 
 function playPlaylistFromHome(id) {
-  const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const pls = S.playlists;
   const pl = pls.find(p => p.id === id);
   if (!pl || !pl.tracks.length) return;
   S.queue = [...pl.tracks];
@@ -3928,7 +3928,7 @@ function playPlaylistFromHome(id) {
 }
 
 function playPlaylistTrack(id, index) {
-  const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const pls = S.playlists;
   const pl = pls.find(p => p.id === id);
   if (!pl || !pl.tracks[index]) return;
   S.queue = [...pl.tracks];
@@ -3941,11 +3941,11 @@ function playPlaylistTrack(id, index) {
 }
 
 function removeFromPlaylistHome(id, index) {
-  const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const pls = S.playlists;
   const pl = pls.find(p => p.id === id);
   if (!pl) return;
   pl.tracks.splice(index, 1);
-  localStorage.setItem('sevenz_playlists', JSON.stringify(pls));
+  savePlaylists();
   renderSidebarPlaylists();
   openPlaylistDetail(id); // rafraîchit la vue
 }
@@ -3953,7 +3953,7 @@ function removeFromPlaylistHome(id, index) {
 let libFilter = 'all';
 
 function renderSidebarPlaylists() {
-  const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const pls = S.playlists;
   const container = document.getElementById('sidebarPlaylists');
 
   if (pls.length === 0) {
@@ -4243,7 +4243,7 @@ async function renderAlbumsView() {
 S.currentPlaylistId = null;
 S.modalMode = 'create';
 S.modalTargetId = null;
-S.pendingCoverBase64 = null;
+S.pendingCoverBase64 = undefined;
 S.modalTags = [];
 
 const COVER_GRADIENTS_PL = [
@@ -4256,7 +4256,26 @@ const COVER_GRADIENTS_PL = [
 ];
 function getCoverGradient(id) { return COVER_GRADIENTS_PL[id.charCodeAt(0) % COVER_GRADIENTS_PL.length]; }
 
-function savePlaylists() { localStorage.setItem('sevenz_playlists', JSON.stringify(S.playlists)); syncToCloud(); }
+function savePlaylists() {
+  // Sauvegarder les covers séparément pour éviter le quota localStorage
+  const covers = {};
+  const slim = S.playlists.map(p => {
+    if (p.coverImage) covers[p.id] = p.coverImage;
+    const c = {...p}; delete c.coverImage; return c;
+  });
+  try {
+    localStorage.setItem('sevenz_playlists', JSON.stringify(slim));
+    localStorage.setItem('sevenz_covers', JSON.stringify(covers));
+  } catch(e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      localStorage.removeItem('sevenz_covers');
+      try { localStorage.setItem('sevenz_playlists', JSON.stringify(slim)); } catch(_) {}
+      alert('Espace local plein : les images de couverture ne peuvent pas être sauvegardées. Supprime des données ou utilise des images plus petites.');
+      return;
+    }
+  }
+  syncToCloud();
+}
 
 // ── PLAYLIST GRID ──────────────────────────────────────────────────
 function renderPlaylistGrid() {
@@ -4504,7 +4523,7 @@ function removeFav(id) {
 
 // ── MODAL CREATE/EDIT ──────────────────────────────────────────────
 function resetModalState() {
-  S.pendingCoverBase64 = null; S.modalTags = [];
+  S.pendingCoverBase64 = undefined; S.modalTags = [];
   document.getElementById('playlistNameInput').value = '';
   document.getElementById('playlistDescInput').value = '';
   document.getElementById('tagsInput').value = '';
@@ -4546,7 +4565,7 @@ function openEditModal(id) {
   document.getElementById('playlistDescInput').value=pl.description||'';
   S.modalTags=[...(pl.tags||[])]; renderModalTags();
   if (pl.coverImage) {
-    S.pendingCoverBase64=pl.coverImage;
+    S.pendingCoverBase64=undefined;
     const area=document.getElementById('coverUploadArea');
     let img=area.querySelector('img'); if(!img){img=document.createElement('img');area.appendChild(img);}
     img.src=pl.coverImage;
@@ -4565,7 +4584,7 @@ function submitModal() {
     S.playlists.unshift({id:Date.now().toString(),name,description,tags:[...S.modalTags],coverImage:S.pendingCoverBase64||null,tracks:[],createdAt:Date.now()});
   } else {
     const pl=S.playlists.find(p=>p.id===S.modalTargetId);
-    if (pl) { pl.name=name; pl.description=description; pl.tags=[...S.modalTags]; if(S.pendingCoverBase64!==null)pl.coverImage=S.pendingCoverBase64; }
+    if (pl) { pl.name=name; pl.description=description; pl.tags=[...S.modalTags]; if(S.pendingCoverBase64!==undefined)pl.coverImage=S.pendingCoverBase64; }
   }
   savePlaylists(); closeModal(); renderPlaylistGrid(); renderSidebarPlaylists();
   if (S.modalMode==='edit'&&S.modalTargetId===S.currentPlaylistId) openPlaylist(S.currentPlaylistId);
@@ -4580,11 +4599,23 @@ document.getElementById('coverFileInput').addEventListener('change', function() 
   const file=this.files[0]; if(!file) return;
   const reader=new FileReader();
   reader.onload=ev=>{
-    S.pendingCoverBase64=ev.target.result;
-    const area=document.getElementById('coverUploadArea');
-    let img=area.querySelector('img'); if(!img){img=document.createElement('img');area.appendChild(img);}
-    img.src=ev.target.result;
-    area.querySelector('i').style.display='none'; area.querySelector('.cu-label').style.display='none';
+    const original=ev.target.result;
+    const canvas=document.createElement('canvas');
+    const image=new Image();
+    image.onload=()=>{
+      const MAX=400;
+      let w=image.width, h=image.height;
+      if(w>h){if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}}else{if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(image,0,0,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.7);
+      S.pendingCoverBase64=compressed;
+      const area=document.getElementById('coverUploadArea');
+      let img=area.querySelector('img'); if(!img){img=document.createElement('img');area.appendChild(img);}
+      img.src=compressed;
+      area.querySelector('i').style.display='none'; area.querySelector('.cu-label').style.display='none';
+    };
+    image.src=original;
   };
   reader.readAsDataURL(file);
 });
@@ -4611,7 +4642,7 @@ let pendingTrack = null;
 function showAddToPlaylist(trackId, title, channel, thumb, duration) {
   event.stopPropagation();
   pendingTrack = { id: trackId, title, channel, thumb, duration: duration || null };
-  const playlists = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+  const playlists = S.playlists;
   const addPlList = document.getElementById('addPlList');
   addPlList.innerHTML = playlists.length === 0
     ? '<div style="padding:12px;color:var(--gray)">Aucune playlist. <a href="#" onclick="showPlaylistsView();return false" style="color:var(--accent)">Créer une playlist</a></div>'
@@ -4621,11 +4652,10 @@ function showAddToPlaylist(trackId, title, channel, thumb, duration) {
 
 function doAddToPlaylist(plId) {
   if (!pendingTrack) return;
-  const playlists = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
-  const pl = playlists.find(p => p.id === plId);
+  const pl = S.playlists.find(p => p.id === plId);
   if (pl && !pl.tracks.some(t => t.id === pendingTrack.id)) {
     pl.tracks.push(pendingTrack);
-    localStorage.setItem('sevenz_playlists', JSON.stringify(playlists));
+    savePlaylists();
   }
   pendingTrack = null;
   document.getElementById('addToPlaylist').classList.remove('active');
@@ -4854,8 +4884,6 @@ function initOnboarding() {
   obInitialArtists().forEach((a, i) => grid.appendChild(obRenderArtist(a, i * 40)));
 }
 
-initOnboarding();
-
 // ── Filtre non-musique ────────────────────────────────────────────
 const AI_KEYWORDS = [
   'suno', 'udio', 'mureka', 'boomy', 'aiva', 'soundraw', 'beatoven',
@@ -5037,13 +5065,12 @@ function playSmartPlaylist(i) {
 function saveSmartPlaylist(i) {
   const pl = smartPlaylists[i];
   if (!pl) return;
-  const playlists = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
   const btn = document.querySelector(`.smart-save-btn[data-smart="${i}"]`);
-  if (playlists.find(p => p.name === pl.name)) {
+  if (S.playlists.find(p => p.name === pl.name)) {
     if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Déjà sauvée'; btn.disabled = true; }
     return;
   }
-  playlists.unshift({
+  S.playlists.unshift({
     id: Date.now().toString(),
     name: pl.name,
     description: 'Générée automatiquement · Basé sur tes écoutes',
@@ -5052,10 +5079,10 @@ function saveSmartPlaylist(i) {
     tracks: pl.tracks,
     createdAt: Date.now()
   });
-  localStorage.setItem('sevenz_playlists', JSON.stringify(playlists));
+  savePlaylists();
   renderSidebarPlaylists();
   const countEl = document.getElementById('playlistCount');
-  if (countEl) countEl.textContent = playlists.length + ' playlist' + (playlists.length !== 1 ? 's' : '');
+  if (countEl) countEl.textContent = S.playlists.length + ' playlist' + (S.playlists.length !== 1 ? 's' : '');
   if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Sauvegardée !'; btn.disabled = true; btn.style.color = 'var(--green)'; btn.style.borderColor = 'rgba(29,185,84,0.3)'; }
 }
 
@@ -5941,9 +5968,11 @@ async function loginWithGoogle() {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     const result = await _auth.signInWithPopup(provider);
+    const isNew = result.additionalUserInfo && result.additionalUserInfo.isNewUser;
     await handleNewLogin(result.user);
     closeAuthModal();
     showToast('Vous êtes bien authentifié ✓');
+    if (isNew) { localStorage.removeItem('sevenz_onboarded'); initOnboarding(); }
   } catch(e) { err.textContent = e.message; }
 }
 
@@ -5961,6 +5990,12 @@ async function submitAuth() {
       const confirm = document.getElementById('authConfirm').value;
       if (pwd !== confirm) { err.textContent = 'Les mots de passe ne correspondent pas'; return; }
       result = await _auth.createUserWithEmailAndPassword(email, pwd);
+      await handleNewLogin(result.user);
+      closeAuthModal();
+      showToast('Vous êtes bien authentifié ✓');
+      localStorage.removeItem('sevenz_onboarded');
+      initOnboarding();
+      return;
     }
     await handleNewLogin(result.user);
     closeAuthModal();
@@ -6021,7 +6056,7 @@ async function handleNewLogin(user) {
       S.favorites = data.favorites || [];
     }
   }
-  localStorage.setItem('sevenz_playlists', JSON.stringify(S.playlists));
+  savePlaylists();
   localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
   renderPlaylistGrid?.();
   renderSidebarPlaylists?.();
@@ -6035,9 +6070,11 @@ async function loadFromCloud(uid) {
     const doc = await _db.collection('users').doc(uid).get();
     if (!doc.exists) return;
     const data = doc.data();
-    S.playlists = data.playlists || [];
+    const cloudPlaylists = data.playlists || [];
+    const savedCovers = JSON.parse(localStorage.getItem('sevenz_covers') || '{}');
+    S.playlists = cloudPlaylists.map(p => ({ ...p, coverImage: savedCovers[p.id] || null }));
     S.favorites = data.favorites || [];
-    localStorage.setItem('sevenz_playlists', JSON.stringify(S.playlists));
+    savePlaylists();
     localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
     // Appliquer la photo de profil custom si elle existe
     if (data.profile?.photoBase64) {
@@ -6056,8 +6093,9 @@ function syncToCloud() {
   if (!_currentUser || !_db) return;
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => {
+    const playlistsWithoutCovers = S.playlists.map(p => { const c={...p}; delete c.coverImage; return c; });
     _db.collection('users').doc(_currentUser.uid).set({
-      playlists: S.playlists,
+      playlists: playlistsWithoutCovers,
       favorites: S.favorites,
       updatedAt: Date.now()
     }).catch(e => console.error('syncToCloud:', e));

@@ -2865,10 +2865,6 @@ h1, h2, h3 {
     </div>
 
     <div class="content" id="mainContent">
-      <!-- Quick access playlists -->
-      <div class="quick-section" id="quickSection" style="display:none">
-        <div class="quick-grid" id="quickGrid"></div>
-      </div>
 
       <!-- Categories -->
       <div class="section" id="catsSection">
@@ -5737,52 +5733,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 // ── QUICK ACCESS GRID ───────────────────────────────────────────────
 function renderQuickGrid() {
-  const section = document.getElementById('quickSection');
-  const grid    = document.getElementById('quickGrid');
-  if (!section || !grid) return;
-
-  const playlists = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
-  const favCount  = S.favorites.length;
-
-  const items = [];
-
-  // Titres likés toujours en premier
-  items.push({
-    name: 'Titres likés',
-    cover: null,
-    gradient: 'linear-gradient(135deg,#450af5,#c4efd9)',
-    icon: '♥',
-    action: () => navigateTo('liked'),
-  });
-
-  // Playlists de l'utilisateur
-  playlists.forEach(pl => {
-    items.push({
-      name: pl.name,
-      cover: pl.coverImage || null,
-      gradient: getCoverGradient(pl.id),
-      icon: null,
-      action: () => navigateTo('playlist', { id: pl.id }),
-    });
-  });
-
-  if (items.length === 0) { section.style.display = 'none'; return; }
-
-  section.style.display = 'block';
-  grid.innerHTML = items.map((item, i) => `
-    <div class="quick-card" data-qi="${i}">
-      <div class="quick-card-cover" style="${item.cover ? '' : `background:${item.gradient}`}">
-        ${item.cover
-          ? `<img src="${esc(item.cover)}" alt="">`
-          : item.icon ? `<span style="color:#fff;font-size:26px">${item.icon}</span>` : ''}
-      </div>
-      <span class="quick-card-name">${esc(item.name)}</span>
-    </div>
-  `).join('');
-
-  grid.querySelectorAll('.quick-card').forEach(card => {
-    card.addEventListener('click', () => items[+card.dataset.qi].action());
-  });
+  // section supprimée
 }
 
 // ── CATEGORY ARTIST IMAGES ──────────────────────────────────────────

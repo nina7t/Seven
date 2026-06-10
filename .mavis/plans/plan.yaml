@@ -1,0 +1,76 @@
+version: 1
+plan:
+  name: 'Debug recherche spotiz - aucun resultat'
+  max_concurrency: 3
+  max_consecutive_failures: 2
+  max_cycles: 5
+  message_to_user: 'La team est en place : YT API Expert investigate le backend + fallback, Music App Debugger investigates le frontend + parsing. Je fais la synthèse dès qu ils ont fini.'
+tasks:
+  - id: backend-debug
+    title: 'Diagnostic backend YouTube/Invidious'
+    prompt: |
+      Tu es l'expert API YouTube pour le projet Spotiz.
+      Projet : /Applications/MAMP/htdocs/spoti
+      Bug : la recherche d artiste/titre ne renvoie aucun resultat.
+
+      Ta mission (concrète) :
+
+      1. Relis server/server.js et server/invidious-client.js
+      2. Trace le flux d une recherche :
+         - L utilisateur tape "Daft Punk" → le backend reçoit la requête à /api/youtube/search
+         - Que se passe-t-il si YouTube API échoue (quota, timeout, 403, etc.) ?
+         - Le fallback vers Invidious se déclenche-t-il ? Le code le prévoit-il bien ?
+         - Si Invidious répond, est-ce que le format de données correspond à ce que le frontend attend ?
+           Le frontend attend items[].id.videoId (format YouTube). Est-ce que Invidious renvoie la même structure ?
+      3. Vérifie aussi server/fallback-data.js : est-il utilisé quelque part dans la route /api/youtube/search ?
+         (il semble ne servir que pour /trending — est-ce un oubli ?)
+      4. Teste la route avec curl si le serveur tourne (port 3001 via MAMP ou direct) :
+         curl "http://localhost:3001/api/youtube/search?q=Daft+Punk&maxResults=5"
+         Si le serveur ne tourne pas, analyse le code pour identifier l'erreur logique.
+      5. Rapport final avec :
+         - Cause identifiée (ou hypotheses à vérifier)
+         - Fichier + ligne exacte du problème
+         - Correction proposée (code avant/après si possible)
+
+      Stop : tu as identifié la ou les causes et proposé les corrections.
+    assigned_to: youtube-api-expert
+    verified_by: verifier
+    verify_prompt: |
+      L'agent youtube-api-expert a identifié les causes du bug. Vérifie :
+      1. Son diagnostic du flux de données est correct (lit server.js et invidious-client.js independently)
+      2. Le format de réponse Invidious est bien conforme à ce que le frontend attend (items[].id.videoId)
+      3. Si des corrections sont proposées, elles sont cohérentes avec le diagnostic
+      Rapport : PASS ou FAIL + reason.
+
+  - id: frontend-debug
+    title: 'Diagnostic frontend parsing et cache'
+    prompt: |
+      Tu es l'expert frontend pour le projet Spotiz.
+      Projet : /Applications/MAMP/htdocs/spoti
+      Bug : la recherche d artiste/titre ne renvoie aucun resultat.
+
+      Ta mission (concrète) :
+
+      1. Relis index.html (environ lignes 3300-3450 pour doSearch et après)
+      2. Trace le flux côté client :
+         - doSearch() appelle /api/youtube/search et stocke dans _ytCache
+         - Vérifie : est-ce que _ytCache est initialisé correctement ? (cherches _ytCache dans tout le fichier)
+         - Vérifie filterAI() : que fait-elle exactement ? Est-ce qu'elle pourrait filtrer tous les résultats ?
+         - Vérifie getOfficialScore() : retourne-t-elle toujours 0 ? Si oui les résultats ne seraient pas triés mais toujours affichés
+         - Vérifie items.length === 0 après filterAI() : c'est ce qui affiche "Aucun résultat trouvé"
+         - Est-ce que la réponse API est bien un objet { items: [...], ... } ? Si le backend renvoie autre chose (erreur, string, etc.) le parsing échouerait silencieusement.
+      3. Vérifie aussi le timeout 60s à la fetch — est-ce que le serveur MAMP pourrait être plus lent ?
+      4. Rapport final avec :
+         - Cause identifiée (ou hypotheses à vérifier)
+         - Fichier + ligne exacte du problème
+         - Correction proposée (code avant/après si possible)
+
+      Stop : tu as identifié la ou les causes et proposé les corrections.
+    assigned_to: music-app-debugger
+    verified_by: verifier
+    verify_prompt: |
+      L'agent music-app-debugger a identifié les causes du bug. Vérifie :
+      1. Son analyse de filterAI() et getOfficialScore() est correcte (relis le code indépendamment)
+      2. Le parsing de la réponse API dans doSearch() est robuste
+      3. Si des corrections sont proposées, elles sont cohérentes avec le diagnostic
+      Rapport : PASS ou FAIL + reason.

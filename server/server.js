@@ -9,11 +9,28 @@ const { searchInvidious, getTrendingInvidious, getVideosInvidious } = require('.
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const API_KEY = process.env.YOUTUBE_API_KEY;
 
-if (!API_KEY) {
+// Support multi-clé API YouTube pour 10 users
+const API_KEYS = [
+  process.env.YOUTUBE_API_KEY,
+  process.env.YOUTUBE_API_KEY_2,
+  process.env.YOUTUBE_API_KEY_3
+].filter(Boolean);
+
+if (!API_KEYS[0]) {
   console.error('ERREUR: YOUTUBE_API_KEY non définie dans .env');
   process.exit(1);
+}
+
+let currentKeyIndex = 0;
+function getCurrentKey() { return API_KEYS[currentKeyIndex]; }
+function getCurrentKeyIndex() { return currentKeyIndex; }
+
+// Rotation vers prochaine clé si celle-ci est épuisée
+function rotateKey() {
+  if (API_KEYS.length <= 1) return;
+  currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+  console.log(`[KEY] Rotation vers clé ${currentKeyIndex + 1}/${API_KEYS.length}`);
 }
 
 // Cache avec TTL de 6 heures pour les recherches (économie quota), 24h pour les tendances
@@ -90,6 +107,10 @@ app.get('/api/health', (req, res) => {
   
   res.json({ 
     status: 'ok', 
+    keys: {
+      total: API_KEYS.length,
+      current: currentKeyIndex + 1
+    },
     quota: {
       used: quotaUsedToday,
       limit: QUOTA_LIMIT,
@@ -142,8 +163,8 @@ app.get('/api/youtube/search', rateLimit, async (req, res) => {
   // Créer la promesse pour cette recherche
   const searchPromise = (async () => {
     try {
-      console.log(`[API CALL] Search: ${q}`);
-      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=${type}&videoCategoryId=10&topicId=%2Fm%2F04rlf&maxResults=${maxResults}&key=${API_KEY}`;
+      console.log(`[API CALL] Search: ${q} (clé ${getCurrentKeyIndex() + 1}/${API_KEYS.length})`);
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=${type}&videoCategoryId=10&topicId=%2Fm%2F04rlf&maxResults=${maxResults}&key=${getCurrentKey()}`;
       
       const response = await axios.get(url, { timeout: 5000 });
       
@@ -153,7 +174,7 @@ app.get('/api/youtube/search', rateLimit, async (req, res) => {
 
       // Tracker le quota utilisé (~100 unités par search)
       quotaUsedToday += 100;
-      console.log(`[QUOTA] Utilisé: ${quotaUsedToday}/${QUOTA_LIMIT}`);
+      console.log(`[QUOTA] Utilisé: ${quotaUsedToday}/${QUOTA_LIMIT} (clé ${getCurrentKeyIndex() + 1})`);
 
       searchCache.set(cacheKey, response.data);
       return response.data;
@@ -161,15 +182,37 @@ app.get('/api/youtube/search', rateLimit, async (req, res) => {
     } catch (error) {
       console.error('YouTube Search Error:', error.message);
       
-      // Quota dépassé → passer sur Invidious (gratuit)
-      if (error.response?.data?.error?.message?.includes('quota')) {
-        console.warn('[YOUTUBE QUOTA] Passage sur Invidious (gratuit)...');
+      // Quota dépassé (429) → rotation de clé ou Invidious
+      if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+        console.warn('[YOUTUBE QUOTA] Clé épuisée, rotation...');
+        rotateKey();
+        
+        // Si on a encore des clés, réessayer avec la nouvelle
+        if (API_KEYS.length > 1) {
+          try {
+            const retryUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=${type}&videoCategoryId=10&topicId=%2Fm%2F04rlf&maxResults=${maxResults}&key=${getCurrentKey()}`;
+            const retryResponse = await axios.get(retryUrl, { timeout: 5000 });
+            if (!retryResponse.data.error) {
+              quotaUsedToday += 100;
+              searchCache.set(cacheKey, retryResponse.data);
+              return retryResponse.data;
+            }
+          } catch (retryError) {
+            console.warn('[RETRY FAIL] Clé suivante aussi épuisée');
+          }
+        }
+        
+        // Toutes les clés épuisées → Invidious
+        console.warn('[ALL KEYS EXHAUSTED] Passage sur Invidious...');
         try {
           return await searchInvidious(q, maxResults);
         } catch (invidiousError) {
-          // Invidious HS → utiliser données de fallback
           console.warn('[INVIDIOUS FAIL] Utilisation fallback static...');
           return getFallbackSearch(q, maxResults);
+        }
+      }
+      
+      throw error;
         }
       }
       
@@ -205,7 +248,7 @@ app.get('/api/youtube/trending', rateLimit, async (req, res) => {
 
   try {
     console.log('[API CALL] Trending');
-    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&videoCategoryId=10&maxResults=16&regionCode=FR&key=${API_KEY}`;
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&videoCategoryId=10&maxResults=16&regionCode=FR&key=${getCurrentKey()}`;
     
     const response = await axios.get(url, { timeout: 5000 });
     
@@ -218,6 +261,28 @@ app.get('/api/youtube/trending', rateLimit, async (req, res) => {
     
   } catch (error) {
     console.error('YouTube Trending Error:', error.message);
+    
+    // Quota dépassé → rotation clé ou Invidious
+    if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+      rotateKey();
+      try {
+        const retryUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&videoCategoryId=10&maxResults=16&regionCode=FR&key=${getCurrentKey()}`;
+        const retryResponse = await axios.get(retryUrl, { timeout: 5000 });
+        if (!retryResponse.data.error) {
+          trendingCache.set(cacheKey, retryResponse.data);
+          return res.json({ ...retryResponse.data, cached: false });
+        }
+      } catch (retryError) {}
+      
+      console.warn('[TRENDING] Toutes clés épuisées, Invidious...');
+      try {
+        const invidiousData = await getTrendingInvidious('FR');
+        return res.json(invidiousData);
+      } catch (invError) {
+        const fallback = getFallbackTrending();
+        return res.json(fallback);
+      }
+    }
     
     if (error.response?.data?.error?.message?.includes('quota')) {
       console.warn('[YOUTUBE QUOTA] Tentative avec Invidious...');
@@ -268,7 +333,7 @@ app.get('/api/youtube/videos', rateLimit, async (req, res) => {
   const videoPromise = (async () => {
     try {
       console.log(`[API CALL] Videos: ${ids.substring(0, 30)}...`);
-      const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}&key=${API_KEY}`;
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}&key=${getCurrentKey()}`;
       
       const response = await axios.get(url, { timeout: 5000 });
       
@@ -287,12 +352,24 @@ app.get('/api/youtube/videos', rateLimit, async (req, res) => {
     } catch (error) {
       console.error('YouTube Videos Error:', error.message);
       
-      if (error.response?.data?.error?.message?.includes('quota')) {
-        console.warn('[YOUTUBE QUOTA] Passage sur Invidious...');
+      if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+        rotateKey();
+        if (API_KEYS.length > 1) {
+          try {
+            const retryUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${ids}&key=${getCurrentKey()}`;
+            const retryResponse = await axios.get(retryUrl, { timeout: 5000 });
+            if (!retryResponse.data.error) {
+              const videoCount = ids.split(',').length;
+              quotaUsedToday += videoCount;
+              videoCache.set(cacheKey, retryResponse.data);
+              return retryResponse.data;
+            }
+          } catch (retryError) {}
+        }
+        
         try {
           return await getVideosInvidious(ids);
         } catch (invError) {
-          console.warn('[INV FAIL] Fallback aux données statiques pour vidéos');
           return getFallbackVideos(ids);
         }
       }

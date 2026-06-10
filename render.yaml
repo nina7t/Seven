@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: sevenz-youtube-proxy
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: YOUTUBE_API_KEY
+        sync: false   # à renseigner manuellement dans le dashboard Render

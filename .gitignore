@@ -1,2 +1,11 @@
-# Fichier de configuration avec clés API — ne jamais commiter
+# Fichiers de configuration avec clés API — ne jamais commiter
 config.js
+server/.env
+.env
+
+# Dépendances
+node_modules/
+server/node_modules/
+
+# Firebase
+.firebase/

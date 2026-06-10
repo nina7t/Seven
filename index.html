@@ -3310,14 +3310,20 @@ async function doSearch(query) {
   resultsEl.style.display = 'block';
   resultsEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray)"><i class="ti ti-loader spin" style="font-size:28px"></i></div>';
 
+  const _wakeTimer = setTimeout(() => {
+    if (token !== _searchToken) return;
+    resultsEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray)"><i class="ti ti-loader spin" style="font-size:24px"></i><br><br>Le serveur se réveille, encore quelques secondes…</div>';
+  }, 4000);
+
   try {
     // YouTube uniquement en priorité - résultats immédiats
     const ytCacheKey = 'search:' + query.toLowerCase().trim();
     const ytData = _ytCache.get(ytCacheKey)
-      || await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=12`).then(r => {
+      || await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=12`, { signal: AbortSignal.timeout(60000) }).then(r => {
           if (r.status === 429) throw new Error('Quota dépassé - réessayez plus tard');
           return r.json();
         }).then(d => { _ytCache.set(ytCacheKey, d); return d; });
+    clearTimeout(_wakeTimer);
 
     if (token !== _searchToken) return;
     const isFallback = ytData.fallback === true;
@@ -3404,8 +3410,12 @@ async function doSearch(query) {
       }).catch(() => {});
 
   } catch (e) {
+    clearTimeout(_wakeTimer);
     if (token !== _searchToken) return;
-    resultsEl.innerHTML = `<div style="padding:40px;text-align:center;color:#e74c3c">Erreur: ${esc(e.message)}</div>`;
+    const msg = e.name === 'TimeoutError' || e.name === 'AbortError'
+      ? 'Le serveur met trop de temps à répondre. Réessaie dans quelques secondes.'
+      : `Erreur: ${esc(e.message)}`;
+    resultsEl.innerHTML = `<div style="padding:40px;text-align:center;color:#e74c3c">${msg}</div>`;
     console.error(e);
   }
 }
@@ -5605,6 +5615,11 @@ if (window.location.search.includes('code=') || window.location.search.includes(
 
 // Init mobile gestures au chargement
 document.addEventListener('DOMContentLoaded', initMobileGestures);
+
+// Wake up Render server silently on load (free tier sleeps after 15 min inactivity)
+document.addEventListener('DOMContentLoaded', () => {
+  fetch(`${PROXY_URL}/health`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
+});
 </script>
 
 <!-- Spotify Import Modal -->

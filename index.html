@@ -4089,9 +4089,10 @@ function applyView(view, params={}) {
       showHomeSections();
       break;
     case 'search':
-      doSearch(params.query);
+      // Ne PAS appeler doSearch ici - l'input event l'a déjà déclenché
+      // doSearch affiche les résultats, applyView gère juste la navigation
       if (params.query) searchInput.value = params.query;
-      return; // doSearch gère l'affichage
+      return;
     case 'playlists':
       document.getElementById('playlistsView').style.display='block';
       document.getElementById('playlistsView').classList.add('active');

@@ -2,7 +2,10 @@ package com.sevenz.app.plugin;
 
 import android.content.Intent;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -27,6 +30,13 @@ public class AudioPlayerPlugin extends Plugin {
     public static final String ACTION_RESUME = "com.sevenz.app.RESUME";
     public static final String ACTION_STOP = "com.sevenz.app.STOP";
     
+    // Handler for showing Toasts on main thread
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
+    
+    private void showToast(String message) {
+        mainHandler.post(() -> Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show());
+    }
+    
     /**
      * Play a YouTube video by extracting audio URL using NewPipeExtractor
      * This extracts URLs directly on device without any server!
@@ -44,11 +54,13 @@ public class AudioPlayerPlugin extends Plugin {
         }
         
         Log.d(TAG, "playVideo called for: " + videoId);
+        showToast("Extraction audio en cours...");
         
         // Run extraction on background thread
         new Thread(() -> {
             try {
                 Log.d(TAG, "Starting NewPipeExtractor for: " + videoId);
+                showToast("Extraction YouTube...");
                 
                 // Initialize NewPipe
                 YoutubeService service = (YoutubeService) NewPipe.getService(0); // 0 = YouTube
@@ -59,6 +71,7 @@ public class AudioPlayerPlugin extends Plugin {
                 // Get stream info
                 StreamInfo info = StreamInfo.getInfo(videoUrl);
                 Log.d(TAG, "Stream info fetched, title: " + info.getName());
+                showToast("Titre trouvé: " + info.getName());
                 
                 // Find best audio stream (highest bitrate)
                 java.util.List<AudioStream> audioStreams = info.getAudioStreams();
@@ -71,6 +84,7 @@ public class AudioPlayerPlugin extends Plugin {
                 
                 if (bestAudio == null) {
                     Log.e(TAG, "No audio stream found");
+                    showToast("ERREUR: Aucun flux audio trouvé");
                     call.reject("No audio available for this video.");
                     return;
                 }
@@ -79,9 +93,11 @@ public class AudioPlayerPlugin extends Plugin {
                 int bitrate = bestAudio.getAverageBitrate();
                 
                 Log.d(TAG, "Found audio URL! Bitrate: " + bitrate + " URL length: " + audioUrl.length());
+                showToast("Audio trouvé! Bitrate: " + bitrate + "kbps");
                 
                 // Start the AudioService with the extracted URL
                 startAudioService(audioUrl, title, artist, thumb);
+                showToast("Lecture en arrière-plan!");
                 
                 JSObject result = new JSObject();
                 result.put("success", true);
@@ -94,7 +110,12 @@ public class AudioPlayerPlugin extends Plugin {
             } catch (Exception e) {
                 Log.e(TAG, "Extraction failed", e);
                 e.printStackTrace();
-                call.reject("Extraction failed: " + e.getMessage());
+                String errorMsg = e.getMessage();
+                if (errorMsg == null || errorMsg.isEmpty()) {
+                    errorMsg = e.getClass().getSimpleName();
+                }
+                showToast("ERREUR extraction: " + errorMsg);
+                call.reject("Extraction failed: " + errorMsg);
             }
         }).start();
     }

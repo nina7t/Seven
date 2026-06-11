@@ -2,6 +2,7 @@ package com.sevenz.app.plugin;
 
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -31,7 +32,10 @@ public class AudioPlayerPlugin extends Plugin {
         "https://invidious.protokolla.fi",
         "https://inv.nadeko.net",
         "https://invidious.nerdvpn.de",
-        "https://yewtu.be"
+        "https://yewtu.be",
+        "https://yewtu.be",
+        "https://inv.nadeko.net",
+        "https://invidious.privacyredirect.com"
     };
     
     /**
@@ -106,6 +110,8 @@ public class AudioPlayerPlugin extends Plugin {
      * Extract audio URL using Invidious API (runs on device, no server!)
      */
     private String extractAudioUrl(String videoId) {
+        String lastError = "";
+        
         for (String instance : INVIDIUS_INSTANCES) {
             try {
                 Log.d(TAG, "Trying Invidious: " + instance);
@@ -113,11 +119,14 @@ public class AudioPlayerPlugin extends Plugin {
                 URL url = new URL(instance + "/api/v1/videos/" + videoId);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setConnectTimeout(10000);
-                conn.setReadTimeout(10000);
-                conn.addRequestProperty("User-Agent", "Mozilla/5.0");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                conn.addRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36");
                 
-                if (conn.getResponseCode() == 200) {
+                int responseCode = conn.getResponseCode();
+                Log.d(TAG, "Response code from " + instance + ": " + responseCode);
+                
+                if (responseCode == 200) {
                     BufferedReader reader = new BufferedReader(
                         new InputStreamReader(conn.getInputStream())
                     );
@@ -130,19 +139,25 @@ public class AudioPlayerPlugin extends Plugin {
                     conn.disconnect();
                     
                     String audioUrl = parseAudioUrl(response.toString());
-                    if (audioUrl != null) {
+                    if (audioUrl != null && !audioUrl.isEmpty()) {
                         Log.d(TAG, "Found audio URL via " + instance);
                         return audioUrl;
+                    } else {
+                        Log.d(TAG, "No audio URL in response from " + instance);
                     }
+                } else {
+                    Log.d(TAG, "HTTP error " + responseCode + " from " + instance);
                 }
                 
                 conn.disconnect();
                 
             } catch (Exception e) {
+                lastError = e.getMessage();
                 Log.d(TAG, "Instance failed: " + instance + " - " + e.getMessage());
             }
         }
         
+        Log.e(TAG, "All Invidious instances failed. Last error: " + lastError);
         return null;
     }
     
@@ -154,33 +169,65 @@ public class AudioPlayerPlugin extends Plugin {
             JSONObject json = new JSONObject(response);
             
             if (json.has("error")) {
+                Log.d(TAG, "Invidious error: " + json.getString("error"));
                 return null;
             }
             
+            // Method 1: Try adaptiveFormats (most common)
             org.json.JSONArray adaptiveFormats = json.optJSONArray("adaptiveFormats");
-            if (adaptiveFormats == null) {
-                return null;
-            }
-            
-            JSONObject bestAudio = null;
-            int bestBitrate = 0;
-            
-            for (int i = 0; i < adaptiveFormats.length(); i++) {
-                JSONObject format = adaptiveFormats.getJSONObject(i);
-                String type = format.optString("type", "");
+            if (adaptiveFormats != null) {
+                JSONObject bestAudio = null;
+                int bestBitrate = 0;
                 
-                if (type.startsWith("audio/")) {
-                    int bitrate = format.optInt("bitrate", 0);
-                    if (bitrate > bestBitrate) {
-                        bestBitrate = bitrate;
-                        bestAudio = format;
+                for (int i = 0; i < adaptiveFormats.length(); i++) {
+                    JSONObject format = adaptiveFormats.getJSONObject(i);
+                    String type = format.optString("type", "");
+                    
+                    if (type.startsWith("audio/")) {
+                        int bitrate = format.optInt("bitrate", 0);
+                        if (bitrate > bestBitrate) {
+                            bestBitrate = bitrate;
+                            bestAudio = format;
+                        }
+                    }
+                }
+                
+                if (bestAudio != null) {
+                    String url = bestAudio.optString("url", "");
+                    if (!url.isEmpty()) {
+                        Log.d(TAG, "Found audio in adaptiveFormats, bitrate: " + bestBitrate);
+                        return url;
                     }
                 }
             }
             
-            if (bestAudio != null) {
-                return bestAudio.optString("url", "");
+            // Method 2: Try streamingData.hlsManifestUrl (HLS streams)
+            JSONObject streamingData = json.optJSONObject("streamingData");
+            if (streamingData != null) {
+                String hlsUrl = streamingData.optString("hlsManifestUrl", "");
+                if (!hlsUrl.isEmpty()) {
+                    Log.d(TAG, "Found HLS stream URL");
+                    return hlsUrl;
+                }
+                
+                // Try adaptiveFormats in streamingData
+                org.json.JSONArray streamingFormats = streamingData.optJSONArray("adaptiveFormats");
+                if (streamingFormats != null) {
+                    for (int i = 0; i < streamingFormats.length(); i++) {
+                        JSONObject format = streamingFormats.getJSONObject(i);
+                        String type = format.optString("type", "");
+                        if (type.startsWith("audio/")) {
+                            String url = format.optString("url", "");
+                            if (!url.isEmpty()) {
+                                Log.d(TAG, "Found audio in streamingData");
+                                return url;
+                            }
+                        }
+                    }
+                }
             }
+            
+            Log.d(TAG, "No audio URL found in response");
             
         } catch (Exception e) {
             Log.e(TAG, "Failed to parse response", e);
@@ -192,11 +239,19 @@ public class AudioPlayerPlugin extends Plugin {
     private void startAudioService(String url, String title, String artist, String thumb) {
         Intent intent = new Intent(getContext(), AudioService.class);
         intent.setAction(ACTION_PLAY);
+        intent.putExtra("action", ACTION_PLAY);  // Add this too for safety
         intent.putExtra("url", url);
         intent.putExtra("title", title);
         intent.putExtra("artist", artist);
         intent.putExtra("thumb", thumb);
-        getContext().startForegroundService(intent);
+        
+        Log.d(TAG, "Starting AudioService with URL: " + url);
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getContext().startForegroundService(intent);
+        } else {
+            getContext().startService(intent);
+        }
     }
     
     // Existing methods for direct URL playback

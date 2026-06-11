@@ -7,9 +7,6 @@ require('dotenv').config();
 const { getFallbackSearch, getFallbackTrending, getFallbackVideos } = require('./fallback-data');
 const { searchInvidious, getTrendingInvidious, getVideosInvidious } = require('./invidious-client');
 
-// YouTube cookies for ytdl-core stream extraction
-const YOUTUBE_COOKIES = process.env.YOUTUBE_COOKIES || '';
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -410,9 +407,77 @@ app.post('/api/admin/clear-cache', (req, res) => {
 
 // ════════════════════════════════════════════════════════════
 // STREAM URL - Pour lecture native en arrière-plan (ExoPlayer)
+// Utilise Invidious pour éviter le ban d'IP de Render par YouTube
 // ════════════════════════════════════════════════════════════
 
-// Proxy vers ytdl-core pour extraire l'URL du stream audio
+// Instances Invidious avec fallback automatique
+const INVIDIOUS_INSTANCES = [
+  'https://inv.nadeko.net',
+  'https://invidious.nerdvpn.de',
+  'https://yt.cdaut.de',
+  'https://invidious.privacyredirect.com',
+  'https://yewtu.be'
+];
+
+// Récupère le stream audio via Invidious avec fallback entre instances
+async function getAudioStream(videoId) {
+  for (const instance of INVIDIOUS_INSTANCES) {
+    try {
+      console.log(`[INVIDIOUS] Trying ${instance}...`);
+      
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeout);
+      
+      if (!response.ok) {
+        console.log(`[INVIDIOUS] ${instance} returned ${response.status}`);
+        continue;
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        console.log(`[INVIDIOUS] ${instance} error: ${data.error}`);
+        continue;
+      }
+      
+      // Trouve le meilleur format audio
+      const audioFormats = (data.adaptiveFormats || [])
+        .filter(f => f.type && f.type.startsWith('audio/'))
+        .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+      
+      if (audioFormats.length === 0) {
+        console.log(`[INVIDIOUS] ${instance} - no audio format found`);
+        continue;
+      }
+      
+      const best = audioFormats[0];
+      
+      console.log(`[INVIDIOUS] Success via ${instance}, bitrate: ${best.bitrate}`);
+      
+      return {
+        audioUrl: best.url,
+        title: data.title || 'Unknown',
+        author: data.author || 'Unknown Artist',
+        duration: data.lengthSeconds || 0,
+        mimeType: best.type || 'audio/webm',
+        instance: instance
+      };
+      
+    } catch (error) {
+      console.log(`[INVIDIOUS] ${instance} failed: ${error.message}`);
+      continue;
+    }
+  }
+  
+  throw new Error('Toutes les instances Invidious sont inaccessibles');
+}
+
 app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
   const { videoId } = req.params;
   
@@ -421,50 +486,28 @@ app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
   }
   
   try {
-    const ytdl = require('@distube/ytdl-core');
-    
-    // Options avec cookies et headers de navigateur
-    const options = {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-        }
-      }
-    };
-    
-    if (YOUTUBE_COOKIES) {
-      options.requestOptions.headers['Cookie'] = YOUTUBE_COOKIES;
-    }
-    
-    // Récupère les infos de la vidéo
-    const info = await ytdl.getInfo(videoId, options);
-    
-    // Filtre pour avoir seulement les formats audio
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-    
-    if (audioFormats.length === 0) {
-      return res.status(404).json({ error: 'Aucun format audio disponible' });
-    }
-    
-    // Prend le meilleur format audio (highest bitrate)
-    const best = audioFormats.sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
+    const streamData = await getAudioStream(videoId);
     
     res.json({
       videoId,
-      title: info.videoDetails.title,
-      author: info.videoDetails.author.name,
-      duration: parseInt(info.videoDetails.lengthSeconds),
-      audioUrl: best.url,
-      mimeType: best.mimeType.split(';')[0].trim(),
-      expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString() // expire dans 6h
+      title: streamData.title,
+      author: streamData.author,
+      duration: streamData.duration,
+      audioUrl: streamData.audioUrl,
+      mimeType: streamData.mimeType.split(';')[0].trim(),
+      expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // expire dans 4h
+      via: streamData.instance
     });
     
   } catch (error) {
     console.error('[STREAM ERROR]', error.message);
-    res.status(500).json({ error: 'Erreur extraction stream: ' + error.message });
+    res.status(503).json({ error: 'Stream indisponible: ' + error.message });
   }
+});
+
+// Route pour lister les instances disponibles
+app.get('/api/stream/instances', (req, res) => {
+  res.json({ instances: INVIDIOUS_INSTANCES });
 });
 
 // ════════════════════════════════════════════════════════════

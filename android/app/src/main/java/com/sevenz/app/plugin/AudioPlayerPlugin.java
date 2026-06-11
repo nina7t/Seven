@@ -36,7 +36,13 @@ public class AudioPlayerPlugin extends Plugin {
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     
     private void showToast(String message) {
-        mainHandler.post(() -> Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show());
+        mainHandler.post(() -> {
+            try {
+                Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Log.e(TAG, "showToast failed: " + message, e);
+            }
+        });
     }
     
     /**
@@ -115,14 +121,13 @@ public class AudioPlayerPlugin extends Plugin {
                 call.resolve(result);
                 
             } catch (Exception e) {
-                Log.e(TAG, "Extraction failed", e);
+                String errorDetail = e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "no message");
+                Log.e(TAG, "Extraction failed: " + errorDetail, e);
                 e.printStackTrace();
-                String errorMsg = e.getMessage();
-                if (errorMsg == null || errorMsg.isEmpty()) {
-                    errorMsg = e.getClass().getSimpleName();
-                }
-                showToast("ERREUR extraction: " + errorMsg);
-                call.reject("Extraction failed: " + errorMsg);
+                new Handler(Looper.getMainLooper()).post(() ->
+                    Toast.makeText(getContext(), "ERREUR: " + errorDetail, Toast.LENGTH_LONG).show()
+                );
+                call.reject("Extraction failed: " + errorDetail);
             }
         }).start();
     }

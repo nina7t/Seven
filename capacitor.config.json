@@ -13,6 +13,7 @@
       "backgroundColor": "#121212"
     },
     "KeepAwake": {},
-    "AudioPlayer": {}
+    "AudioPlayer": {},
+    "YouTubeExtractor": {}
   }
 }

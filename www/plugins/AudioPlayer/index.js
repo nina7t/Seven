@@ -1,10 +1,10 @@
-// Capacitor Audio Player Plugin - JS Interface
-// This bridges to the native AudioService for background playback
+// Capacitor Audio Player Plugin with built-in YouTube extraction
+// Extracts audio URLs directly on device using Invidious API
 
 const { registerPlugin } = require('@capacitor/core');
 
 const AudioPlayer = registerPlugin('AudioPlayer', {
-  web: () => import('./AudioPlayerPluginImpl'),
+  web: () => require('./AudioPlayerPluginImpl'),
 });
 
 module.exports = AudioPlayer;

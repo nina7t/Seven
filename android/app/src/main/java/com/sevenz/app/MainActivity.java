@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.PowerManager;
 
 import com.getcapacitor.BridgeActivity;
+import com.sevenz.app.plugin.AudioPlayerPlugin;
 
 public class MainActivity extends BridgeActivity {
     private static final String CHANNEL_ID = "SevenzAudioChannel";
@@ -17,6 +18,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        registerPlugin(AudioPlayerPlugin.class);
         createNotificationChannel();
     }
 

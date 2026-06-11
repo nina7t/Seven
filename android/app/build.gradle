@@ -46,7 +46,9 @@ dependencies {
     implementation 'androidx.media3:media3-ui:1.4.1'
     implementation 'androidx.media3:media3-session:1.4.1'
     implementation 'androidx.media:media:1.7.0'
-    // Note: Audio extraction uses Invidious API directly in YouTubeExtractorPlugin
+    
+    // YouTubeExtractor - extracts audio URLs directly on Android
+    implementation 'com.github.HaarigerHarald:android-youtubeExtractor:master-SNAPSHOT'
 }
 
 apply from: 'capacitor.build.gradle'

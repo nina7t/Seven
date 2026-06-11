@@ -11,6 +11,7 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
 
 import com.sevenz.app.AudioService;
 
@@ -22,6 +23,7 @@ import org.schabi.newpipe.extractor.stream.StreamInfo;
 
 import java.util.Comparator;
 
+@CapacitorPlugin(name = "AudioPlayerPlugin")
 public class AudioPlayerPlugin extends Plugin {
     
     private static final String TAG = "AudioPlayerPlugin";

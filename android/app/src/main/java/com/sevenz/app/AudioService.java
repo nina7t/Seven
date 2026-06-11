@@ -44,17 +44,22 @@ public class AudioService extends Service {
     
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        android.util.Log.d("AudioService", "onStartCommand called, intent=" + (intent != null ? "not null" : "null"));
+        
         if (intent == null) {
+            android.util.Log.d("AudioService", "Intent is null, returning START_NOT_STICKY");
             return START_NOT_STICKY;
         }
         
         String action = intent.getStringExtra("action");
-        
         if (action == null) {
             action = intent.getAction();
         }
         
+        android.util.Log.d("AudioService", "Action received: " + action);
+        
         if (action == null) {
+            android.util.Log.d("AudioService", "Action is null, returning START_NOT_STICKY");
             return START_NOT_STICKY;
         }
         
@@ -63,16 +68,19 @@ public class AudioService extends Service {
                 String url = intent.getStringExtra("url");
                 currentTitle = intent.getStringExtra("title");
                 currentArtist = intent.getStringExtra("artist");
-                currentThumb = intent.getStringExtra("thumb");
+                android.util.Log.d("AudioService", "PLAY action - URL: " + (url != null ? "present (" + url.length() + " chars)" : "NULL"));
                 playAudio(url);
                 break;
             case ACTION_PAUSE:
+                android.util.Log.d("AudioService", "PAUSE action");
                 pauseAudio();
                 break;
             case ACTION_RESUME:
+                android.util.Log.d("AudioService", "RESUME action");
                 resumeAudio();
                 break;
             case ACTION_STOP:
+                android.util.Log.d("AudioService", "STOP action");
                 stopAudio();
                 break;
             case ACTION_NEXT:
@@ -87,11 +95,20 @@ public class AudioService extends Service {
     }
     
     private void playAudio(String url) {
+        android.util.Log.d("AudioService", "playAudio called, URL: " + (url != null ? url.substring(0, Math.min(50, url.length())) + "..." : "NULL"));
+        
+        if (url == null || url.isEmpty()) {
+            android.util.Log.e("AudioService", "URL is null or empty, cannot play");
+            return;
+        }
+        
         if (player == null) {
+            android.util.Log.d("AudioService", "Creating new ExoPlayer");
             player = new ExoPlayer.Builder(this).build();
             player.addListener(new Player.Listener() {
                 @Override
                 public void onPlaybackStateChanged(int playbackState) {
+                    android.util.Log.d("AudioService", "Playback state changed: " + playbackState);
                     if (playbackState == Player.STATE_ENDED) {
                         // Track ended - emit event to JS
                     }
@@ -99,12 +116,19 @@ public class AudioService extends Service {
             });
         }
         
-        MediaItem mediaItem = MediaItem.fromUri(url);
-        player.setMediaItem(mediaItem);
-        player.prepare();
-        player.play();
-        
-        startForeground(NOTIFICATION_ID, buildNotification());
+        try {
+            android.util.Log.d("AudioService", "Setting media item and preparing...");
+            MediaItem mediaItem = MediaItem.fromUri(url);
+            player.setMediaItem(mediaItem);
+            player.prepare();
+            player.play();
+            
+            android.util.Log.d("AudioService", "Calling startForeground...");
+            startForeground(NOTIFICATION_ID, buildNotification());
+            android.util.Log.d("AudioService", "Notification started");
+        } catch (Exception e) {
+            android.util.Log.e("AudioService", "Error playing audio", e);
+        }
     }
     
     private void pauseAudio() {

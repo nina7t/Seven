@@ -48,16 +48,23 @@ public class AudioPlayerPlugin extends Plugin {
         // Run extraction on background thread
         new Thread(() -> {
             try {
+                Log.d(TAG, "Starting NewPipeExtractor for: " + videoId);
+                
                 // Initialize NewPipe
                 YoutubeService service = (YoutubeService) NewPipe.getService(0); // 0 = YouTube
                 
                 String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
+                Log.d(TAG, "Fetching stream info from: " + videoUrl);
                 
                 // Get stream info
                 StreamInfo info = StreamInfo.getInfo(videoUrl);
+                Log.d(TAG, "Stream info fetched, title: " + info.getName());
                 
                 // Find best audio stream (highest bitrate)
-                AudioStream bestAudio = info.getAudioStreams()
+                java.util.List<AudioStream> audioStreams = info.getAudioStreams();
+                Log.d(TAG, "Found " + audioStreams.size() + " audio streams");
+                
+                AudioStream bestAudio = audioStreams
                     .stream()
                     .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
                     .orElse(null);
@@ -71,7 +78,7 @@ public class AudioPlayerPlugin extends Plugin {
                 String audioUrl = bestAudio.getUrl();
                 int bitrate = bestAudio.getAverageBitrate();
                 
-                Log.d(TAG, "Found audio URL! Bitrate: " + bitrate);
+                Log.d(TAG, "Found audio URL! Bitrate: " + bitrate + " URL length: " + audioUrl.length());
                 
                 // Start the AudioService with the extracted URL
                 startAudioService(audioUrl, title, artist, thumb);
@@ -86,12 +93,15 @@ public class AudioPlayerPlugin extends Plugin {
                 
             } catch (Exception e) {
                 Log.e(TAG, "Extraction failed", e);
+                e.printStackTrace();
                 call.reject("Extraction failed: " + e.getMessage());
             }
         }).start();
     }
     
     private void startAudioService(String url, String title, String artist, String thumb) {
+        Log.d(TAG, "startAudioService called with URL length: " + (url != null ? url.length() : 0));
+        
         Intent intent = new Intent(getContext(), AudioService.class);
         intent.setAction(ACTION_PLAY);
         intent.putExtra("action", ACTION_PLAY);
@@ -100,12 +110,14 @@ public class AudioPlayerPlugin extends Plugin {
         intent.putExtra("artist", artist);
         intent.putExtra("thumb", thumb);
         
-        Log.d(TAG, "Starting AudioService with URL");
+        Log.d(TAG, "Starting foreground service...");
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(intent);
+            Log.d(TAG, "startForegroundService called (Android O+)");
         } else {
             getContext().startService(intent);
+            Log.d(TAG, "startService called (pre-O)");
         }
     }
     

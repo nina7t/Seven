@@ -48,7 +48,7 @@ dependencies {
     implementation 'androidx.media:media:1.7.0'
     
     // YouTubeExtractor - extracts audio URLs directly on Android
-    implementation 'com.github.HaarigerHarald:android-youtubeExtractor:master-SNAPSHOT'
+    implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.24.2'
 }
 
 apply from: 'capacitor.build.gradle'

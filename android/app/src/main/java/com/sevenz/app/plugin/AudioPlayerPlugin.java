@@ -1,10 +1,8 @@
 package com.sevenz.app.plugin;
 
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
-import android.util.SparseArray;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -13,9 +11,13 @@ import com.getcapacitor.PluginMethod;
 
 import com.sevenz.app.AudioService;
 
-import at.huber.youtubeExtractor.YouTubeExtractor;
-import at.huber.youtubeExtractor.YtFile;
-import at.huber.youtubeExtractor.VideoMeta;
+import org.schabi.newpipe.extractor.NewPipe;
+import org.schabi.newpipe.extractor.exceptions.ExtractionException;
+import org.schabi.newpipe.extractor.services.youtube.YoutubeService;
+import org.schabi.newpipe.extractor.stream.AudioStream;
+import org.schabi.newpipe.extractor.stream.StreamInfo;
+
+import java.util.Comparator;
 
 public class AudioPlayerPlugin extends Plugin {
     
@@ -26,15 +28,15 @@ public class AudioPlayerPlugin extends Plugin {
     public static final String ACTION_STOP = "com.sevenz.app.STOP";
     
     /**
-     * Play a YouTube video by extracting audio URL using YouTubeExtractor
+     * Play a YouTube video by extracting audio URL using NewPipeExtractor
      * This extracts URLs directly on device without any server!
      */
     @PluginMethod
     public void playVideo(PluginCall call) {
         String videoId = call.getString("videoId");
-        String title = call.getString("title", "Unknown");
-        String artist = call.getString("artist", "Unknown Artist");
-        String thumb = call.getString("thumb", "");
+        final String title = call.getString("title", "Unknown");
+        final String artist = call.getString("artist", "Unknown Artist");
+        final String thumb = call.getString("thumb", "");
         
         if (videoId == null || videoId.isEmpty()) {
             call.reject("videoId is required");
@@ -43,67 +45,50 @@ public class AudioPlayerPlugin extends Plugin {
         
         Log.d(TAG, "playVideo called for: " + videoId);
         
-        // Extract and play
-        String youtubeLink = "https://www.youtube.com/watch?v=" + videoId;
-        
-        YouTubeExtractor extractor = new YouTubeExtractor(getContext()) {
-            @Override
-            public void onExtractionComplete(SparseArray<YtFile> ytFiles, VideoMeta videoMeta) {
-                if (ytFiles == null) {
-                    Log.e(TAG, "Failed to extract - ytFiles is null");
-                    call.reject("Failed to extract audio. Try another video.");
+        // Run extraction on background thread
+        new Thread(() -> {
+            try {
+                // Initialize NewPipe
+                YoutubeService service = (YoutubeService) NewPipe.getService(0); // 0 = YouTube
+                
+                String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
+                
+                // Get stream info
+                StreamInfo info = StreamInfo.getInfo(videoUrl);
+                
+                // Find best audio stream (highest bitrate)
+                AudioStream bestAudio = info.getAudioStreams()
+                    .stream()
+                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
+                    .orElse(null);
+                
+                if (bestAudio == null) {
+                    Log.e(TAG, "No audio stream found");
+                    call.reject("No audio available for this video.");
                     return;
                 }
                 
-                try {
-                    // Find best audio format (prefer m4a over webm)
-                    String audioUrl = null;
-                    int bestBitrate = 0;
-                    
-                    for (int i = 0; i < ytFiles.size(); i++) {
-                        YtFile file = ytFiles.get(ytFiles.keyAt(i));
-                        
-                        if (file.getFormat().getAudioBitrate() > 0) {
-                            int bitrate = file.getFormat().getAudioBitrate();
-                            String format = file.getFormat().getExt();
-                            
-                            // Prefer m4a (higher quality) or highest bitrate
-                            if (audioUrl == null || 
-                                (format.equals("m4a") && !file.getFormat().getExt().equals("m4a")) ||
-                                bitrate > bestBitrate) {
-                                audioUrl = file.getUrl();
-                                bestBitrate = bitrate;
-                            }
-                        }
-                    }
-                    
-                    if (audioUrl == null) {
-                        Log.e(TAG, "No audio stream found");
-                        call.reject("No audio available for this video.");
-                        return;
-                    }
-                    
-                    Log.d(TAG, "Found audio URL! Bitrate: " + bestBitrate);
-                    
-                    // Start the AudioService with the extracted URL
-                    startAudioService(audioUrl, title, artist, thumb);
-                    
-                    JSObject result = new JSObject();
-                    result.put("success", true);
-                    result.put("audioUrl", audioUrl);
-                    result.put("bitrate", bestBitrate);
-                    result.put("message", "Playing: " + title);
-                    
-                    call.resolve(result);
-                    
-                } catch (Exception e) {
-                    Log.e(TAG, "Error processing audio", e);
-                    call.reject("Error: " + e.getMessage());
-                }
+                String audioUrl = bestAudio.getUrl();
+                int bitrate = bestAudio.getAverageBitrate();
+                
+                Log.d(TAG, "Found audio URL! Bitrate: " + bitrate);
+                
+                // Start the AudioService with the extracted URL
+                startAudioService(audioUrl, title, artist, thumb);
+                
+                JSObject result = new JSObject();
+                result.put("success", true);
+                result.put("audioUrl", audioUrl);
+                result.put("bitrate", bitrate);
+                result.put("message", "Playing: " + title);
+                
+                call.resolve(result);
+                
+            } catch (Exception e) {
+                Log.e(TAG, "Extraction failed", e);
+                call.reject("Extraction failed: " + e.getMessage());
             }
-        };
-        
-        extractor.execute(youtubeLink);
+        }).start();
     }
     
     private void startAudioService(String url, String title, String artist, String thumb) {

@@ -3228,91 +3228,6 @@ function updateMediaSession(track) {
 // FIN MEDIA SESSION
 // ════════════════════════════════════════════════════════════
 
-// ════════════════════════════════════════════════════════════
-// NATIVE AUDIO PLAYER - Pour lecture en arrière-plan (ExoPlayer)
-// ════════════════════════════════════════════════════════════
-
-async function playNativeAudio(track) {
-  try {
-    // Get stream URL from proxy
-    const res = await fetch(`${PROXY_URL}/stream/${track.id}`, { timeout: 10000 });
-    if (!res.ok) throw new Error('Stream URL failed');
-    
-    const streamData = await res.json();
-    
-    if (streamData.audioUrl) {
-      // Try to use Capacitor plugin
-      const AudioPlayer = require('./plugins/AudioPlayer');
-      
-      if (AudioPlayer.play) {
-        await AudioPlayer.play({
-          url: streamData.audioUrl,
-          title: track.title,
-          artist: track.channel,
-          thumb: track.thumb
-        });
-        console.log('[NativeAudio] Playing via ExoPlayer:', track.title);
-        S.nativePlaying = true;
-        return;
-      }
-    }
-  } catch (e) {
-    console.log('[NativeAudio] Falling back to YouTube IFrame:', e.message);
-    S.nativePlaying = false;
-  }
-}
-
-async function pauseNativeAudio() {
-  try {
-    const AudioPlayer = require('./plugins/AudioPlayer');
-    if (AudioPlayer.pause) await AudioPlayer.pause();
-  } catch (e) {}
-}
-
-async function resumeNativeAudio() {
-  try {
-    const AudioPlayer = require('./plugins/AudioPlayer');
-    if (AudioPlayer.resume) await AudioPlayer.resume();
-  } catch (e) {}
-}
-
-async function stopNativeAudio() {
-  try {
-    const AudioPlayer = require('./plugins/AudioPlayer');
-    if (AudioPlayer.stop) await AudioPlayer.stop();
-  } catch (e) {}
-}
-
-// ════════════════════════════════════════════════════════════
-// FIN NATIVE AUDIO PLAYER
-// ════════════════════════════════════════════════════════════
-
-// ════════════════════════════════════════════════════════════
-// KEEP AWAKE - Empêche l'écran de s'éteindre pendant lecture
-// ════════════════════════════════════════════════════════════
-
-async function enableKeepAwake() {
-  try {
-    const { KeepAwake } = await import('@capacitor-community/keep-awake');
-    await KeepAwake.enable();
-  } catch (e) {
-    // Pas dans Capacitor - ignore
-  }
-}
-
-async function disableKeepAwake() {
-  try {
-    const { KeepAwake } = await import('@capacitor-community/keep-awake');
-    await KeepAwake.disable();
-  } catch (e) {
-    // Pas dans Capacitor - ignore
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// FIN KEEP AWAKE
-// ════════════════════════════════════════════════════════════
-
 // YouTube IFrame API
 window.onYouTubeIframeAPIReady = function() {
   S.player = new YT.Player('yt-player', {
@@ -3333,7 +3248,6 @@ window.onYouTubeIframeAPIReady = function() {
           document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-pause-filled"></i>';
           startProgress();
           updateMediaSession(S.currentTrack);
-          enableKeepAwake();
         } else if (e.data === YT.PlayerState.PAUSED) {
           S.isPlaying = false;
           document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-play-filled"></i>';
@@ -3894,18 +3808,12 @@ function playTrack(index) {
     if (badge) badge.style.display = isOffline ? 'inline-block' : 'none';
   });
 
-  // Try native player first (Capacitor), fall back to YouTube IFrame
-  playNativeAudio(track);
-
-  // YouTube IFrame fallback (still needed for video thumbnails/views)
   if (S.player?.loadVideoById) {
     S.player.loadVideoById(track.id);
+    S.isPlaying = true;
+    document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-pause-filled"></i>';
+    document.getElementById('progressFill').style.width = '0%';
   }
-  
-  S.isPlaying = true;
-  enableKeepAwake();
-  document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-pause-filled"></i>';
-  document.getElementById('progressFill').style.width = '0%';
 
   // Update Media Session (controls in notification)
   updateMediaSession(track);
@@ -3915,15 +3823,8 @@ function playTrack(index) {
 }
 
 function togglePlay() {
-  if (!S.currentTrack) return;
-  
-  if (S.nativePlaying) {
-    // Use native player
-    S.isPlaying ? pauseNativeAudio() : resumeNativeAudio();
-  } else if (S.player) {
-    // Use YouTube IFrame
-    S.isPlaying ? S.player.pauseVideo() : S.player.playVideo();
-  }
+  if (!S.player || !S.currentTrack) return;
+  S.isPlaying ? S.player.pauseVideo() : S.player.playVideo();
 }
 
 function playNext() {

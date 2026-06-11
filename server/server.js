@@ -7,6 +7,9 @@ require('dotenv').config();
 const { getFallbackSearch, getFallbackTrending, getFallbackVideos } = require('./fallback-data');
 const { searchInvidious, getTrendingInvidious, getVideosInvidious } = require('./invidious-client');
 
+// YouTube cookies for ytdl-core stream extraction
+const YOUTUBE_COOKIES = process.env.YOUTUBE_COOKIES || '';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -420,8 +423,23 @@ app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
   try {
     const ytdl = require('@distube/ytdl-core');
     
+    // Options avec cookies et headers de navigateur
+    const options = {
+      requestOptions: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        }
+      }
+    };
+    
+    if (YOUTUBE_COOKIES) {
+      options.requestOptions.headers['Cookie'] = YOUTUBE_COOKIES;
+    }
+    
     // Récupère les infos de la vidéo
-    const info = await ytdl.getInfo(videoId);
+    const info = await ytdl.getInfo(videoId, options);
     
     // Filtre pour avoir seulement les formats audio
     const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');

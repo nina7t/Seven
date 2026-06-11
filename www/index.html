@@ -3791,10 +3791,11 @@ document.querySelectorAll('.cat-card').forEach(card => {
 
 // Playback
 function playTrack(index) {
+  alert("PLAY CLICKED - index: " + index);
   if (navigator.vibrate) navigator.vibrate(10);
   const track = S.queue[index];
   if (!track) return;
-
+  alert("TRACK: " + track.title);
   S.currentTrack = track;
   S.currentIndex = index;
 
@@ -3813,6 +3814,24 @@ function playTrack(index) {
     S.isPlaying = true;
     document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-pause-filled"></i>';
     document.getElementById('progressFill').style.width = '0%';
+  }
+
+  // Call native Capacitor plugin for background audio
+  alert("CALLING NATIVE PLUGIN...");
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AudioPlayerPlugin) {
+    alert("Plugin found! Calling playVideo...");
+    window.Capacitor.Plugins.AudioPlayerPlugin.playVideo({
+      videoId: track.id,
+      title: track.title,
+      artist: track.channel,
+      thumb: track.thumb || ''
+    }).then(result => {
+      alert("PLUGIN SUCCESS: " + JSON.stringify(result));
+    }).catch(err => {
+      alert("PLUGIN ERROR: " + err);
+    });
+  } else {
+    alert("PLUGIN NOT FOUND - Capacitor.Plugins.AudioPlayerPlugin: " + (window.Capacitor && window.Capacitor.Plugins ? "exists but no AudioPlayerPlugin" : "Capacitor not loaded"));
   }
 
   // Update Media Session (controls in notification)

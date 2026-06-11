@@ -65,6 +65,11 @@ public class AudioPlayerPlugin extends Plugin {
                 showToast("Extraction YouTube...");
                 
                 // Initialize NewPipe
+                // Initialize NewPipe downloader
+                if (NewPipe.getDownloader() == null) {
+                    NewPipe.init(DownloaderImpl.getInstance());
+                }
+                
                 YoutubeService service = (YoutubeService) NewPipe.getService(0); // 0 = YouTube
                 
                 String videoUrl = "https://www.youtube.com/watch?v=" + videoId;

@@ -299,6 +299,73 @@ app.get('/api/youtube/trending', rateLimit, async (req, res) => {
   }
 });
 
+// PROXY: Vidéos liées / recommandations
+app.get('/api/youtube/related', rateLimit, async (req, res) => {
+  const { videoId, maxResults = 10 } = req.query;
+  
+  if (!videoId) {
+    return res.status(400).json({ error: 'Paramètre videoId requis' });
+  }
+
+  const cacheKey = `related:${videoId}:${maxResults}`;
+  const cached = searchCache.get(cacheKey);
+  
+  if (cached) {
+    console.log(`[CACHE HIT] Related: ${videoId}`);
+    return res.json({ ...cached, cached: true });
+  }
+
+  try {
+    console.log(`[API CALL] Related videos for: ${videoId}`);
+    // Utilise l'endpoint search avec relatedToVideoId
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${getCurrentKey()}`;
+    
+    const response = await axios.get(url, { timeout: 5000 });
+    
+    if (response.data.error) {
+      throw new Error(response.data.error.message);
+    }
+
+    // Tracker le quota (~100 unités par search)
+    quotaUsedToday += 100;
+    console.log(`[QUOTA] +100 pour related, Total: ${quotaUsedToday}/${QUOTA_LIMIT}`);
+
+    searchCache.set(cacheKey, response.data);
+    res.json({ ...response.data, cached: false });
+    
+  } catch (error) {
+    console.error('YouTube Related Error:', error.message);
+    
+    if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+      rotateKey();
+      if (API_KEYS.length > 1) {
+        try {
+          const retryUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${getCurrentKey()}`;
+          const retryResponse = await axios.get(retryUrl, { timeout: 5000 });
+          if (!retryResponse.data.error) {
+            quotaUsedToday += 100;
+            searchCache.set(cacheKey, retryResponse.data);
+            return res.json({ ...retryResponse.data, cached: false });
+          }
+        } catch (retryError) {}
+      }
+      
+      // Fallback: search for similar content using the video title/artist
+      try {
+        const fallbackData = getFallbackSearch('', maxResults);
+        return res.json(fallbackData);
+      } catch (fallbackError) {
+        return res.status(503).json({ error: 'Service temporairement indisponible' });
+      }
+    }
+    
+    res.status(500).json({
+      error: 'Erreur lors du chargement des vidéos liées',
+      details: error.message
+    });
+  }
+});
+
 // PROXY: Détails vidéos (durées) avec coalescing
 app.get('/api/youtube/videos', rateLimit, async (req, res) => {
   const { ids } = req.query;

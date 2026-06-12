@@ -3,6 +3,10 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.sevenz.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
     defaultConfig {
         applicationId "com.sevenz.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -48,8 +52,11 @@ dependencies {
     implementation 'androidx.media:media:1.7.0'
     
     // YouTubeExtractor - extracts audio URLs directly on Android
-    implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.24.2'
+    implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.26.3'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    
+    // Glide for loading artwork images
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
 }
 
 apply from: 'capacitor.build.gradle'

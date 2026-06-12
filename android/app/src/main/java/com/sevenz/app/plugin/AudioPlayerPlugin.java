@@ -2,10 +2,7 @@ package com.sevenz.app.plugin;
 
 import android.content.Intent;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -22,6 +19,8 @@ import org.schabi.newpipe.extractor.stream.AudioStream;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 
 @CapacitorPlugin(name = "AudioPlayerPlugin")
 public class AudioPlayerPlugin extends Plugin {
@@ -32,17 +31,50 @@ public class AudioPlayerPlugin extends Plugin {
     public static final String ACTION_RESUME = "com.sevenz.app.RESUME";
     public static final String ACTION_STOP = "com.sevenz.app.STOP";
     
-    // Handler for showing Toasts on main thread
-    private Handler mainHandler = new Handler(Looper.getMainLooper());
+    // Static instance for AudioService callbacks
+    private static AudioPlayerPlugin instance;
     
-    private void showToast(String message) {
-        mainHandler.post(() -> {
-            try {
-                Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                Log.e(TAG, "showToast failed: " + message, e);
-            }
-        });
+    @Override
+    public void load() {
+        instance = this;
+    }
+    
+    public static void notifyNextTrack(android.content.Context context) {
+        if (instance != null) {
+            instance.notifyListeners("next", new JSObject());
+        }
+    }
+    
+    public static void notifyPreviousTrack(android.content.Context context) {
+        if (instance != null) {
+            instance.notifyListeners("previous", new JSObject());
+        }
+    }
+    
+    public static void notifyPlaybackStateChanged(boolean isPlaying) {
+        if (instance != null) {
+            JSObject data = new JSObject();
+            data.put("isPlaying", isPlaying);
+            instance.notifyListeners("playbackStateChanged", data);
+        }
+    }
+    
+    public static void notifyTrackEnded(android.content.Context context) {
+        if (instance != null) {
+            instance.notifyListeners("trackEnded", new JSObject());
+        }
+    }
+    
+    public static void notifyRequestNextTrack(android.content.Context context) {
+        if (instance != null) {
+            instance.notifyListeners("requestNextTrack", new JSObject());
+        }
+    }
+    
+    public static void notifyTrackChanged(android.content.Context context) {
+        if (instance != null) {
+            instance.notifyListeners("trackChanged", new JSObject());
+        }
     }
     
     /**
@@ -62,13 +94,11 @@ public class AudioPlayerPlugin extends Plugin {
         }
         
         Log.d(TAG, "playVideo called for: " + videoId);
-        showToast("Extraction audio en cours...");
         
         // Run extraction on background thread
         new Thread(() -> {
             try {
                 Log.d(TAG, "Starting NewPipeExtractor for: " + videoId);
-                showToast("Extraction YouTube...");
                 
                 // Initialize NewPipe
                 // Initialize NewPipe downloader
@@ -84,7 +114,6 @@ public class AudioPlayerPlugin extends Plugin {
                 // Get stream info
                 StreamInfo info = StreamInfo.getInfo(videoUrl);
                 Log.d(TAG, "Stream info fetched, title: " + info.getName());
-                showToast("Titre trouvé: " + info.getName());
                 
                 // Find best audio stream (highest bitrate)
                 java.util.List<AudioStream> audioStreams = info.getAudioStreams();
@@ -97,7 +126,6 @@ public class AudioPlayerPlugin extends Plugin {
                 
                 if (bestAudio == null) {
                     Log.e(TAG, "No audio stream found");
-                    showToast("ERREUR: Aucun flux audio trouvé");
                     call.reject("No audio available for this video.");
                     return;
                 }
@@ -106,11 +134,9 @@ public class AudioPlayerPlugin extends Plugin {
                 int bitrate = bestAudio.getAverageBitrate();
                 
                 Log.d(TAG, "Found audio URL! Bitrate: " + bitrate + " URL length: " + audioUrl.length());
-                showToast("Audio trouvé! Bitrate: " + bitrate + "kbps");
                 
                 // Start the AudioService with the extracted URL
                 startAudioService(audioUrl, title, artist, thumb);
-                showToast("Lecture en arrière-plan!");
                 
                 JSObject result = new JSObject();
                 result.put("success", true);
@@ -124,9 +150,6 @@ public class AudioPlayerPlugin extends Plugin {
                 String errorDetail = e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "no message");
                 Log.e(TAG, "Extraction failed: " + errorDetail, e);
                 e.printStackTrace();
-                new Handler(Looper.getMainLooper()).post(() ->
-                    Toast.makeText(getContext(), "ERREUR: " + errorDetail, Toast.LENGTH_LONG).show()
-                );
                 call.reject("Extraction failed: " + errorDetail);
             }
         }).start();
@@ -212,5 +235,178 @@ public class AudioPlayerPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("isPlaying", false);
         call.resolve(result);
+    }
+    
+    // URL cache for preloading tracks
+    private static Map<String, String> urlCache = new HashMap<>();
+    
+    @PluginMethod
+    public void skipNext(PluginCall call) {
+        notifyListeners("skipNext", new JSObject());
+        call.resolve();
+    }
+    
+    @PluginMethod
+    public void skipPrevious(PluginCall call) {
+        notifyListeners("skipPrevious", new JSObject());
+        call.resolve();
+    }
+    
+    @PluginMethod
+    public void preload(PluginCall call) {
+        String videoId = call.getString("videoId");
+        if (videoId == null || videoId.isEmpty()) {
+            call.reject("videoId is required");
+            return;
+        }
+        
+        // Check cache first
+        if (urlCache.containsKey(videoId)) {
+            JSObject result = new JSObject();
+            result.put("cached", true);
+            result.put("videoId", videoId);
+            call.resolve(result);
+            return;
+        }
+        
+        // Preload in background thread
+        new Thread(() -> {
+            try {
+                Log.d(TAG, "Preloading track: " + videoId);
+                
+                // Initialize NewPipe if needed
+                if (NewPipe.getDownloader() == null) {
+                    NewPipe.init(DownloaderImpl.getInstance());
+                }
+                
+                String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
+                StreamInfo info = StreamInfo.getInfo(videoUrl);
+                
+                AudioStream bestAudio = info.getAudioStreams()
+                    .stream()
+                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
+                    .orElse(null);
+                
+                if (bestAudio != null) {
+                    urlCache.put(videoId, bestAudio.getUrl());
+                    Log.d(TAG, "Preloaded URL cached for: " + videoId);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Preload failed for: " + videoId, e);
+            }
+        }).start();
+        
+        JSObject result = new JSObject();
+        result.put("preloading", true);
+        result.put("videoId", videoId);
+        call.resolve(result);
+    }
+    
+    @PluginMethod
+    public void getPreloadedUrl(PluginCall call) {
+        String videoId = call.getString("videoId");
+        if (videoId == null || videoId.isEmpty()) {
+            call.reject("videoId is required");
+            return;
+        }
+        
+        String cachedUrl = urlCache.get(videoId);
+        JSObject result = new JSObject();
+        result.put("videoId", videoId);
+        result.put("hasUrl", cachedUrl != null);
+        if (cachedUrl != null) {
+            result.put("url", cachedUrl);
+        }
+        call.resolve(result);
+    }
+    
+    @PluginMethod
+    public void clearPreloadCache(PluginCall call) {
+        urlCache.clear();
+        call.resolve();
+    }
+    
+    @PluginMethod
+    public void setCrossfade(PluginCall call) {
+        int durationMs = call.getInt("durationMs", 0);
+        
+        Intent intent = new Intent(getContext(), AudioService.class);
+        intent.setAction("com.sevenz.app.SET_CROSSFADE");
+        intent.putExtra("durationMs", durationMs);
+        getContext().startService(intent);
+        
+        JSObject result = new JSObject();
+        result.put("durationMs", durationMs);
+        call.resolve(result);
+    }
+    
+    @PluginMethod
+    public void loadNextTrack(PluginCall call) {
+        String videoId = call.getString("videoId");
+        final String title = call.getString("title", "Unknown");
+        final String artist = call.getString("artist", "Unknown Artist");
+        final String thumb = call.getString("thumb", "");
+        
+        if (videoId == null || videoId.isEmpty()) {
+            call.reject("videoId is required");
+            return;
+        }
+        
+        // Check cache first
+        String cachedUrl = urlCache.get(videoId);
+        if (cachedUrl != null) {
+            // Send directly to service
+            Intent intent = new Intent(getContext(), AudioService.class);
+            intent.setAction("com.sevenz.app.LOAD_NEXT");
+            intent.putExtra("url", cachedUrl);
+            intent.putExtra("title", title);
+            intent.putExtra("artist", artist);
+            intent.putExtra("thumb", thumb);
+            getContext().startService(intent);
+            
+            JSObject result = new JSObject();
+            result.put("cached", true);
+            result.put("loaded", true);
+            call.resolve(result);
+            return;
+        }
+        
+        // Extract URL on background thread
+        new Thread(() -> {
+            try {
+                if (NewPipe.getDownloader() == null) {
+                    NewPipe.init(DownloaderImpl.getInstance());
+                }
+                
+                String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
+                StreamInfo info = StreamInfo.getInfo(videoUrl);
+                
+                AudioStream bestAudio = info.getAudioStreams()
+                    .stream()
+                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
+                    .orElse(null);
+                
+                if (bestAudio != null) {
+                    String audioUrl = bestAudio.getUrl();
+                    urlCache.put(videoId, audioUrl);
+                    
+                    // Send to service
+                    Intent intent = new Intent(getContext(), AudioService.class);
+                    intent.setAction("com.sevenz.app.LOAD_NEXT");
+                    intent.putExtra("url", audioUrl);
+                    intent.putExtra("title", title);
+                    intent.putExtra("artist", artist);
+                    intent.putExtra("thumb", thumb);
+                    getContext().startService(intent);
+                    
+                    call.resolve(new JSObject() {{ put("loaded", true); }});
+                } else {
+                    call.reject("No audio stream found");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading next track", e);
+                call.reject("Extraction failed: " + e.getMessage());
+            }
+        }).start();
     }
 }

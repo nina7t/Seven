@@ -3045,7 +3045,7 @@ h1, h2, h3 {
 
 <!-- PLAYER -->
 <div class="player">
-  <div class="player-left">
+  <div class="player-left" style="cursor:pointer" onclick="openNowPlaying()">
     <div class="player-cover" id="playerCover"></div>
     <div class="player-info">
       <div class="player-title" id="playerTitle">Pas de lecture</div>
@@ -3081,6 +3081,240 @@ h1, h2, h3 {
       <i class="ti ti-volume" style="font-size:16px;color:var(--gray)"></i>
       <div class="vol-bar"><div class="vol-fill"></div></div>
     </div>
+    
+    <!-- Crossfade slider -->
+    <div class="crossfade-section" id="crossfadeSection" style="display:none;align-items:center;gap:8px;margin-left:12px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.1)">
+      <i class="ti ti-transition-left" style="font-size:16px;color:var(--gray)" title="Fondu enchaîné"></i>
+      <input type="range" id="crossfadeSlider" min="0" max="12" step="1" value="0" style="width:80px;height:4px;accent-color:var(--green)">
+      <span id="crossfadeValue" style="font-size:11px;color:var(--gray);min-width:24px">0s</span>
+    </div>
+  </div>
+</div>
+
+<!-- NOW PLAYING OVERLAY -->
+<style>
+#now-playing-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #121212;
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px 40px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+#now-playing-overlay.open { display: flex; }
+
+.np-drag-handle {
+  width: 40px; height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  margin: 12px auto 8px;
+  cursor: pointer;
+}
+
+.np-top-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 8px 0 24px;
+}
+.np-top-actions .icon-btn { background: none; border: none; color: #fff; cursor: pointer; font-size: 24px; padding: 8px; }
+.np-top-actions .icon-btn:hover { color: var(--green); }
+
+.np-artwork-wrap {
+  width: min(85vw, 360px);
+  aspect-ratio: 1;
+  margin: 0 auto 28px;
+  flex-shrink: 0;
+}
+.np-artwork {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+.np-artwork-placeholder {
+  width: 100%; height: 100%;
+  background: #282828;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  color: #555;
+}
+
+.np-info { text-align: center; width: 100%; margin-bottom: 20px; }
+.np-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 6px;
+}
+.np-artist {
+  font-size: 16px;
+  color: #b3b3b3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.np-actions {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+.np-action-btn {
+  background: none; border: none;
+  color: #b3b3b3;
+  cursor: pointer;
+  font-size: 24px;
+  padding: 8px 16px;
+  transition: color 0.2s;
+}
+.np-action-btn:hover, .np-action-btn.active { color: var(--green); }
+
+.np-progress-wrap {
+  width: 100%;
+  margin-bottom: 20px;
+}
+.np-progress {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #4d4d4d;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.np-progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.np-progress::-moz-range-thumb {
+  width: 12px; height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.np-time-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #b3b3b3;
+  margin-top: 4px;
+}
+
+.np-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+.np-ctrl {
+  background: none; border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 28px;
+  padding: 8px;
+  transition: color 0.2s, transform 0.1s;
+}
+.np-ctrl:hover { color: var(--green); }
+.np-ctrl:active { transform: scale(0.9); }
+.np-ctrl-lg {
+  font-size: 40px;
+  background: #fff;
+  color: #121212;
+  border-radius: 50%;
+  width: 60px; height: 60px;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.1s, background 0.2s;
+}
+.np-ctrl-lg:hover { background: #e6e6e6; transform: scale(1.05); }
+.np-ctrl-lg:active { transform: scale(0.95); }
+
+.np-bottom-bar {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+}
+.np-bottom-btn {
+  background: none; border: none;
+  color: #b3b3b3;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 8px;
+  transition: color 0.2s;
+}
+.np-bottom-btn:hover { color: #fff; }
+</style>
+
+<div id="now-playing-overlay">
+  <div class="np-drag-handle" onclick="closeNowPlaying()"></div>
+
+  <div class="np-top-actions">
+    <button class="icon-btn" onclick="closeNowPlaying()" title="Fermer"><i class="ti ti-chevron-down"></i></button>
+    <span style="color:#b3b3b3;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Lecture en cours</span>
+    <button class="icon-btn" title="File d'attente"><i class="ti ti-list"></i></button>
+  </div>
+
+  <div class="np-artwork-wrap">
+    <img id="np-artwork" class="np-artwork" style="display:none" />
+    <div id="np-artwork-placeholder" class="np-artwork-placeholder"><i class="ti ti-music"></i></div>
+  </div>
+
+  <div class="np-info">
+    <h2 class="np-title" id="np-title">—</h2>
+    <p class="np-artist" id="np-artist">—</p>
+  </div>
+
+  <div class="np-actions">
+    <button class="np-action-btn" id="np-like-btn" onclick="toggleLike()" title="Ajouter aux favoris"><i class="ti ti-heart"></i></button>
+    <button class="np-action-btn" title="File d'attente"><i class="ti ti-playlist"></i></button>
+    <button class="np-action-btn" title="Partager"><i class="ti ti-share"></i></button>
+  </div>
+
+  <div class="np-progress-wrap">
+    <input type="range" id="np-progress" class="np-progress" min="0" max="1000" value="0" oninput="npSeek(this.value)">
+    <div class="np-time-row">
+      <span id="np-current-time">0:00</span>
+      <span id="np-total-time">0:00</span>
+    </div>
+  </div>
+
+  <div class="np-controls">
+    <button class="np-ctrl" onclick="playPrev()" title="Précédent"><i class="ti ti-player-skip-back-filled"></i></button>
+    <button class="np-ctrl" onclick="rewind10()" title="-10s">
+      <i class="ti ti-player-skip-forward" style="transform:scaleX(-1)"></i>
+    </button>
+    <button class="np-ctrl np-ctrl-lg" id="np-play-btn" onclick="togglePlay()" title="Lecture/Pause"><i class="ti ti-player-play-filled"></i></button>
+    <button class="np-ctrl" onclick="forward10()" title="+10s"><i class="ti ti-player-skip-forward"></i></button>
+    <button class="np-ctrl" onclick="playNext()" title="Suivant"><i class="ti ti-player-skip-forward-filled"></i></button>
+  </div>
+
+  <div class="np-bottom-bar">
+    <button class="np-bottom-btn" title="Volume"><i class="ti ti-speaker"></i></button>
+    <button class="np-bottom-btn" title="Qualité"><i class="ti ti-settings"></i></button>
+    <button class="np-bottom-btn" title="Aléatoire"><i class="ti ti-arrows-shuffle"></i></button>
   </div>
 </div>
 
@@ -3228,9 +3462,10 @@ function updateMediaSession(track) {
 // FIN MEDIA SESSION
 // ════════════════════════════════════════════════════════════
 
-// YouTube IFrame API
-window.onYouTubeIframeAPIReady = function() {
-  S.player = new YT.Player('yt-player', {
+// YouTube IFrame API - only load on web, not native
+if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+  window.onYouTubeIframeAPIReady = function() {
+    S.player = new YT.Player('yt-player', {
     height: '0', width: '0',
     playerVars: { 
       autoplay: 0,
@@ -3259,7 +3494,8 @@ window.onYouTubeIframeAPIReady = function() {
       }
     }
   });
-};
+  };
+}
 
 // Sauvegarde l'état du player avant de quitter la page
 window.addEventListener('beforeunload', savePlayerState);
@@ -3791,11 +4027,9 @@ document.querySelectorAll('.cat-card').forEach(card => {
 
 // Playback
 function playTrack(index) {
-  alert("PLAY CLICKED - index: " + index);
   if (navigator.vibrate) navigator.vibrate(10);
   const track = S.queue[index];
   if (!track) return;
-  alert("TRACK: " + track.title);
   S.currentTrack = track;
   S.currentIndex = index;
 
@@ -3816,22 +4050,23 @@ function playTrack(index) {
     document.getElementById('progressFill').style.width = '0%';
   }
 
+  // Stop YouTube IFrame player before starting native ExoPlayer
+  if (S.player && typeof S.player.stopVideo === 'function') {
+    S.player.stopVideo();
+  }
+
   // Call native Capacitor plugin for background audio
-  alert("CALLING NATIVE PLUGIN...");
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AudioPlayerPlugin) {
-    alert("Plugin found! Calling playVideo...");
     window.Capacitor.Plugins.AudioPlayerPlugin.playVideo({
       videoId: track.id,
       title: track.title,
       artist: track.channel,
       thumb: track.thumb || ''
-    }).then(result => {
-      alert("PLUGIN SUCCESS: " + JSON.stringify(result));
     }).catch(err => {
-      alert("PLUGIN ERROR: " + err);
+      console.error("PLUGIN ERROR: " + err);
     });
   } else {
-    alert("PLUGIN NOT FOUND - Capacitor.Plugins.AudioPlayerPlugin: " + (window.Capacitor && window.Capacitor.Plugins ? "exists but no AudioPlayerPlugin" : "Capacitor not loaded"));
+    console.warn("PLUGIN NOT FOUND - Capacitor.Plugins.AudioPlayerPlugin: " + (window.Capacitor && window.Capacitor.Plugins ? "exists but no AudioPlayerPlugin" : "Capacitor not loaded"));
   }
 
   // Update Media Session (controls in notification)
@@ -3839,20 +4074,73 @@ function playTrack(index) {
   
   updateLikeButton();
   saveToHistory(track);
+  
+  // Preload next track for faster playback
+  preloadNext();
 }
 
-function togglePlay() {
-  if (!S.player || !S.currentTrack) return;
-  S.isPlaying ? S.player.pauseVideo() : S.player.playVideo();
+function updatePlayButton() {
+  const playBtn = document.getElementById('playBtn');
+  if (playBtn) {
+    playBtn.innerHTML = S.isPlaying 
+      ? '<i class="ti ti-player-pause-filled"></i>'
+      : '<i class="ti ti-player-play-filled"></i>';
+  }
+}
+
+async function togglePlay() {
+  if (!S.currentTrack) return;
+  
+  // Native Capacitor platform - use AudioPlayerPlugin
+  if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins.AudioPlayerPlugin) {
+    if (S.isPlaying) {
+      await window.Capacitor.Plugins.AudioPlayerPlugin.pause();
+      S.isPlaying = false;
+    } else {
+      await window.Capacitor.Plugins.AudioPlayerPlugin.resume();
+      S.isPlaying = true;
+    }
+    updatePlayButton();
+  } else {
+    // Web fallback - YouTube IFrame player
+    if (!S.player) return;
+    S.isPlaying ? S.player.pauseVideo() : S.player.playVideo();
+  }
+}
+
+function rewind10() {
+  if (!S.player?.getCurrentTime) return;
+  const t = Math.max(0, S.player.getCurrentTime() - 10);
+  S.player.seekTo(t);
+}
+function forward10() {
+  if (!S.player?.getCurrentTime) return;
+  const duration = S.player.getDuration ? S.player.getDuration() : 0;
+  const t = Math.min(duration, S.player.getCurrentTime() + 10);
+  S.player.seekTo(t);
 }
 
 function playNext() {
-  if (S.queue.length === 0) return;
+  if (S.queue.length === 0) {
+    // Queue is empty - load recommendations if we have a current track
+    if (S.currentTrack) {
+      loadRecommendedTracks(S.currentTrack.id);
+    }
+    return;
+  }
+  
   let next;
   if (S.shuffle) {
     next = Math.floor(Math.random() * S.queue.length);
   } else {
-    next = (S.currentIndex + 1) % S.queue.length;
+    next = S.currentIndex + 1;
+    // If at end of queue, load recommendations
+    if (next >= S.queue.length) {
+      if (S.currentTrack) {
+        loadRecommendedTracks(S.currentTrack.id);
+      }
+      return;
+    }
   }
   playTrack(next);
 }
@@ -3861,6 +4149,182 @@ function playPrev() {
   if (S.queue.length === 0) return;
   const prev = (S.currentIndex - 1 + S.queue.length) % S.queue.length;
   playTrack(prev);
+}
+
+// Handle track ended - play next or load recommendations
+async function handleTrackEnded() {
+  const nextIndex = S.currentIndex + 1;
+  
+  // If there's a next track in queue, play it
+  if (nextIndex < S.queue.length) {
+    playTrack(nextIndex);
+    return;
+  }
+  
+  // At end of queue - load recommendations based on current track
+  if (S.currentTrack) {
+    await loadRecommendedTracks(S.currentTrack.id);
+  }
+}
+
+// Load recommended tracks from YouTube based on a video ID
+async function loadRecommendedTracks(videoId) {
+  console.log('[Recommendations] Loading related videos for:', videoId);
+  
+  try {
+    const res = await fetch(`${PROXY_URL}/youtube/related?videoId=${videoId}&maxResults=10`);
+    if (res.status === 429) {
+      console.warn('[Recommendations] API quota exceeded');
+      return;
+    }
+    
+    const data = await res.json();
+    if (!data.items || data.items.length === 0) {
+      console.warn('[Recommendations] No related videos found');
+      return;
+    }
+    
+    // Convert to track format
+    const tracks = data.items.map(item => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumb: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url
+    })).filter(t => t.id); // Remove items without videoId
+    
+    if (tracks.length === 0) {
+      console.warn('[Recommendations] No valid tracks found');
+      return;
+    }
+    
+    console.log('[Recommendations] Loaded', tracks.length, 'tracks');
+    
+    // Replace queue with recommendations and play first
+    S.queue = tracks;
+    S.currentIndex = 0;
+    playTrack(0);
+    
+    // Show toast notification
+    showToast('Lecture des recommandations');
+    
+  } catch (err) {
+    console.error('[Recommendations] Error loading:', err);
+  }
+}
+
+// Preload the next track in queue for faster playback
+async function preloadNext() {
+  if (!window.Capacitor?.isNativePlatform()) return;
+  if (!window.Capacitor.Plugins.AudioPlayerPlugin) return;
+  
+  let nextIndex;
+  if (S.shuffle) {
+    nextIndex = Math.floor(Math.random() * S.queue.length);
+  } else {
+    nextIndex = S.currentIndex + 1;
+  }
+  
+  if (nextIndex >= S.queue.length) return;
+  
+  const nextTrack = S.queue[nextIndex];
+  if (!nextTrack) return;
+  
+  try {
+    await window.Capacitor.Plugins.AudioPlayerPlugin.preload({
+      videoId: nextTrack.id
+    });
+    console.log('[Preload] Preloading track:', nextTrack.title);
+  } catch (err) {
+    console.error('[Preload] Failed:', err);
+  }
+}
+
+// Preload next track for crossfade (called by native when crossfade trigger fires)
+async function preloadNextForCrossfade() {
+  if (!window.Capacitor?.isNativePlatform()) return;
+  if (!window.Capacitor.Plugins.AudioPlayerPlugin) return;
+  
+  // If queue is empty or at end, load recommendations
+  let nextIndex = S.currentIndex + 1;
+  if (nextIndex >= S.queue.length) {
+    // Try to load recommendations based on current track
+    if (S.currentTrack) {
+      await loadRecommendedTracksForCrossfade(S.currentTrack.id);
+    }
+    return;
+  }
+  
+  const nextTrack = S.queue[nextIndex];
+  if (!nextTrack) return;
+  
+  try {
+    await window.Capacitor.Plugins.AudioPlayerPlugin.loadNextTrack({
+      videoId: nextTrack.id,
+      title: nextTrack.title,
+      artist: nextTrack.channel,
+      thumb: nextTrack.thumb || ''
+    });
+    console.log('[Crossfade] Next track loaded:', nextTrack.title);
+    
+    // Pre-update the UI state so it's ready when crossfade completes
+    S.currentIndex = nextIndex;
+    S.currentTrack = nextTrack;
+    
+  } catch (err) {
+    console.error('[Crossfade] Failed to load next track:', err);
+  }
+}
+
+// Load recommendations for crossfade when queue is empty
+async function loadRecommendedTracksForCrossfade(videoId) {
+  console.log('[Crossfade] Loading recommendations for:', videoId);
+  
+  try {
+    const res = await fetch(`${PROXY_URL}/youtube/related?videoId=${videoId}&maxResults=5`);
+    if (!res.ok) {
+      console.warn('[Crossfade] Failed to load recommendations');
+      return;
+    }
+    
+    const data = await res.json();
+    if (!data.items || data.items.length === 0) {
+      console.warn('[Crossfade] No recommendations found');
+      return;
+    }
+    
+    // Convert to track format
+    const tracks = data.items.map(item => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumb: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url
+    })).filter(t => t.id);
+    
+    if (tracks.length === 0) {
+      console.warn('[Crossfade] No valid tracks in recommendations');
+      return;
+    }
+    
+    // Update queue and load first track for crossfade
+    S.queue = [...S.queue, ...tracks];
+    
+    const nextTrack = tracks[0];
+    await window.Capacitor.Plugins.AudioPlayerPlugin.loadNextTrack({
+      videoId: nextTrack.id,
+      title: nextTrack.title,
+      artist: nextTrack.channel,
+      thumb: nextTrack.thumb || ''
+    });
+    
+    // Pre-update state
+    S.currentIndex = S.queue.length - tracks.length;
+    S.currentTrack = nextTrack;
+    
+    console.log('[Crossfade] Recommendations loaded:', tracks.length, 'tracks');
+    
+  } catch (err) {
+    console.error('[Crossfade] Error loading recommendations:', err);
+  }
 }
 
 function toggleShuffle() {
@@ -5791,6 +6255,92 @@ document.addEventListener('DOMContentLoaded', initMobileGestures);
 document.addEventListener('DOMContentLoaded', () => {
   fetch(`${PROXY_URL}/health`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
 });
+
+// Crossfade slider event listener
+document.addEventListener('DOMContentLoaded', () => {
+  const crossfadeSlider = document.getElementById('crossfadeSlider');
+  const crossfadeValue = document.getElementById('crossfadeValue');
+  const crossfadeSection = document.getElementById('crossfadeSection');
+  
+  // Show crossfade section only on native platform
+  if (window.Capacitor?.isNativePlatform()) {
+    crossfadeSection.style.display = 'flex';
+  }
+  
+  crossfadeSlider?.addEventListener('input', async (e) => {
+    const seconds = parseInt(e.target.value);
+    crossfadeValue.textContent = seconds + 's';
+    localStorage.setItem('crossfadeDuration', seconds);
+    
+    if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins.AudioPlayerPlugin) {
+      try {
+        await window.Capacitor.Plugins.AudioPlayerPlugin.setCrossfade({ 
+          durationMs: seconds * 1000 
+        });
+        console.log('[Crossfade] Set to', seconds, 'seconds');
+      } catch (err) {
+        console.error('[Crossfade] Failed to set:', err);
+      }
+    }
+  });
+});
+
+// Synchronize playback state with native player
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins.AudioPlayerPlugin) {
+    window.Capacitor.Plugins.AudioPlayerPlugin.addListener('playbackStateChanged', (state) => {
+      S.isPlaying = state.isPlaying;
+      updatePlayButton();
+    });
+    
+    // Track ended - auto-play next
+    window.Capacitor.Plugins.AudioPlayerPlugin.addListener('trackEnded', async () => {
+      console.log('[Native] Track ended - auto-playing next');
+      if (S.repeat) {
+        playTrack(S.currentIndex);
+      } else {
+        await handleTrackEnded();
+      }
+    });
+    
+    // Skip next from notification
+    window.Capacitor.Plugins.AudioPlayerPlugin.addListener('skipNext', () => {
+      console.log('[Native] Skip next received');
+      playNext();
+    });
+    
+    // Skip previous from notification
+    window.Capacitor.Plugins.AudioPlayerPlugin.addListener('skipPrevious', () => {
+      console.log('[Native] Skip previous received');
+      playPrev();
+    });
+    
+    // Crossfade - request next track for preload
+    window.Capacitor.Plugins.AudioPlayerPlugin.addListener('requestNextTrack', async () => {
+      console.log('[Native] Crossfade: preloading next track');
+      await preloadNextForCrossfade();
+    });
+    
+    // Crossfade - track changed
+    window.Capacitor.Plugins.AudioPlayerPlugin.addListener('trackChanged', () => {
+      console.log('[Native] Crossfade: track changed');
+      // Update UI state after crossfade completes
+      updatePlayButton();
+      updateMediaSession(S.currentTrack);
+    });
+    
+    // Load saved crossfade setting
+    const savedCrossfade = localStorage.getItem('crossfadeDuration');
+    if (savedCrossfade) {
+      const seconds = parseInt(savedCrossfade);
+      document.getElementById('crossfadeSlider').value = seconds;
+      document.getElementById('crossfadeValue').textContent = seconds + 's';
+      window.Capacitor.Plugins.AudioPlayerPlugin.setCrossfade({ 
+        durationMs: seconds * 1000 
+      }).catch(err => console.error('Failed to set crossfade:', err));
+    }
+  }
+});
 </script>
 
 <!-- Spotify Import Modal -->
@@ -6499,6 +7049,83 @@ initOfflineDB().then(() => {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+// =====================
+// NOW PLAYING SCREEN
+// =====================
+function openNowPlaying() {
+  const overlay = document.getElementById('now-playing-overlay');
+  if (!overlay) return;
+  syncNowPlaying();
+  overlay.classList.add('open');
+}
+
+function closeNowPlaying() {
+  const overlay = document.getElementById('now-playing-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function syncNowPlaying() {
+  const track = S.currentTrack;
+  if (!track) return;
+
+  document.getElementById('np-title').textContent = track.title || '—';
+  document.getElementById('np-artist').textContent = track.channel || '—';
+
+  const artwork = document.getElementById('np-artwork');
+  const placeholder = document.getElementById('np-artwork-placeholder');
+  if (track.thumb) {
+    artwork.src = track.thumb;
+    artwork.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+  } else {
+    artwork.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'flex';
+  }
+
+  // Sync play/pause button
+  const playBtn = document.getElementById('np-play-btn');
+  if (playBtn) {
+    playBtn.innerHTML = S.isPlaying
+      ? '<i class="ti ti-player-pause-filled"></i>'
+      : '<i class="ti ti-player-play-filled"></i>';
+  }
+
+  // Update like button state
+  const likeBtn = document.getElementById('np-like-btn');
+  if (likeBtn && track.id) {
+    const liked = S.favorites.some(f => f.id === track.id);
+    likeBtn.classList.toggle('active', liked);
+    likeBtn.querySelector('i').className = liked ? 'ti ti-heart-filled' : 'ti ti-heart';
+  }
+}
+
+function npSeek(value) {
+  if (!S.player?.getCurrentTime) return;
+  const duration = S.player.getDuration ? S.player.getDuration() : 0;
+  if (!duration) return;
+  const time = (value / 1000) * duration;
+  S.player.seekTo(time);
+  document.getElementById('np-current-time').textContent = formatTime(time);
+}
+
+// Update NP progress bar periodically
+setInterval(() => {
+  const overlay = document.getElementById('now-playing-overlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (!S.player?.getCurrentTime) return;
+
+  const current = S.player.getCurrentTime();
+  const duration = S.player.getDuration ? S.player.getDuration() : 0;
+  if (!duration) return;
+
+  const pct = (current / duration) * 1000;
+  const progressEl = document.getElementById('np-progress');
+  if (progressEl) progressEl.value = pct;
+
+  document.getElementById('np-current-time').textContent = formatTime(current);
+  document.getElementById('np-total-time').textContent = formatTime(duration);
+}, 500);
 </script>
 </body>
 </html>

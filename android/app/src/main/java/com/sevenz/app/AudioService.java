@@ -79,10 +79,10 @@ public class AudioService extends Service {
     private final Runnable updateProgressRunnable = new Runnable() {
         @Override
         public void run() {
-            if (activePlayer != null && activePlayer.isPlaying()) {
+            if (player != null && player.isPlaying()) {
                 updatePlaybackState();
-                checkCrossfadeTrigger();
-                progressHandler.postDelayed(this, 500); // Check every 500ms for crossfade
+                // Crossfade disabled - no trigger check
+                progressHandler.postDelayed(this, 500);
             }
         }
     };
@@ -186,6 +186,9 @@ public class AudioService extends Service {
         return START_STICKY;
     }
     
+    // Single player for stable playback (crossfade disabled)
+    private ExoPlayer player;
+    
     private void playAudio(String url) {
         android.util.Log.d("AudioService", "playAudio called, URL: " + (url != null ? url.substring(0, Math.min(50, url.length())) + "..." : "NULL"));
         
@@ -194,45 +197,68 @@ public class AudioService extends Service {
             return;
         }
         
-        // Cancel any ongoing crossfade
-        cancelCrossfade();
-        crossfadeStarted = false;
-        
-        // Initialize players if needed
-        if (playerA == null) {
-            playerA = createExoPlayer();
-        }
-        if (playerB == null) {
-            playerB = createExoPlayer();
+        // Stop any existing playback
+        if (player != null) {
+            player.stop();
+            player.release();
         }
         
-        // Set active player
-        activePlayer = playerA;
-        nextPlayer = playerB;
-        
-        // Clear next track
-        nextUrl = null;
-        nextArtwork = null;
+        // Create new player
+        player = createSimpleExoPlayer();
+        activePlayer = player; // for compatibility with existing code
         
         try {
             android.util.Log.d("AudioService", "Setting media item and preparing...");
             MediaItem mediaItem = MediaItem.fromUri(url);
-            activePlayer.setMediaItem(mediaItem);
-            activePlayer.setVolume(1.0f);
-            activePlayer.setPlayWhenReady(true);
-            activePlayer.prepare();
+            player.setMediaItem(mediaItem);
+            player.setVolume(1.0f);
+            player.setPlayWhenReady(true);
+            player.prepare();
             
             // Load artwork and start foreground after
             loadArtwork(currentThumb);
-            
-            // Start crossfade monitoring if enabled
-            if (crossfadeDuration > 0) {
-                startCrossfadeMonitoring();
-            }
+            startProgressUpdates();
             
         } catch (Exception e) {
             android.util.Log.e("AudioService", "Error playing audio", e);
         }
+    }
+    
+    private ExoPlayer createSimpleExoPlayer() {
+        android.util.Log.d("AudioService", "Creating simple ExoPlayer");
+        LoadControl loadControl = new DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                5000,   // minBufferMs
+                15000,  // maxBufferMs
+                500,    // bufferForPlaybackMs - fast start
+                1000    // bufferForPlaybackAfterRebufferMs
+            )
+            .build();
+        
+        ExoPlayer newPlayer = new ExoPlayer.Builder(this)
+            .setLoadControl(loadControl)
+            .build();
+        
+        newPlayer.addListener(new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                android.util.Log.d("AudioService", "Playback state: " + playbackState);
+                if (playbackState == Player.STATE_ENDED) {
+                    android.util.Log.d("AudioService", "Track ended - notifying JS");
+                    AudioPlayerPlugin.notifyTrackEnded(getApplicationContext());
+                }
+            }
+            
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                android.util.Log.d("AudioService", "isPlaying: " + isPlaying);
+                updatePlaybackState();
+                updateNotification();
+                AudioPlayerPlugin.notifyPlaybackStateChanged(isPlaying);
+            }
+        });
+        
+        return newPlayer;
     }
     
     private ExoPlayer createExoPlayer() {
@@ -277,22 +303,14 @@ public class AudioService extends Service {
         return player;
     }
     
+    // Crossfade disabled - methods kept for future reimplementation
     private void setCrossfade(int durationMs) {
-        crossfadeDuration = durationMs;
-        crossfadeStarted = false;
-        
-        if (durationMs > 0 && activePlayer != null && activePlayer.isPlaying()) {
-            startCrossfadeMonitoring();
-        } else {
-            stopCrossfadeMonitoring();
-        }
-        
-        android.util.Log.d("AudioService", "Crossfade set to " + durationMs + "ms");
+        // Crossfade temporarily disabled for stability
+        android.util.Log.d("AudioService", "Crossfade ignored (disabled): " + durationMs + "ms");
     }
     
     private void startCrossfadeMonitoring() {
-        crossfadeHandler.removeCallbacks(crossfadeCheckRunnable);
-        crossfadeHandler.post(crossfadeCheckRunnable);
+        // Disabled
     }
     
     private void stopCrossfadeMonitoring() {
@@ -300,156 +318,28 @@ public class AudioService extends Service {
     }
     
     private void checkCrossfadeTrigger() {
-        if (crossfadeDuration <= 0 || crossfadeStarted) return;
-        if (activePlayer == null) return;
-        
-        long duration = activePlayer.getDuration();
-        long position = activePlayer.getCurrentPosition();
-        
-        if (duration <= 0) return; // Live stream or unknown duration
-        
-        long remaining = duration - position;
-        
-        // Trigger crossfade when remaining time <= crossfade duration + 2s buffer
-        if (remaining <= crossfadeDuration + 2000) {
-            android.util.Log.d("AudioService", "Crossfade trigger: " + remaining + "ms remaining");
-            crossfadeStarted = true;
-            // Notify JS to preload next track
-            AudioPlayerPlugin.notifyRequestNextTrack(getApplicationContext());
-        }
+        // Crossfade disabled - do nothing
     }
     
     private void loadNextTrack(String url, String title, String artist, String thumb) {
-        if (url == null || url.isEmpty() || nextPlayer == null) return;
-        
-        android.util.Log.d("AudioService", "Loading next track for crossfade: " + title);
-        
-        nextUrl = url;
-        nextTitle = title;
-        nextArtist = artist;
-        nextThumb = thumb;
-        
-        try {
-            MediaItem mediaItem = MediaItem.fromUri(url);
-            nextPlayer.setMediaItem(mediaItem);
-            nextPlayer.setVolume(0f);  // Start silent
-            nextPlayer.setPlayWhenReady(false);
-            nextPlayer.prepare();
-            
-            // Load artwork for next track
-            loadNextArtwork(thumb);
-            
-            // If we already passed the crossfade trigger point, start crossfade immediately
-            if (crossfadeStarted && activePlayer != null) {
-                long remaining = activePlayer.getDuration() - activePlayer.getCurrentPosition();
-                if (remaining <= crossfadeDuration) {
-                    startCrossfade();
-                }
-            }
-        } catch (Exception e) {
-            android.util.Log.e("AudioService", "Error loading next track", e);
-        }
+        // Crossfade disabled - ignore load next track
+        android.util.Log.d("AudioService", "loadNextTrack ignored (crossfade disabled)");
     }
     
+    // Crossfade methods kept for future reimplementation (all disabled)
     private void startCrossfade() {
-        if (nextPlayer == null || activePlayer == null) {
-            android.util.Log.w("AudioService", "Cannot start crossfade - players not ready");
-            return;
-        }
-        
-        android.util.Log.d("AudioService", "Starting crossfade: " + crossfadeDuration + "ms");
-        
-        // Start playing next track silently
-        nextPlayer.setPlayWhenReady(true);
-        
-        // Cancel any existing animator
-        cancelCrossfade();
-        
-        // Create volume crossfade animation
-        crossfadeAnimator = ValueAnimator.ofFloat(0f, 1f);
-        crossfadeAnimator.setDuration(crossfadeDuration);
-        crossfadeAnimator.addUpdateListener(animation -> {
-            float progress = (float) animation.getAnimatedValue();
-            // Active player fades out (1.0 -> 0.0)
-            activePlayer.setVolume(1f - progress);
-            // Next player fades in (0.0 -> 1.0)
-            nextPlayer.setVolume(progress);
-        });
-        
-        crossfadeAnimator.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                android.util.Log.d("AudioService", "Crossfade complete - swapping players");
-                
-                // Stop old active player
-                activePlayer.stop();
-                activePlayer.clearMediaItems();
-                activePlayer.setVolume(1.0f);
-                
-                // Swap players
-                ExoPlayer temp = activePlayer;
-                activePlayer = nextPlayer;
-                nextPlayer = temp;
-                
-                // Update metadata
-                currentTitle = nextTitle;
-                currentArtist = nextArtist;
-                currentThumb = nextThumb;
-                currentArtwork = nextArtwork;
-                nextArtwork = null;
-                nextUrl = null;
-                
-                // Update notification and metadata
-                updateMediaMetadata();
-                updateNotification();
-                
-                // Reset crossfade state
-                crossfadeStarted = false;
-                crossfadeAnimator = null;
-                
-                // Restart monitoring for next track
-                if (crossfadeDuration > 0) {
-                    startCrossfadeMonitoring();
-                }
-                
-                // Notify JS that track changed
-                AudioPlayerPlugin.notifyTrackChanged(getApplicationContext());
-            }
-        });
-        
-        crossfadeAnimator.start();
+        // Disabled
     }
     
     private void cancelCrossfade() {
-        if (crossfadeAnimator != null && crossfadeAnimator.isRunning()) {
+        if (crossfadeAnimator != null) {
             crossfadeAnimator.cancel();
             crossfadeAnimator = null;
         }
     }
     
     private void loadNextArtwork(String thumbUrl) {
-        if (thumbUrl == null || thumbUrl.isEmpty()) {
-            nextArtwork = null;
-            return;
-        }
-        
-        Glide.with(getApplicationContext())
-            .asBitmap()
-            .load(thumbUrl)
-            .into(new CustomTarget<Bitmap>() {
-                @Override
-                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                    nextArtwork = resource;
-                }
-                
-                @Override
-                public void onLoadCleared(@Nullable Drawable placeholder) {}
-                
-                @Override
-                public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                    nextArtwork = null;
-                }
-            });
+        // Crossfade disabled - no next artwork needed
     }
     
     private void loadArtwork(String thumbUrl) {
@@ -494,10 +384,10 @@ public class AudioService extends Service {
     }
     
     private void updatePlaybackState() {
-        if (mediaSession == null || activePlayer == null) return;
+        if (mediaSession == null || player == null) return;
         
-        boolean isPlaying = activePlayer.isPlaying();
-        long position = activePlayer.getCurrentPosition();
+        boolean isPlaying = player.isPlaying();
+        long position = player.getCurrentPosition();
         
         PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
             .setActions(
@@ -523,7 +413,7 @@ public class AudioService extends Service {
     private void updateMediaMetadata() {
         if (mediaSession == null) return;
         
-        long duration = activePlayer != null ? activePlayer.getDuration() : 0;
+        long duration = player != null ? player.getDuration() : 0;
         if (duration < 0) duration = 0;
         
         MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder()
@@ -549,26 +439,26 @@ public class AudioService extends Service {
     }
     
     private void rewind(long ms) {
-        if (activePlayer != null) {
-            long newPos = Math.max(0, activePlayer.getCurrentPosition() - ms);
-            activePlayer.seekTo(newPos);
+        if (player != null) {
+            long newPos = Math.max(0, player.getCurrentPosition() - ms);
+            player.seekTo(newPos);
             updatePlaybackState();
             updateNotification();
         }
     }
     
     private void forward(long ms) {
-        if (activePlayer != null) {
-            long newPos = Math.min(activePlayer.getDuration(), activePlayer.getCurrentPosition() + ms);
-            activePlayer.seekTo(newPos);
+        if (player != null) {
+            long newPos = Math.min(player.getDuration(), player.getCurrentPosition() + ms);
+            player.seekTo(newPos);
             updatePlaybackState();
             updateNotification();
         }
     }
     
     private void pauseAudio() {
-        if (activePlayer != null) {
-            activePlayer.pause();
+        if (player != null) {
+            player.pause();
             stopProgressUpdates();
             updatePlaybackState();
             updateNotification();
@@ -576,8 +466,8 @@ public class AudioService extends Service {
     }
     
     private void resumeAudio() {
-        if (activePlayer != null) {
-            activePlayer.play();
+        if (player != null) {
+            player.play();
             startProgressUpdates();
             updatePlaybackState();
             updateNotification();
@@ -586,21 +476,12 @@ public class AudioService extends Service {
     
     private void stopAudio() {
         stopProgressUpdates();
-        stopCrossfadeMonitoring();
-        cancelCrossfade();
         
-        if (playerA != null) {
-            playerA.stop();
-            playerA.release();
-            playerA = null;
+        if (player != null) {
+            player.stop();
+            player.release();
+            player = null;
         }
-        if (playerB != null) {
-            playerB.stop();
-            playerB.release();
-            playerB = null;
-        }
-        activePlayer = null;
-        nextPlayer = null;
         
         if (mediaSession != null) {
             mediaSession.setActive(false);
@@ -632,7 +513,7 @@ public class AudioService extends Service {
     }
     
     private Notification buildNotification() {
-        boolean isPlaying = activePlayer != null && activePlayer.isPlaying();
+        boolean isPlaying = player != null && player.isPlaying();
         
         // Intent to open app when notification is clicked
         Intent openIntent = new Intent(this, MainActivity.class);
@@ -726,19 +607,11 @@ public class AudioService extends Service {
     @Override
     public void onDestroy() {
         stopProgressUpdates();
-        stopCrossfadeMonitoring();
-        cancelCrossfade();
         
-        if (playerA != null) {
-            playerA.release();
-            playerA = null;
+        if (player != null) {
+            player.release();
+            player = null;
         }
-        if (playerB != null) {
-            playerB.release();
-            playerB = null;
-        }
-        activePlayer = null;
-        nextPlayer = null;
         
         if (mediaSession != null) {
             mediaSession.setActive(false);

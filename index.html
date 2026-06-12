@@ -4043,20 +4043,21 @@ function playTrack(index) {
     if (badge) badge.style.display = isOffline ? 'inline-block' : 'none';
   });
 
-  if (S.player?.loadVideoById) {
+  const isNative = !!(window.Capacitor?.Plugins?.AudioPlayerPlugin);
+  console.log("playTrack: isNative=" + isNative + ", S.player=" + !!S.player);
+
+  if (!isNative && S.player?.loadVideoById) {
+    // Web fallback - YouTube IFrame
     S.player.loadVideoById(track.id);
     S.isPlaying = true;
     document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-pause-filled"></i>';
     document.getElementById('progressFill').style.width = '0%';
-  }
-
-  // Stop YouTube IFrame player before starting native ExoPlayer
-  if (S.player && typeof S.player.stopVideo === 'function') {
-    S.player.stopVideo();
-  }
-
-  // Call native Capacitor plugin for background audio
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AudioPlayerPlugin) {
+    updateMediaSession(track);
+  } else if (isNative) {
+    // Native Android - use Capacitor plugin
+    if (S.player && typeof S.player.stopVideo === 'function') {
+      try { S.player.stopVideo(); } catch(e) {}
+    }
     window.Capacitor.Plugins.AudioPlayerPlugin.playVideo({
       videoId: track.id,
       title: track.title,
@@ -4065,12 +4066,10 @@ function playTrack(index) {
     }).catch(err => {
       console.error("PLUGIN ERROR: " + err);
     });
+    updateMediaSession(track);
   } else {
-    console.warn("PLUGIN NOT FOUND - Capacitor.Plugins.AudioPlayerPlugin: " + (window.Capacitor && window.Capacitor.Plugins ? "exists but no AudioPlayerPlugin" : "Capacitor not loaded"));
+    console.warn("playTrack: no player available");
   }
-
-  // Update Media Session (controls in notification)
-  updateMediaSession(track);
   
   updateLikeButton();
   saveToHistory(track);
@@ -5728,14 +5727,9 @@ async function loadPersonalized() {
       if (sidebarItem) sidebarItem.classList.add('active');
       // Trigger the same action as the sidebar nav item
       if (page === 'home') {
-        searchInput.value = '';
-        document.getElementById('catsSection').style.display = '';
-        document.getElementById('bubbleSection').style.display = '';
-        const ps = document.getElementById('personalSection');
-        if (ps) ps.style.display = '';
-        document.getElementById('searchResults').classList.remove('visible');
-        document.getElementById('searchResults').innerHTML = '';
+        navigateTo('home');
       } else if (page === 'search') {
+        navigateTo('search');
         searchInput.focus();
       }
     });

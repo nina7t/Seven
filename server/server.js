@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const NodeCache = require('node-cache');
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const { getFallbackSearch, getFallbackTrending, getFallbackVideos } = require('./fallback-data');
@@ -10,11 +12,11 @@ const { searchInvidious, getTrendingInvidious, getVideosInvidious } = require('.
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Support multi-clé API YouTube pour 10 users
+// Support multi-clé API YouTube (rotation quota) — nombre illimité de clés
+// YOUTUBE_API_KEY, puis YOUTUBE_API_KEY_2, _3, _4, _5, ... dans .env
 const API_KEYS = [
   process.env.YOUTUBE_API_KEY,
-  process.env.YOUTUBE_API_KEY_2,
-  process.env.YOUTUBE_API_KEY_3
+  ...Array.from({ length: 19 }, (_, i) => process.env[`YOUTUBE_API_KEY_${i + 2}`])
 ].filter(Boolean);
 
 if (!API_KEYS[0]) {
@@ -43,10 +45,70 @@ const pendingSearches = new Map(); // query -> Promise
 const pendingVideos = new Map();   // ids -> Promise
 
 // Suivi quota approximatif (100 unités par search, 1 unité par video)
-let quotaUsedToday = 0;
+// Persistance dans un fichier pour survivre aux redémarrages
+const QUOTA_FILE = path.join(__dirname, '.quota.json');
 const QUOTA_LIMIT = 9500; // Marge de sécurité avant 10000
-const quotaResetTime = new Date();
-quotaResetTime.setHours(24, 0, 0, 0); // Reset à minuit PST (heure YouTube)
+
+function loadQuotaState() {
+  try {
+    if (fs.existsSync(QUOTA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(QUOTA_FILE, 'utf8'));
+      const savedDate = new Date(data.resetTime);
+      const now = new Date();
+      
+      // Si c'est un nouveau jour, reset
+      if (now > savedDate) {
+        console.log('[QUOTA] Nouveau jour détecté, reset du quota');
+        return { used: 0, resetTime: getTomorrowMidnight() };
+      }
+      console.log(`[QUOTA] Chargé: ${data.used}/${QUOTA_LIMIT} (reset: ${savedDate.toISOString()})`);
+      return { used: data.used || 0, resetTime: savedDate };
+    }
+  } catch (e) {
+    console.error('[QUOTA] Erreur chargement:', e.message);
+  }
+  return { used: 0, resetTime: getTomorrowMidnight() };
+}
+
+function getTomorrowMidnight() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function saveQuotaState() {
+  try {
+    fs.writeFileSync(QUOTA_FILE, JSON.stringify({
+      used: quotaUsedToday,
+      resetTime: quotaResetTime.toISOString()
+    }));
+  } catch (e) {
+    console.error('[QUOTA] Erreur sauvegarde:', e.message);
+  }
+}
+
+const quotaState = loadQuotaState();
+let quotaUsedToday = quotaState.used;
+let quotaResetTime = new Date(quotaState.resetTime);
+
+// Détection robuste d'une erreur de quota YouTube.
+// YouTube renvoie un HTTP 403 (et non 429) OU une erreur dans le corps d'une
+// réponse 200. Comme on re-throw via `new Error(data.error.message)` (qui n'a
+// pas de `.response`), il FAUT aussi inspecter le message texte, sinon le
+// fallback (rotation de clé / Invidious) n'était jamais déclenché.
+function isQuotaError(error) {
+  const status = error.response?.status;
+  if (status === 403 || status === 429) return true;
+  const apiMsg = error.response?.data?.error?.message || '';
+  const combined = `${error.message || ''} ${apiMsg}`;
+  return /quota|exceeded|rate.?limit|dailylimit|userratelimit/i.test(combined);
+}
+
+// Sauvegarder toutes les 30 secondes et à l'arrêt
+setInterval(saveQuotaState, 30000);
+process.on('SIGINT', () => { saveQuotaState(); process.exit(0); });
+process.on('SIGTERM', () => { saveQuotaState(); process.exit(0); });
 
 // Rate limiting simple
 const requestLog = new Map();
@@ -183,7 +245,7 @@ app.get('/api/youtube/search', rateLimit, async (req, res) => {
       console.error('YouTube Search Error:', error.message);
       
       // Quota dépassé (429) → rotation de clé ou Invidious
-      if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+      if (isQuotaError(error)) {
         console.warn('[YOUTUBE QUOTA] Clé épuisée, rotation...');
         rotateKey();
         
@@ -259,7 +321,7 @@ app.get('/api/youtube/trending', rateLimit, async (req, res) => {
     console.error('YouTube Trending Error:', error.message);
     
     // Quota dépassé → rotation clé ou Invidious
-    if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+    if (isQuotaError(error)) {
       rotateKey();
       try {
         const retryUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&videoCategoryId=10&maxResults=16&regionCode=FR&key=${getCurrentKey()}`;
@@ -315,50 +377,78 @@ app.get('/api/youtube/related', rateLimit, async (req, res) => {
     return res.json({ ...cached, cached: true });
   }
 
+  // `relatedToVideoId` a été supprimé de l'API YouTube v3 (août 2023).
+  // Nouvelle stratégie : récupérer l'artiste/titre de la vidéo source (videos.list,
+  // 1 unité de quota) puis faire une recherche dessus (search.list). On garde ainsi
+  // le format search.list attendu par le client (item.id.videoId).
+
+  // Graine de recommandation à partir de la vidéo source
+  async function getSeedQuery() {
+    try {
+      const vurl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${getCurrentKey()}`;
+      const vresp = await axios.get(vurl, { timeout: 5000 });
+      if (vresp.data.error) throw new Error(vresp.data.error.message);
+      quotaUsedToday += 1;
+      const snip = vresp.data?.items?.[0]?.snippet;
+      if (!snip) return null;
+      // Le nom de la chaîne (artiste) donne de meilleures recommandations que le titre
+      return snip.channelTitle || snip.title || null;
+    } catch (e) {
+      if (isQuotaError(e)) throw e; // laisser remonter pour déclencher le fallback quota
+      return null;
+    }
+  }
+
+  // Recherche YouTube, en retirant la vidéo source des résultats
+  async function searchRelated(q) {
+    const surl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${getCurrentKey()}`;
+    const sresp = await axios.get(surl, { timeout: 5000 });
+    if (sresp.data.error) throw new Error(sresp.data.error.message);
+    quotaUsedToday += 100;
+    const data = sresp.data;
+    if (Array.isArray(data.items)) {
+      data.items = data.items.filter(it => it?.id?.videoId !== videoId);
+    }
+    return data;
+  }
+
   try {
     console.log(`[API CALL] Related videos for: ${videoId}`);
-    // Utilise l'endpoint search avec relatedToVideoId
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${getCurrentKey()}`;
-    
-    const response = await axios.get(url, { timeout: 5000 });
-    
-    if (response.data.error) {
-      throw new Error(response.data.error.message);
+    const seed = await getSeedQuery();
+    if (!seed) {
+      return res.json(getFallbackSearch('', maxResults));
     }
+    const data = await searchRelated(seed);
+    console.log(`[QUOTA] +101 pour related, Total: ${quotaUsedToday}/${QUOTA_LIMIT}`);
+    searchCache.set(cacheKey, data);
+    res.json({ ...data, cached: false });
 
-    // Tracker le quota (~100 unités par search)
-    quotaUsedToday += 100;
-    console.log(`[QUOTA] +100 pour related, Total: ${quotaUsedToday}/${QUOTA_LIMIT}`);
-
-    searchCache.set(cacheKey, response.data);
-    res.json({ ...response.data, cached: false });
-    
   } catch (error) {
     console.error('YouTube Related Error:', error.message);
-    
-    if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+
+    if (isQuotaError(error)) {
       rotateKey();
       if (API_KEYS.length > 1) {
         try {
-          const retryUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${getCurrentKey()}`;
-          const retryResponse = await axios.get(retryUrl, { timeout: 5000 });
-          if (!retryResponse.data.error) {
-            quotaUsedToday += 100;
-            searchCache.set(cacheKey, retryResponse.data);
-            return res.json({ ...retryResponse.data, cached: false });
+          const seed = await getSeedQuery();
+          if (seed) {
+            const data = await searchRelated(seed);
+            searchCache.set(cacheKey, data);
+            return res.json({ ...data, cached: false });
           }
-        } catch (retryError) {}
+        } catch (retryError) {
+          console.warn('[RELATED RETRY FAIL]', retryError.message);
+        }
       }
-      
-      // Fallback: search for similar content using the video title/artist
+
+      // Fallback static
       try {
-        const fallbackData = getFallbackSearch('', maxResults);
-        return res.json(fallbackData);
+        return res.json(getFallbackSearch('', maxResults));
       } catch (fallbackError) {
         return res.status(503).json({ error: 'Service temporairement indisponible' });
       }
     }
-    
+
     res.status(500).json({
       error: 'Erreur lors du chargement des vidéos liées',
       details: error.message
@@ -415,7 +505,7 @@ app.get('/api/youtube/videos', rateLimit, async (req, res) => {
     } catch (error) {
       console.error('YouTube Videos Error:', error.message);
       
-      if (error.response?.status === 429 || error.response?.data?.error?.message?.includes('quota')) {
+      if (isQuotaError(error)) {
         rotateKey();
         if (API_KEYS.length > 1) {
           try {
@@ -458,8 +548,17 @@ app.get('/api/youtube/videos', rateLimit, async (req, res) => {
 
 // Route pour vider le cache (admin)
 app.post('/api/admin/clear-cache', (req, res) => {
+  // Route sensible : exiger un token admin (header x-admin-token ou ?token=).
+  // Sans ADMIN_TOKEN défini, la route est désactivée pour éviter qu'un tiers
+  // vide le cache à distance (déni de service / explosion de quota).
+  const adminToken = process.env.ADMIN_TOKEN;
+  const provided = req.get('x-admin-token') || req.query.token;
+  if (!adminToken || provided !== adminToken) {
+    return res.status(403).json({ error: 'Non autorisé' });
+  }
+
   const { key } = req.query;
-  
+
   if (key === 'search') searchCache.flushAll();
   if (key === 'trending') trendingCache.flushAll();
   if (key === 'video') videoCache.flushAll();
@@ -470,6 +569,63 @@ app.post('/api/admin/clear-cache', (req, res) => {
   }
   
   res.json({ message: 'Cache vidé', key: key || 'all' });
+});
+
+// ════════════════════════════════════════════════════════════
+// LAST.FM - Recommandations d'artistes similaires
+// La clé reste côté serveur (LASTFM_API_KEY), jamais exposée au client.
+// Cache 24h : les données Last.fm bougent peu et l'API est gratuite mais
+// limitée — on évite de la spammer à chaque chargement.
+// ════════════════════════════════════════════════════════════
+
+const LASTFM_API_KEY = process.env.LASTFM_API_KEY;
+const LASTFM_BASE = 'https://ws.audioscrobbler.com/2.0/';
+const lastfmCache = new NodeCache({ stdTTL: 86400, checkperiod: 3600 }); // 24h
+
+async function callLastfm(method, params) {
+  if (!LASTFM_API_KEY) {
+    console.warn('[LASTFM] LASTFM_API_KEY non définie — recommandations désactivées');
+    return null;
+  }
+  const cacheKey = `${method}:${JSON.stringify(params)}`;
+  const cached = lastfmCache.get(cacheKey);
+  if (cached) {
+    console.log(`[CACHE HIT] Last.fm ${method}: ${params.artist}`);
+    return cached;
+  }
+  const url = `${LASTFM_BASE}?method=${method}&api_key=${LASTFM_API_KEY}&format=json&${
+    Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')
+  }`;
+  const response = await axios.get(url, { timeout: 6000 });
+  if (response.data?.error) {
+    throw new Error(response.data.message || `Last.fm error ${response.data.error}`);
+  }
+  lastfmCache.set(cacheKey, response.data);
+  return response.data;
+}
+
+// Artistes similaires à un artiste donné
+app.get('/api/lastfm/similar/:artist', rateLimit, async (req, res) => {
+  try {
+    const data = await callLastfm('artist.getsimilar', { artist: req.params.artist, limit: 10 });
+    const artists = data?.similarartists?.artist || [];
+    res.json(Array.isArray(artists) ? artists : [artists]);
+  } catch (e) {
+    console.error('[LASTFM SIMILAR]', e.message);
+    res.json([]); // dégrade en silence côté client
+  }
+});
+
+// Top tracks d'un artiste
+app.get('/api/lastfm/top-tracks/:artist', rateLimit, async (req, res) => {
+  try {
+    const data = await callLastfm('artist.gettoptracks', { artist: req.params.artist, limit: 5 });
+    const tracks = data?.toptracks?.track || [];
+    res.json(Array.isArray(tracks) ? tracks : [tracks]);
+  } catch (e) {
+    console.error('[LASTFM TOP-TRACKS]', e.message);
+    res.json([]);
+  }
 });
 
 // ════════════════════════════════════════════════════════════
@@ -486,28 +642,41 @@ const INVIDIOUS_INSTANCES = [
   'https://yewtu.be'
 ];
 
+// Valide l'URL audio renvoyée par une instance Invidious tierce avant de la
+// transmettre au client (anti-SSRF) : on n'autorise que le CDN média de YouTube
+// (*.googlevideo.com) ou l'hôte de l'instance elle-même (proxy local Invidious).
+function isAllowedAudioUrl(rawUrl, instance) {
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== 'https:') return false;
+    const host = u.hostname.toLowerCase();
+    if (host === 'googlevideo.com' || host.endsWith('.googlevideo.com')) return true;
+    const instanceHost = new URL(instance).hostname.toLowerCase();
+    return host === instanceHost;
+  } catch (e) {
+    return false;
+  }
+}
+
 // Récupère le stream audio via Invidious avec fallback entre instances
 async function getAudioStream(videoId) {
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
       console.log(`[INVIDIOUS] Trying ${instance}...`);
-      
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
-        signal: controller.signal
+
+      // axios plutôt que fetch global : fonctionne sur toutes les versions de Node
+      const response = await axios.get(`${instance}/api/v1/videos/${videoId}`, {
+        timeout: 10000,
+        validateStatus: () => true
       });
-      
-      clearTimeout(timeout);
-      
-      if (!response.ok) {
+
+      if (response.status < 200 || response.status >= 300) {
         console.log(`[INVIDIOUS] ${instance} returned ${response.status}`);
         continue;
       }
-      
-      const data = await response.json();
-      
+
+      const data = response.data;
+
       if (data.error) {
         console.log(`[INVIDIOUS] ${instance} error: ${data.error}`);
         continue;
@@ -524,9 +693,15 @@ async function getAudioStream(videoId) {
       }
       
       const best = audioFormats[0];
-      
+
+      // Anti-SSRF : refuser une URL audio vers un hôte arbitraire
+      if (!isAllowedAudioUrl(best.url, instance)) {
+        console.warn(`[INVIDIOUS] ${instance} - URL audio non autorisée, ignorée`);
+        continue;
+      }
+
       console.log(`[INVIDIOUS] Success via ${instance}, bitrate: ${best.bitrate}`);
-      
+
       return {
         audioUrl: best.url,
         title: data.title || 'Unknown',
@@ -545,9 +720,16 @@ async function getAudioStream(videoId) {
   throw new Error('Toutes les instances Invidious sont inaccessibles');
 }
 
+// Route pour lister les instances disponibles
+// IMPORTANT: doit être déclarée AVANT '/api/stream/:videoId', sinon Express
+// matche '/api/stream/instances' avec videoId='instances' (-> 400, route morte).
+app.get('/api/stream/instances', (req, res) => {
+  res.json({ instances: INVIDIOUS_INSTANCES });
+});
+
 app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
   const { videoId } = req.params;
-  
+
   if (!videoId || !videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
     return res.status(400).json({ error: 'ID vidéo invalide' });
   }
@@ -570,11 +752,6 @@ app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
     console.error('[STREAM ERROR]', error.message);
     res.status(503).json({ error: 'Stream indisponible: ' + error.message });
   }
-});
-
-// Route pour lister les instances disponibles
-app.get('/api/stream/instances', (req, res) => {
-  res.json({ instances: INVIDIOUS_INSTANCES });
 });
 
 // ════════════════════════════════════════════════════════════

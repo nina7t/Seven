@@ -114,6 +114,9 @@
   --purple: #8a63d2;
   --pink: #ff4a0a ;
   --orange: #ff4a0a ;
+  --player-h: 90px;
+  --shell-gap: 8px;
+  --panel-radius: 8px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -248,7 +251,7 @@
 }
 
 body {
-  background: var(--bg);
+  background: #000;
   color: var(--white);
   font-family: 'StyreneA', sans-serif;
   overflow: hidden;
@@ -263,16 +266,25 @@ h1, h2, h3 {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
 
-/* APP SHELL */
+/* APP SHELL — panneaux flottants (Spotify 2024) */
 .app {
   display: grid;
   grid-template-columns: 280px 1fr;
-  height: 100vh;
+  height: calc(100vh - var(--player-h));
+  gap: var(--shell-gap);
+  padding: var(--shell-gap) var(--shell-gap) 0;
+  background: #000;
+  transition: grid-template-columns 0.25s ease;
+}
+/* 3e colonne Now Playing quand ouverte */
+.app.np-open {
+  grid-template-columns: 280px 1fr 360px;
 }
 
 /* SIDEBAR */
 .sidebar {
-  background: var(--sidebar);
+  background: var(--bg);
+  border-radius: var(--panel-radius);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -462,10 +474,11 @@ h1, h2, h3 {
 /* MAIN */
 .main {
   background: linear-gradient(180deg, #1e1e1e 0%, var(--bg) 25%);
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--panel-radius);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 /* Topbar */
@@ -477,9 +490,14 @@ h1, h2, h3 {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(18,18,18,0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+.topbar.scrolled {
+  background: rgba(18,18,18,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom-color: rgba(255,255,255,0.06);
 }
 
 .sidebar-head {
@@ -640,7 +658,132 @@ h1, h2, h3 {
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 24px 100px;
+  padding: 8px 24px 32px;
+}
+
+/* ── NOW PLAYING SIDE PANEL ── */
+.np-panel {
+  background: var(--bg);
+  border-radius: var(--panel-radius);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  --np-accent: #333;
+}
+.app.np-open .np-panel { display: flex; }
+.np-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 16px 12px; flex-shrink: 0;
+}
+.np-panel-title { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
+.np-panel-close {
+  background: none; border: none; color: var(--gray); cursor: pointer;
+  width: 32px; height: 32px; border-radius: 50%; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .2s, background .2s;
+}
+.np-panel-close:hover { color: var(--white); background: rgba(255,255,255,0.1); }
+.np-panel-scroll {
+  flex: 1; overflow-y: auto; padding: 0 16px 20px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--np-accent) 55%, transparent) 0%, transparent 280px);
+  transition: background .5s ease;
+}
+.np-panel-art {
+  width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden;
+  background: var(--card); box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.np-panel-art img { width: 100%; height: 100%; object-fit: cover; }
+.np-panel-art i { font-size: 64px; color: var(--dark-gray); }
+.np-panel-meta { padding: 18px 2px 4px; }
+.np-panel-track { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.np-panel-artist { font-size: 14px; color: var(--gray); margin-top: 6px; }
+.np-panel-queue { margin-top: 28px; }
+.np-panel-queue-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.np-panel-queue-head span { font-size: 16px; font-weight: 700; }
+.np-panel-queue-link { font-size: 13px; color: var(--gray); cursor: pointer; }
+.np-panel-queue-link:hover { color: var(--white); text-decoration: underline; }
+.np-q-item {
+  display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 8px;
+  cursor: pointer; transition: background .15s;
+}
+.np-q-item:hover { background: var(--card-hover); }
+.np-q-cover { width: 44px; height: 44px; border-radius: 6px; overflow: hidden; background: var(--card); flex-shrink: 0; }
+.np-q-cover img { width: 100%; height: 100%; object-fit: cover; }
+.np-q-info { min-width: 0; }
+.np-q-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-q-artist { font-size: 12px; color: var(--gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-q-empty { font-size: 13px; color: var(--dark-gray); padding: 8px; }
+.icon-btn.active { color: var(--green); }
+
+/* ── PAGE ARTISTE DÉDIÉE ── */
+.artist-view.active { display: block; }
+.artist-loading { padding: 80px 24px; text-align: center; color: var(--gray); font-size: 15px; }
+.artist-loading i { display: inline-block; animation: spin 0.9s linear infinite; margin-right: 8px; font-size: 20px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.artist-hero {
+  position: relative;
+  height: 360px;
+  margin: -8px -24px 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 24px;
+  overflow: hidden;
+  --artist-accent: #2a2a2a;
+}
+.artist-hero-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center 25%;
+  transform: scale(1.05);
+}
+.artist-hero::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--artist-accent) 45%, transparent) 0%, rgba(18,18,18,0.35) 50%, var(--bg) 100%);
+  transition: background 0.5s ease;
+}
+.artist-hero-content { position: relative; z-index: 1; width: 100%; }
+.artist-verified { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; }
+.artist-verified i { color: var(--accent); font-size: 22px; }
+.artist-hero-name {
+  font-family: 'BenzGrotesk', sans-serif; font-weight: 900; letter-spacing: -0.03em;
+  line-height: 1; font-size: clamp(44px, 7.5vw, 92px); margin: 4px 0 14px;
+  text-shadow: 0 2px 24px rgba(0,0,0,0.45);
+}
+.artist-hero-meta { font-size: 14px; color: #fff; font-weight: 500; }
+
+.artist-actions { display: flex; align-items: center; gap: 24px; padding: 22px 24px 8px; }
+.artist-follow-btn {
+  background: transparent; border: 1px solid rgba(255,255,255,0.35); color: #fff;
+  border-radius: 999px; padding: 8px 20px; font-size: 14px; font-weight: 700;
+  font-family: 'StyreneA', sans-serif; cursor: pointer; transition: border-color 0.2s, transform 0.1s, background 0.2s;
+}
+.artist-follow-btn:hover { border-color: #fff; transform: scale(1.04); }
+.artist-follow-btn.following { border-color: var(--green); color: var(--green); }
+
+.artist-section { padding: 4px 24px 8px; }
+.artist-section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 16px 0 10px; }
+.artist-tracks { display: flex; flex-direction: column; }
+.artist-track {
+  display: grid; grid-template-columns: 22px 40px 1fr auto; align-items: center; gap: 16px;
+  padding: 7px 10px; border-radius: 6px; cursor: pointer; transition: background 0.15s;
+}
+.artist-track:hover { background: rgba(255,255,255,0.08); }
+.artist-track-rank { color: var(--gray); font-size: 16px; text-align: center; font-variant-numeric: tabular-nums; }
+.artist-track-thumb { width: 40px; height: 40px; border-radius: 4px; overflow: hidden; position: relative; background: var(--card); }
+.artist-track-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.artist-track-play { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.45); color: #fff; font-size: 16px; opacity: 0; transition: opacity 0.15s; }
+.artist-track:hover .artist-track-play { opacity: 1; }
+.artist-track-info { min-width: 0; }
+.artist-track-title { font-size: 15px; font-weight: 500; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.artist-track-plays { color: var(--gray); font-size: 13px; font-variant-numeric: tabular-nums; }
+@media (max-width: 768px) {
+  .artist-hero { height: 260px; margin: -8px -12px 0; }
+  .artist-section { padding: 4px 12px 8px; }
+  .artist-track-plays { display: none; }
 }
 
 /* Section */
@@ -658,7 +801,7 @@ h1, h2, h3 {
 .section-title {
   font-size: 24px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: -0.01em;
 }
 
 .section-link {
@@ -674,22 +817,22 @@ h1, h2, h3 {
 /* Categories */
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
 }
 
 .cat-card {
-  border-radius: 12px;
-  aspect-ratio: 1;
+  border-radius: 10px;
+  aspect-ratio: 4 / 3;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 18px;
+  padding-bottom: 12px;
   transition: transform 0.3s, box-shadow 0.3s;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
 }
 
 .cat-card::after {
@@ -714,7 +857,7 @@ h1, h2, h3 {
 .cat-icon {
   position: absolute;
   top: 0; right: 0; bottom: 0; left: 0;
-  font-size: 52px;
+  font-size: 34px;
   opacity: 0.4;
   display: flex;
   align-items: flex-start;
@@ -737,10 +880,10 @@ h1, h2, h3 {
 .cat-bg-6 .cat-icon img { filter: grayscale(1) sepia(1) saturate(5) hue-rotate(157deg) contrast(1.1); }
 
 .cat-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 500;
   font-family: 'StyreneA', sans-serif;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   position: relative;
   z-index: 1;
   text-align: center;
@@ -858,7 +1001,7 @@ h1, h2, h3 {
 .badge-green { background: rgba(29, 185, 84, 0.8); }
 
 /* Search results */
-.search-results { display: none; }
+.search-results { display: none; border-radius: 8px; transition: background 0.6s ease; }
 .search-results.visible { display: block; }
 
 .result-grid {
@@ -873,10 +1016,9 @@ h1, h2, h3 {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 90px;
-  background: rgba(18, 18, 18, 0.95);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255,255,255,0.1);
+  height: var(--player-h);
+  background: #000;
+  border-top: none;
   display: grid;
   grid-template-columns: 280px 1fr 280px;
   align-items: center;
@@ -1292,13 +1434,13 @@ h1, h2, h3 {
 .detail-cover img { width: 100%; height: 100%; object-fit: cover; }
 .detail-meta { flex: 1; min-width: 0; }
 .detail-type { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gray); }
-.detail-title { font-size: 36px; font-weight: 700; font-family: 'BenzGrotesk', sans-serif; letter-spacing: 0.06em; line-height: 1.05; margin: 10px 0 12px; }
+.detail-title { font-size: clamp(32px, 5vw, 64px); font-weight: 900; font-family: 'BenzGrotesk', sans-serif; letter-spacing: -0.03em; line-height: 1.0; margin: 10px 0 14px; }
 .detail-info { font-size: 14px; color: var(--gray); }
 .detail-desc { font-size: 14px; color: rgba(255,255,255,0.6); line-height: 1.6; margin-top: 6px; }
 .detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .detail-tag { display: inline-flex; align-items: center; background: rgba(255,255,255,0.1); border-radius: 99px; padding: 3px 10px; font-size: 12px; color: var(--gray); }
 .detail-actions { display: flex; align-items: center; gap: 14px; padding: 0 24px 20px; }
-.play-big { width: 52px; height: 52px; border-radius: 50%; background: var(--green); border: none; color: #000; display: grid; place-items: center; cursor: pointer; font-size: 22px; box-shadow: 0 8px 24px rgba(29,185,84,0.4); transition: transform 0.16s; }
+.play-big { width: 52px; height: 52px; border-radius: 50%; background: var(--green); border: none; color: #000; display: grid; place-items: center; cursor: pointer; font-size: 22px; transition: transform 0.16s; }
 .play-big:hover { transform: scale(1.06); }
 .ghost-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: var(--white); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.16s; }
 .ghost-btn i { font-size: 17px; }
@@ -1475,12 +1617,13 @@ h1, h2, h3 {
 .pl-track-del:hover { color:#e74c3c !important; }
 
 .pl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(185px,1fr)); gap:20px; padding:0 24px 40px; }
-.pl-card { cursor:pointer; transition:transform 0.25s; }
-.pl-card:hover { transform:translateY(-3px); }
-.pl-card-cover { width:100%; aspect-ratio:1; border-radius:12px; overflow:hidden; margin-bottom:12px; position:relative; box-shadow:0 6px 20px rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
+.pl-card { cursor:pointer; background:var(--card); border-radius:8px; padding:12px; transition:background 0.3s ease; }
+.pl-card:hover { background:var(--card-hover); }
+.pl-card-cover { width:100%; aspect-ratio:1; border-radius:6px; overflow:hidden; margin-bottom:14px; position:relative; box-shadow:0 8px 24px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; }
 .pl-card-cover img { width:100%; height:100%; object-fit:cover; }
-.pl-card-play { position:absolute; bottom:8px; right:8px; width:44px; height:44px; border-radius:50%; background:var(--green); border:none; color:#000; font-size:18px; display:flex; align-items:center; justify-content:center; opacity:0; transform:translateY(8px); transition:opacity 0.25s, transform 0.25s; box-shadow:0 4px 16px rgba(29,185,84,0.5); cursor:pointer; }
+.pl-card-play { position:absolute; bottom:8px; right:8px; width:48px; height:48px; border-radius:50%; background:var(--green); border:none; color:#000; font-size:20px; display:flex; align-items:center; justify-content:center; opacity:0; transform:translateY(8px); transition:opacity 0.25s, transform 0.25s; box-shadow:0 8px 16px rgba(0,0,0,0.4); cursor:pointer; }
 .pl-card:hover .pl-card-play { opacity:1; transform:translateY(0); }
+.pl-card-play:hover { transform:translateY(0) scale(1.06) !important; }
 .pl-card-name { font-size:14px; font-weight:600; color:var(--white); margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pl-card-meta { font-size:12px; color:var(--gray); }
 
@@ -1602,6 +1745,39 @@ h1, h2, h3 {
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; display: inline-block; }
 
+/* ══ FEEDBACK VISUEL ══ */
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.8;
+}
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.1);
+  border-radius: inherit;
+}
+
+/* Transition douce pour les changements d'état */
+.result-item {
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.result-item:active {
+  transform: scale(0.99);
+}
+
+/* Animation de pulse pour les actions importantes */
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(29, 185, 84, 0); }
+}
+.playlist-play:active,
+.bubble-play:active,
+#playBtn:active {
+  animation: pulse-green 0.4s ease;
+}
+
 /* ── MOBILE BOTTOM NAV (desktop: hidden) ── */
 .mobile-bottom-nav { display: none; }
 
@@ -1613,7 +1789,8 @@ h1, h2, h3 {
 @media (max-width: 768px) {
   /* Layout global */
   body { overflow: hidden; }
-  .app { grid-template-columns: 1fr; height: 100vh; }
+  .app { grid-template-columns: 1fr; height: 100vh; padding: 0; gap: 0; }
+  .app.np-open { grid-template-columns: 1fr; }
   .sidebar { display: none; }
 
   /* Main content */
@@ -2106,7 +2283,6 @@ h1, h2, h3 {
     height: 56px; 
     font-size: 24px;
     background: var(--green);
-    box-shadow: 0 4px 20px rgba(29,185,84,0.4);
     transition: transform 0.15s ease;
   }
   .play-big:active {
@@ -2177,9 +2353,9 @@ h1, h2, h3 {
   .mbn-item:hover { color: var(--white); }
 
   /* Grids responsive */
-  .categories-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .cat-title { font-size: 12px; }
-  .cat-card { padding-bottom: 14px; }
+  .categories-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cat-title { font-size: 10px; }
+  .cat-card { padding-bottom: 10px; }
 
   .bubble-grid { gap: 12px; }
   .bubble-card { width: calc(50% - 6px); }
@@ -2573,6 +2749,58 @@ h1, h2, h3 {
     height: 12px;
   }
 
+  /* ══ SKELETON SEARCH RESULTS ══ */
+  .skeleton-search-list {
+    padding: 0 24px 24px;
+  }
+  .skeleton-search-item {
+    display: grid;
+    grid-template-columns: 48px 1fr auto auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .skeleton-search-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+  }
+  .skeleton-search-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .skeleton-search-title {
+    height: 14px;
+    width: 70%;
+    border-radius: 4px;
+  }
+  .skeleton-search-artist {
+    height: 12px;
+    width: 50%;
+    border-radius: 4px;
+  }
+  .skeleton-search-channel {
+    height: 12px;
+    width: 80px;
+    border-radius: 4px;
+  }
+  .skeleton-search-duration {
+    height: 12px;
+    width: 40px;
+    border-radius: 4px;
+  }
+  .skeleton-search-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .skeleton-search-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+
   /* ══ ACTION SHEET MOBILE ══ */
   .mobile-action-sheet {
     position: fixed;
@@ -2860,6 +3088,12 @@ h1, h2, h3 {
           <button class="user-dropdown-item" onclick="openProfileModal();document.getElementById('userDropdown').style.display='none'">
             <i class="ti ti-user-circle"></i> Mon profil
           </button>
+          <button class="user-dropdown-item" onclick="openListeningStats();document.getElementById('userDropdown').style.display='none'">
+            <i class="ti ti-chart-bar"></i> Mes stats
+          </button>
+          <button class="user-dropdown-item" onclick="openSleepTimer();document.getElementById('userDropdown').style.display='none'">
+            <i class="ti ti-moon"></i> Minuterie d'arrêt
+          </button>
           <button class="user-dropdown-item danger" onclick="logOut()">
             <i class="ti ti-logout"></i> Déconnexion
           </button>
@@ -2982,8 +3216,33 @@ h1, h2, h3 {
           <div class="list-head"><span>#</span><span>Titre</span><span class="r">Durée</span><span></span></div>
         </section>
       </div>
+
+      <!-- Page artiste dédiée -->
+      <div class="playlist-detail artist-view" id="artistView"></div>
     </div>
   </main>
+
+  <!-- ── NOW PLAYING SIDE PANEL (Spotify 2024) ── -->
+  <aside class="np-panel" id="npPanel" aria-hidden="true">
+    <div class="np-panel-head">
+      <span class="np-panel-title">En lecture</span>
+      <button class="np-panel-close" onclick="toggleNpPanel(false)" title="Fermer"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="np-panel-scroll">
+      <div class="np-panel-art" id="npPanelArt"><i class="ti ti-music"></i></div>
+      <div class="np-panel-meta">
+        <div class="np-panel-track" id="npPanelTrack">Pas de lecture</div>
+        <div class="np-panel-artist" id="npPanelArtist">—</div>
+      </div>
+      <div class="np-panel-queue">
+        <div class="np-panel-queue-head">
+          <span>File d'attente</span>
+          <a class="np-panel-queue-link" onclick="openQueueManager()">Ouvrir</a>
+        </div>
+        <div id="npPanelQueueList"><div class="np-q-empty">Aucun titre à suivre</div></div>
+      </div>
+    </div>
+  </aside>
 <!-- ── MODAL CREATE/EDIT PLAYLIST ── -->
 <div class="modal-overlay" id="playlistModal">
   <div class="modal">
@@ -3074,8 +3333,9 @@ h1, h2, h3 {
   </div>
 
   <div class="player-right">
-    <button class="icon-btn"><i class="ti ti-player-skip-forward"></i></button>
-    <button class="icon-btn"><i class="ti ti-microphone"></i></button>
+    <button class="icon-btn" id="npToggleBtn" onclick="toggleNpPanel()" title="En lecture"><i class="ti ti-layout-sidebar-right-expand"></i></button>
+    <button class="icon-btn" onclick="openQueueManager()" title="File d'attente"><i class="ti ti-playlist"></i></button>
+    <button class="icon-btn" onclick="openTransitions()" title="Transitions"><i class="ti ti-arrow-merge"></i></button>
     <button class="icon-btn"><i class="ti ti-speaker"></i></button>
     <div class="vol-section">
       <i class="ti ti-volume" style="font-size:16px;color:var(--gray)"></i>
@@ -3103,7 +3363,8 @@ h1, h2, h3 {
   align-items: center;
   padding: 0 24px 40px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 #now-playing-overlay.open { display: flex; }
 
@@ -3266,6 +3527,261 @@ h1, h2, h3 {
   transition: color 0.2s;
 }
 .np-bottom-btn:hover { color: #fff; }
+
+/* ── "Vous aimerez peut-être" (découverte Last.fm) ── */
+.disco-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+.disco-card {
+  background: var(--card, #181818);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.disco-card:hover { background: #282828; transform: translateY(-2px); }
+.disco-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: var(--card, #181818);
+}
+.disco-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.disco-play {
+  position: absolute;
+  bottom: 8px; right: 8px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--green, #1db954);
+  color: #000;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+}
+.disco-card:hover .disco-play { opacity: 1; transform: translateY(0); }
+.disco-artist {
+  font-size: 15px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.disco-track {
+  font-size: 13px; color: #b3b3b3; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.disco-badge {
+  margin-top: 8px;
+  font-size: 11px; color: var(--green, #1db954);
+  display: flex; align-items: center; gap: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── "Dans la même veine" (Now Playing) ── */
+#np-similar {
+  width: 100%;
+  margin-top: 22px;
+}
+.np-similar-title {
+  font-size: 13px; font-weight: 700; color: #b3b3b3;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.np-similar-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+.np-similar-row::-webkit-scrollbar { display: none; }
+.np-sim-card {
+  flex: 0 0 auto;
+  width: 72px;
+  text-align: center;
+  cursor: pointer;
+}
+.np-sim-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 8px;
+  background: linear-gradient(135deg, #1db954, #1565c0);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s;
+}
+.np-sim-card:hover .np-sim-avatar { transform: scale(1.06); }
+.np-sim-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.np-sim-avatar span { font-size: 26px; font-weight: 800; color: rgba(255,255,255,0.9); }
+.np-sim-name {
+  font-size: 12px; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── Sections home : Récents · Radios · Anciens favoris ── */
+.home-section { margin: 28px 0; }
+.section-subtitle {
+  color: #b3b3b3;
+  font-size: 13px;
+  margin: -6px 0 14px;
+}
+.home-track-row, .home-card-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.home-track-row::-webkit-scrollbar, .home-card-row::-webkit-scrollbar { display: none; }
+
+.home-track-card {
+  flex: 0 0 auto;
+  width: 150px;
+  scroll-snap-align: start;
+  cursor: pointer;
+  background: var(--card, #181818);
+  border-radius: 10px;
+  padding: 10px;
+  transition: background 0.2s, transform 0.2s;
+}
+.home-track-card:hover { background: #282828; transform: translateY(-2px); }
+.htc-cover {
+  position: relative;
+  width: 100%; aspect-ratio: 1/1;
+  border-radius: 8px; overflow: hidden;
+  margin-bottom: 8px;
+  background: var(--card, #181818);
+}
+.htc-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.htc-play {
+  position: absolute; bottom: 6px; right: 6px;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: none; background: var(--green, #1db954); color: #000;
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+}
+.home-track-card:hover .htc-play { opacity: 1; transform: translateY(0); }
+.htc-title {
+  font-size: 14px; font-weight: 600; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.htc-artist {
+  font-size: 12px; color: #b3b3b3; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.home-radio-card {
+  flex: 0 0 auto;
+  width: 150px;
+  scroll-snap-align: start;
+  cursor: pointer;
+  text-align: center;
+}
+.hrc-cover {
+  position: relative;
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #7b2ff7, #1565c0 70%);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+  transition: transform 0.2s;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+.home-radio-card:hover .hrc-cover { transform: scale(1.04); }
+.hrc-initial {
+  font-size: 54px; font-weight: 800; color: rgba(255,255,255,0.92);
+}
+.hrc-waves {
+  position: absolute; bottom: 10px; right: 14px;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(0,0,0,0.45); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.hrc-name {
+  font-size: 14px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+@media (max-width: 600px) {
+  .home-track-card { width: 130px; }
+  .home-radio-card, .hrc-cover { width: 130px; }
+  .hrc-cover { height: 130px; }
+}
+
+/* ── Transitions (prototype façon Spotify) ── */
+.tr-overlay {
+  position: fixed; inset: 0;
+  background: #121212;
+  z-index: 10001; /* au-dessus du Now Playing plein écran (9999) */
+  display: flex; flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
+  overflow-y: auto;
+}
+.tr-overlay.open { transform: translateY(0); }
+.tr-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  position: sticky; top: 0; background: #121212; z-index: 2;
+}
+.tr-title { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+.tr-body { padding: 0 20px 40px; max-width: 640px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.tr-sub { color: #b3b3b3; font-size: 14px; margin: 0 0 16px; }
+.tr-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.tr-preset {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 8px; border-radius: 12px;
+  background: #1e1e1e; border: 1.5px solid transparent; color: #fff;
+  cursor: pointer; transition: border-color 0.2s, background 0.2s;
+}
+.tr-preset i { font-size: 22px; }
+.tr-preset span { font-size: 13px; font-weight: 600; }
+.tr-preset small { font-size: 11px; color: #999; }
+.tr-preset.active { border-color: var(--green, #1db954); background: rgba(29,185,84,0.12); }
+.tr-preset.active small { color: var(--green, #1db954); }
+.tr-slider-row {
+  display: flex; align-items: center; gap: 12px;
+  background: #1a1a1a; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;
+}
+.tr-slider-row span { font-size: 13px; color: #b3b3b3; }
+.tr-slider-row input[type=range] { flex: 1; accent-color: var(--green, #1db954); height: 4px; }
+.tr-slider-row .tr-sec { color: #fff; font-weight: 600; min-width: 28px; text-align: right; }
+.tr-note {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12px; color: #d0a040; background: rgba(208,160,64,0.1);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 20px;
+}
+.tr-queue { display: flex; flex-direction: column; }
+.tr-track { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.tr-cover {
+  width: 48px; height: 48px; border-radius: 6px; overflow: hidden; flex-shrink: 0;
+  background: #222; display: flex; align-items: center; justify-content: center; color: #666;
+}
+.tr-cover img { width: 100%; height: 100%; object-fit: cover; }
+.tr-meta { min-width: 0; }
+.tr-tt { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-ta { font-size: 12px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-link { display: flex; align-items: center; gap: 10px; padding: 2px 0 2px 10px; }
+.tr-link-line { flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
+.tr-link-chip {
+  font-size: 11px; color: var(--green, #1db954);
+  background: rgba(29,185,84,0.1); border: 1px solid rgba(29,185,84,0.25);
+  border-radius: 99px; padding: 3px 10px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.tr-empty { color: #777; text-align: center; padding: 40px 10px; font-size: 14px; }
 </style>
 
 <div id="now-playing-overlay">
@@ -3289,8 +3805,8 @@ h1, h2, h3 {
 
   <div class="np-actions">
     <button class="np-action-btn" id="np-like-btn" onclick="toggleLike()" title="Ajouter aux favoris"><i class="ti ti-heart"></i></button>
-    <button class="np-action-btn" title="File d'attente"><i class="ti ti-playlist"></i></button>
-    <button class="np-action-btn" title="Partager"><i class="ti ti-share"></i></button>
+    <button class="np-action-btn" onclick="openQueueManager()" title="File d'attente"><i class="ti ti-playlist"></i></button>
+    <button class="np-action-btn" onclick="shareCurrentTrack()" title="Partager"><i class="ti ti-share"></i></button>
   </div>
 
   <div class="np-progress-wrap">
@@ -3312,9 +3828,16 @@ h1, h2, h3 {
   </div>
 
   <div class="np-bottom-bar">
-    <button class="np-bottom-btn" title="Volume"><i class="ti ti-speaker"></i></button>
-    <button class="np-bottom-btn" title="Qualité"><i class="ti ti-settings"></i></button>
-    <button class="np-bottom-btn" title="Aléatoire"><i class="ti ti-arrows-shuffle"></i></button>
+    <button class="np-bottom-btn" onclick="toggleShuffle()" id="np-shuf-btn" title="Aléatoire"><i class="ti ti-arrows-shuffle"></i></button>
+    <button class="np-bottom-btn" onclick="toggleRepeat()" id="np-rep-btn" title="Répéter"><i class="ti ti-repeat"></i></button>
+    <button class="np-bottom-btn" onclick="openTransitions()" id="np-trans-btn" title="Transitions"><i class="ti ti-arrow-merge"></i></button>
+    <button class="np-bottom-btn" onclick="openSleepTimer()" id="np-sleep-btn" title="Minuterie d'arrêt"><i class="ti ti-moon"></i></button>
+    <button class="np-bottom-btn" onclick="shareCurrentTrack()" title="Partager"><i class="ti ti-share"></i></button>
+  </div>
+
+  <div id="np-similar" style="display:none">
+    <div class="np-similar-title">Dans la même veine</div>
+    <div class="np-similar-row" id="np-similar-row"></div>
   </div>
 </div>
 
@@ -3323,7 +3846,44 @@ h1, h2, h3 {
 <script>
 // Config
 const API_KEY = window.APP_CONFIG?.youtubeApiKey || '';
-const PROXY_URL = window.APP_CONFIG?.proxyUrl || 'http://localhost:3001/api';
+// Android ne peut pas accéder à localhost du PC - utiliser IP réseau locale
+const PROXY_URL = window.APP_CONFIG?.proxyUrl || 'http://172.17.2.188:3001/api';
+
+// Fetch avec retry - timeout long pour cold-start Render
+async function fetchWithRetry(url, options = {}, retries = 2) {
+  const controller = new AbortController();
+  const timeoutMs = options.timeout || 60000; // 60s par défaut pour Render
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  const fetchOptions = { ...options, signal: controller.signal };
+  delete fetchOptions.timeout;
+  
+  try {
+    const response = await fetch(url, fetchOptions);
+    clearTimeout(timeoutId);
+    return response;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (retries > 0 && (e.name === 'AbortError' || e.name === 'TypeError')) {
+      await new Promise(r => setTimeout(r, 3000));
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    throw e;
+  }
+}
+
+// Parse JSON depuis localStorage sans jamais crasher l'app si la valeur est corrompue
+function lsParse(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return fallback;
+    const v = JSON.parse(raw);
+    return v == null ? fallback : v;
+  } catch (e) {
+    console.warn('[lsParse] valeur corrompue pour', key, '- réinitialisée');
+    return fallback;
+  }
+}
 
 // State
 const S = {
@@ -3332,10 +3892,10 @@ const S = {
   currentTrack: null,
   queue: [],
   currentIndex: 0,
-  favorites: JSON.parse(localStorage.getItem('sevenz_favs') || '[]'),
-  playlists: (function(){ const pl=JSON.parse(localStorage.getItem('sevenz_playlists')||'[]'); const cv=JSON.parse(localStorage.getItem('sevenz_covers')||'{}'); return pl.map(p=>({...p,coverImage:cv[p.id]||p.coverImage||null})); })(),
+  favorites: lsParse('sevenz_favs', []),
+  playlists: (function(){ const pl=lsParse('sevenz_playlists',[]); const cv=lsParse('sevenz_covers',{}); return pl.map(p=>({...p,coverImage:cv[p.id]||p.coverImage||null})); })(),
   shuffle: false,
-  repeat: false,
+  repeat: 0, // 0=off 1=all 2=one
 };
 
 const _mbCache = {}; // cache MusicBrainz par session
@@ -3376,7 +3936,7 @@ const _ytCache = {
       const entries = Object.entries(this._data || {});
       if (entries.length > 50) {
         entries.sort((a, b) => (a[1]._ts || 0) - (b[1]._ts || 0));
-        this._data = Object.fromEntries(entries.slice(entries.length / 2));
+        this._data = Object.fromEntries(entries.slice(Math.floor(entries.length / 2)));
         localStorage.setItem(this._storageKey, JSON.stringify(this._data));
       }
     }
@@ -3395,6 +3955,10 @@ const _ytCache = {
   },
   
   set(key, data) {
+    // Ne jamais mettre en cache une réponse d'erreur ou un fallback :
+    // sinon une panne API « gèle » les résultats pendant toute la durée du TTL.
+    if (!data || data.error || data.fallback === true) return;
+    if (Array.isArray(data.items) && data.items.length === 0) return;
     this._load();
     this._data[key] = { data, _ts: Date.now() };
     this._save();
@@ -3488,8 +4052,7 @@ if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
           document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-play-filled"></i>';
           stopProgress();
         } else if (e.data === YT.PlayerState.ENDED) {
-          if (S.repeat) playTrack(S.currentIndex);
-          else playNext();
+          playNext();
         }
       }
     }
@@ -3527,6 +4090,7 @@ function restorePlayerState() {
     document.getElementById('playerArtist').textContent = st.track.channel;
     document.getElementById('playerCover').innerHTML = st.track.thumb
       ? `<img src="${st.track.thumb}" alt="">` : '';
+    updateNowPlayingPanel();
     updateLikeButton();
     if (S.player?.loadVideoById) {
       const startSec = Math.floor(st.position || 0);
@@ -3543,26 +4107,60 @@ const tag = document.createElement('script');
 tag.src = 'https://www.youtube.com/iframe_api';
 document.head.appendChild(tag);
 
+// ── Accès unifié au lecteur (web YouTube IFrame OU plugin natif Android) ──
+function isNativeAudio() {
+  return !!(window.Capacitor?.isNativePlatform() && window.Capacitor.Plugins?.AudioPlayerPlugin);
+}
+function getPlayerTime() {
+  if (isNativeAudio()) return S._nativePos || 0;
+  return S.player?.getCurrentTime ? S.player.getCurrentTime() : 0;
+}
+function getPlayerDuration() {
+  if (isNativeAudio()) return S._nativeDur || 0;
+  return S.player?.getDuration ? S.player.getDuration() : 0;
+}
+function seekPlayer(seconds) {
+  if (isNativeAudio()) {
+    S._nativePos = seconds;
+    window.Capacitor.Plugins.AudioPlayerPlugin.seekTo({ position: seconds }).catch(() => {});
+    return;
+  }
+  if (S.player?.seekTo) S.player.seekTo(seconds, true);
+}
+async function refreshNativePosition() {
+  try {
+    const p = await window.Capacitor.Plugins.AudioPlayerPlugin.getPosition();
+    S._nativePos = p.position || 0;
+    S._nativeDur = p.duration || 0;
+  } catch (e) {}
+}
+
 // Progress
 let progressInterval;
 function startProgress() {
   if (progressInterval) clearInterval(progressInterval);
-  progressInterval = setInterval(updateProgress, 500);
+  progressInterval = setInterval(async () => {
+    if (isNativeAudio()) await refreshNativePosition();
+    updateProgress();
+  }, 500);
 }
 function stopProgress() {
   if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
 }
 
 function updateProgress() {
-  if (!S.player?.getCurrentTime) return;
-  const t = S.player.getCurrentTime();
-  const dur = S.player.getDuration();
+  const t = getPlayerTime();
+  const dur = getPlayerDuration();
   if (dur) {
     const pct = (t / dur) * 100;
-    document.getElementById('progressFill').style.width = pct + '%';
-    document.getElementById('progressThumb').style.left = pct + '%';
-    document.getElementById('curTime').textContent = formatTime(t);
-    document.getElementById('totalTime').textContent = formatTime(dur);
+    const fill = document.getElementById('progressFill');
+    const thumb = document.getElementById('progressThumb');
+    const cur = document.getElementById('curTime');
+    const tot = document.getElementById('totalTime');
+    if (fill) fill.style.width = pct + '%';
+    if (thumb) thumb.style.left = pct + '%';
+    if (cur) cur.textContent = formatTime(t);
+    if (tot) tot.textContent = formatTime(dur);
   }
 }
 
@@ -3594,6 +4192,114 @@ searchInput.addEventListener('keydown', e => {
 
 let _searchToken = 0;
 
+// ════════════════════════════════════════════════════════════
+// RECHERCHE MÉTADONNÉES (Deezer) → RÉSOLUTION AUDIO (YouTube)
+// ════════════════════════════════════════════════════════════
+// La recherche affiche des entités OFFICIELLES (Deezer : artiste, titre, album,
+// pochette, durée, ISRC). Le videoId YouTube n'existe PAS à l'affichage : il est
+// résolu à la demande, au clic, par resolveAndPlay(). C'est ce découplage qui
+// évite d'afficher des titres reuploadés/édités par des utilisateurs.
+
+const _metaCache = {};    // query -> résultats Deezer
+const _resolveCache = {}; // sourceId Deezer -> videoId YouTube
+
+async function searchMetadata(query) {
+  const key = query.toLowerCase().trim();
+  if (_metaCache[key]) return _metaCache[key];
+
+  const res = await fetch(`${PROXY_URL}/search?q=${encodeURIComponent(query)}&limit=15`);
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.error || `Recherche indisponible (${res.status})`);
+  }
+  const data = await res.json();
+  const results = data.results || [];
+  _metaCache[key] = results;
+  return results;
+}
+
+// Trouve le videoId YouTube correspondant à une métadonnée Deezer.
+// Critère principal : proximité de durée (la durée Deezer est celle du master
+// officiel) — c'est ce qui écarte les edits, sped up, mixes et reuploads.
+// Critère secondaire : score "officiel" de la chaîne (VEVO, - Topic).
+async function resolveVideoId(meta) {
+  const cacheKey = meta.sourceId || `${meta.artist}|${meta.title}`;
+  if (_resolveCache[cacheKey]) return _resolveCache[cacheKey];
+
+  const q = `${meta.artist} ${meta.title}`;
+  const res = await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(q)}&maxResults=5`);
+  if (!res.ok) throw new Error('Résolution audio indisponible');
+  const data = await res.json();
+  const items = (data.items || []).filter(it => it.id?.videoId);
+  if (!items.length) return null;
+
+  // Durées des candidats : 1 seule requête (videos.list = 1 unité de quota)
+  const durations = {};
+  try {
+    const ids = items.map(it => it.id.videoId).join(',');
+    const durData = await fetch(`${PROXY_URL}/youtube/videos?ids=${ids}`).then(r => r.json());
+    (durData.items || []).forEach(v => {
+      durations[v.id] = parseISO8601(v.contentDetails?.duration);
+    });
+  } catch (e) { /* durées optionnelles : on retombe sur le score de chaîne */ }
+
+  let best = null, bestScore = -Infinity;
+  for (const item of items) {
+    const vid = item.id.videoId;
+    let score = getOfficialScore(item, meta.artist);
+    const dur = durations[vid];
+    if (dur && meta.durationSec) {
+      const delta = Math.abs(dur - meta.durationSec);
+      if (delta <= 3) score += 120;
+      else if (delta <= 8) score += 80;
+      else if (delta <= 20) score += 20;
+      else score -= 60; // durée trop éloignée = edit / reupload / mix
+    }
+    if (score > bestScore) { bestScore = score; best = vid; }
+  }
+
+  if (best) _resolveCache[cacheKey] = best;
+  return best;
+}
+
+// Complète S.queue[index].id (videoId) pour une piste issue de Deezer.
+async function ensureVideoId(index) {
+  const track = S.queue[index];
+  if (!track) return null;
+  if (track.id) return track.id;
+  if (!track.meta) return null;
+  const vid = await resolveVideoId(track.meta);
+  if (vid) track.id = vid;
+  return vid;
+}
+
+// Point de jonction métadonnées → lecture : résout le videoId puis délègue au
+// player existant (playTrack), qui reste inchangé.
+async function resolveAndPlay(index) {
+  const track = S.queue[index];
+  if (!track) return;
+  if (track.id) { playTrack(index); return; }
+
+  const row = document.querySelector(`.result-item[data-index="${index}"]`);
+  if (row) row.classList.add('resolving');
+  showLoadingState(true);
+  try {
+    const vid = await ensureVideoId(index);
+    if (!vid) {
+      showLoadingState(false);
+      showToast('Piste introuvable en lecture', 'error');
+      return;
+    }
+    playTrack(index);
+  } catch (e) {
+    console.error('[Resolve] échec:', e);
+    showLoadingState(false);
+    showToast('Erreur de résolution audio', 'error');
+  } finally {
+    if (row) row.classList.remove('resolving');
+  }
+}
+
 async function doSearch(query) {
   if (!query.trim()) return;
 
@@ -3604,86 +4310,48 @@ async function doSearch(query) {
   hideAllViews();
   const resultsEl = document.getElementById('searchResults');
   resultsEl.style.display = 'block';
-  resultsEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray)"><i class="ti ti-loader spin" style="font-size:28px"></i></div>';
-
-  const _wakeTimer = setTimeout(() => {
-    if (token !== _searchToken) return;
-    resultsEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--gray)"><i class="ti ti-loader spin" style="font-size:24px"></i><br><br>Le serveur se réveille, encore quelques secondes…</div>';
-  }, 4000);
+  resultsEl.style.background = ''; // reset dégradé hero précédent
+  // Skeleton loading pour éviter le saut de contenu
+  resultsEl.innerHTML = renderSearchSkeleton();
 
   try {
-    // YouTube uniquement en priorité - résultats immédiats
-    const ytCacheKey = 'search:' + query.toLowerCase().trim();
-    const ytData = _ytCache.get(ytCacheKey)
-      || await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=12`, { signal: AbortSignal.timeout(15000) }).then(r => {
-          if (r.status === 429) throw new Error('Quota dépassé - réessayez plus tard');
-          return r.json();
-        }).then(d => { _ytCache.set(ytCacheKey, d); return d; });
-    clearTimeout(_wakeTimer);
+    // Métadonnées officielles Deezer (artiste/titre/album/pochette/durée)
+    const results = await searchMetadata(query);
 
     if (token !== _searchToken) return;
-    const isFallback = ytData.fallback === true;
-    if (ytData.error && !isFallback) {
-      // YouTube en panne : afficher la carte artiste MusicBrainz quand même
-      clearTimeout(_wakeTimer);
-      const errMsg = typeof ytData.error === 'string' ? ytData.error : (ytData.error.message || 'Erreur API YouTube');
-      const isArtistQueryErr = query.trim().split(/\s+/).length <= 3;
-      if (isArtistQueryErr) {
-        resultsEl.innerHTML = `<div style="padding:24px;text-align:center;color:#e74c3c"><i class="ti ti-alert-circle" style="font-size:22px;margin-bottom:8px;display:block"></i>${esc(errMsg)}</div>`;
-        searchMusicBrainzArtist(query).then(mbArtist => {
-          if (token !== _searchToken || !mbArtist || mbArtist.score < 65) return;
-          resultsEl.insertAdjacentHTML('afterbegin', renderArtistCard(mbArtist, null));
-          fetchMusicBrainzAlbums(mbArtist.id).then(mbAlbums => {
-            if (token !== _searchToken || !mbAlbums.length) return;
-            resultsEl.insertAdjacentHTML('beforeend', renderAlbumsSection(mbArtist.name, mbAlbums));
-          }).catch(() => {});
-        }).catch(() => {});
-      } else {
-        throw new Error(errMsg);
-      }
-      return;
-    }
 
-    let items = filterAI(ytData.items || []);
-    if (items.length === 0 && ytData.items && ytData.items.length > 0) {
-      // filterAI a tout filtré → on affiche les résultats bruts quand même
-      console.warn('[Search] filterAI a tout filtré, fallback sur résultats bruts');
-      items = ytData.items;
-    }
-    if (items.length === 0) {
+    if (!results.length) {
+      // Pas de repli sur l'ancien flux YouTube : on préfère zéro résultat à des
+      // titres non vérifiés.
+      S.queue = [];
       resultsEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray)">Aucun résultat trouvé</div>';
       return;
     }
 
-    items.sort((a, b) => getOfficialScore(b, query) - getOfficialScore(a, query));
-
-    S.queue = items.map(item => ({
-      id: item.id.videoId,
-      title: item.snippet.title,
-      channel: item.snippet.channelTitle,
-      thumb: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
-      duration: null
+    // File de lecture : id (videoId) volontairement null, résolu au clic.
+    S.queue = results.map(m => ({
+      id: null,
+      title: m.title,
+      channel: m.artist,
+      thumb: m.coverUrl,
+      duration: m.durationSec || null,
+      album: m.album || '',
+      meta: m
     }));
 
-    const fallbackBanner = isFallback
-      ? `<div style="padding:12px 16px;background:linear-gradient(90deg,#ff9800,#f57c00);color:#fff;font-size:13px;text-align:center;margin-bottom:12px;border-radius:8px"><i class="ti ti-cloud-off" style="margin-right:6px"></i>Mode hors-ligne : quota API dépassé, musiques suggérées affichées</div>`
-      : '';
-
-    // Affichage IMMÉDIAT des résultats YouTube
     resultsEl.innerHTML = `
-      ${fallbackBanner}
       <div class="search-results-list" id="srList">
         <div class="list-header">
-          <span></span><span>Titre / Artiste</span><span>Chaîne</span>
+          <span></span><span>Titre / Artiste</span><span>Album</span>
           <span style="text-align:center"><i class="ti ti-clock" style="font-size:14px"></i></span>
           <span></span>
         </div>
-        ${items.map((item, i) => createResultRow(item, i, null)).join('')}
+        ${results.map((m, i) => createMetadataRow(m, i)).join('')}
       </div>
     `;
-    bindResultClicks();
+    bindMetadataResultClicks();
 
-    // MusicBrainz + durées en arrière-plan après affichage
+    // Carte artiste MusicBrainz + discographie en arrière-plan après affichage
     const isArtistQuery = query.trim().split(/\s+/).length <= 3;
     if (isArtistQuery) {
       searchMusicBrainzArtist(query).then(mbArtist => {
@@ -3694,11 +4362,16 @@ async function doSearch(query) {
         if (list && !document.querySelector('.mb-artist-card')) {
           const artistCard = renderArtistCard(mbArtist, S.queue[0]?.thumb);
           list.insertAdjacentHTML('beforebegin', artistCard);
+          applyHeroGradient(resultsEl, S.queue[0]?.thumb);
+          // pré-cache pour ouverture instantanée de la page artiste dédiée
+          _lastSearchArtist = mbArtist.name;
+          _artistCache[mbArtist.name] = { name: mbArtist.name, tracks: [...S.queue], mbArtist, albums: [] };
         }
-        
+
         // Puis charger les albums
         fetchMusicBrainzAlbums(mbArtist.id).then(mbAlbums => {
           if (token !== _searchToken || !mbAlbums.length) return;
+          if (_artistCache[mbArtist.name]) _artistCache[mbArtist.name].albums = mbAlbums;
           const list2 = document.getElementById('srList');
           const albumSection = renderAlbumsSection(mbArtist.name, mbAlbums);
           if (list2 && !document.querySelector('.albums-section')) {
@@ -3708,32 +4381,13 @@ async function doSearch(query) {
       }).catch(() => {});
     }
 
-    // Durées en arrière-plan
-    const ids = items.map(i => i.id.videoId).join(',');
-    const durCacheKey = 'dur:' + ids;
-    const durPromise = _ytCache.get(durCacheKey)
-      ? Promise.resolve(_ytCache.get(durCacheKey))
-      : fetch(`${PROXY_URL}/youtube/videos?ids=${ids}`).then(r => r.json()).then(d => { _ytCache.set(durCacheKey, d); return d; });
-    
-    durPromise.then(durData => {
-        if (token !== _searchToken) return;
-        (durData.items || []).forEach(v => {
-          const dur = parseISO8601(v.contentDetails.duration);
-          if (!dur) return;
-          const idx = S.queue.findIndex(t => t.id === v.id);
-          if (idx >= 0) {
-            S.queue[idx].duration = dur;
-            const el = resultsEl.querySelector(`.result-item[data-index="${idx}"] .result-duration`);
-            if (el) el.textContent = formatTime(dur);
-          }
-        });
-      }).catch(() => {});
+    // (Plus de requête de durées : Deezer fournit durationSec directement.)
 
   } catch (e) {
-    clearTimeout(_wakeTimer);
     if (token !== _searchToken) return;
-    const msg = e.name === 'TimeoutError' || e.name === 'AbortError'
-      ? 'Le serveur met trop de temps à répondre. Réessaie dans quelques secondes.'
+    const isNet = e.name === 'TimeoutError' || e.name === 'AbortError' || /fetch/i.test(e.message || '');
+    const msg = isNet
+      ? 'Connexion lente. Réessaie.'
       : `Erreur: ${esc(e.message)}`;
     resultsEl.innerHTML = `<div style="padding:40px;text-align:center;color:#e74c3c">${msg}</div>`;
     console.error(e);
@@ -3770,7 +4424,7 @@ function renderArtistCard(artist, fallbackThumb) {
   const meta = [flag + (area ? ' ' + area : ''), year ? 'Actif depuis ' + year : ''].filter(Boolean).join(' · ');
 
   return `
-    <div class="mb-artist-card">
+    <div class="mb-artist-card" onclick="openArtistPageCurrent()" style="cursor:pointer" title="Voir la page de ${esc(artist.name)}">
       <div class="mb-avatar">
         ${fallbackThumb ? `<img src="${fallbackThumb}" alt="${esc(artist.name)}" onerror="this.style.display='none'">` : ''}
         <div class="mb-avatar-shine"></div>
@@ -3805,7 +4459,7 @@ async function fetchMusicBrainzAlbums(mbid) {
         name: rg.title,
         year: rg['first-release-date']?.substring(0, 4) || '',
         type: rg['primary-type'] || 'Album',
-        cover: `https://coverartarchive.org/release-group/${rg.id}/front-250`
+        cover: `https://coverartarchive.org/release-group/${rg.id}/front-500`
       }));
   } catch(e) { return []; }
 }
@@ -3885,95 +4539,89 @@ function parseISO8601(dur) {
   return total;
 }
 
-function bindResultClicks() {
+// Clics sur les résultats de recherche (format métadonnées Deezer).
+// Différence clé avec l'ancien binder YouTube : aucun videoId dans le DOM.
+// Tout est indexé sur S.queue, et le videoId est résolu à la demande.
+function bindMetadataResultClicks() {
   document.querySelectorAll('.result-item').forEach(row => {
     row.addEventListener('click', function(e) {
       if (e.target.closest('.action-btn')) return;
-      playTrack(parseInt(this.dataset.index));
+      resolveAndPlay(parseInt(this.dataset.index));
     });
   });
 
-  document.querySelectorAll('.action-btn[data-action="like"]').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const { id, title, channel, thumb } = this.dataset;
-      toggleFavoriteFromSearch(id, title, channel, thumb, this);
-    });
-  });
-
-  document.querySelectorAll('.action-btn[data-action="playlist"]').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const { id, title, channel, thumb, duration } = this.dataset;
-      showAddToPlaylist(id, title, channel, thumb, duration ? parseInt(duration) : null);
-    });
-  });
-
-  document.querySelectorAll('.action-btn[data-action="offline"]').forEach(btn => {
+  document.querySelectorAll('.result-item .action-btn').forEach(btn => {
     btn.addEventListener('click', async function(e) {
       e.stopPropagation();
-      const { id, title, channel, thumb } = this.dataset;
-      const track = { id, title, channel, thumb };
-      
-      // Toggle offline status
-      const isOffline = await isTrackOffline(id);
-      if (isOffline) {
-        await removeOfflineTrack(id);
-        this.classList.remove('added');
-        this.title = 'Disponible hors-ligne';
-        showToast('Retiré du mode offline');
-      } else {
-        await saveTrackOffline(track);
-        this.classList.add('added');
-        this.title = 'Disponible hors-ligne ✓';
-        showToast('Sauvegardé pour le mode offline');
+      const index = parseInt(this.dataset.index);
+      const track = S.queue[index];
+      if (!track) return;
+
+      // Favoris, playlists et mode offline sont stockés par videoId : on résout
+      // d'abord, sinon on enregistrerait une piste sans source lisible.
+      const vid = await ensureVideoId(index).catch(() => null);
+      if (!vid) { showToast('Piste introuvable', 'error'); return; }
+
+      const action = this.dataset.action;
+      if (action === 'like') {
+        toggleFavoriteFromSearch(vid, track.title, track.channel, track.thumb, this);
+      } else if (action === 'playlist') {
+        showAddToPlaylist(vid, track.title, track.channel, track.thumb, track.duration || null);
+      } else if (action === 'offline') {
+        const isOffline = await isTrackOffline(vid);
+        if (isOffline) {
+          await removeOfflineTrack(vid);
+          this.classList.remove('added');
+          this.title = 'Disponible hors-ligne';
+          showToast('Retiré du mode offline');
+        } else {
+          await saveTrackOffline({ id: vid, title: track.title, channel: track.channel, thumb: track.thumb });
+          this.classList.add('added');
+          this.title = 'Disponible hors-ligne ✓';
+          showToast('Sauvegardé pour le mode offline');
+        }
       }
     });
   });
 }
 
-function createResultRow(item, i, durationSec) {
-  const track = {
-    id: item.id.videoId,
-    title: item.snippet.title,
-    channel: item.snippet.channelTitle,
-    thumb: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url
-  };
-  const isLiked = S.favorites.some(f => f.id === track.id);
-  const playlists = S.playlists;
-  const inPlaylist = playlists.some(p => p.tracks.some(t => t.id === track.id));
-  const durStr = durationSec ? formatTime(durationSec) : '--:--';
-  const ch = track.channel.toLowerCase();
-  const isVevo = ch.includes('vevo');
-  const isTopic = ch.endsWith('- topic');
-  const badgeHtml = isVevo
-    ? '<span class="vevo-badge">VEVO</span>'
-    : isTopic ? '<span class="official-badge">✓ Officiel</span>' : '';
+// Rendu d'un résultat à partir des métadonnées Deezer.
+// Mapping vs. l'ancien createResultRow :
+//   item.snippet.title        -> meta.title  (titre officiel, pas le titre de vidéo)
+//   item.snippet.channelTitle -> meta.artist (artiste, pas la chaîne YouTube)
+//   "Single / Clip"           -> meta.album  (vrai album)
+//   thumbnails.medium.url     -> meta.coverUrl (pochette 1000x1000)
+//   durée différée            -> meta.durationSec (immédiate)
+//   item.id.videoId           -> aucun : résolu au clic
+function createMetadataRow(meta, i) {
+  const sameTrack = t =>
+    (t.title || '').toLowerCase() === meta.title.toLowerCase() &&
+    (t.channel || '').toLowerCase() === meta.artist.toLowerCase();
+  const isLiked = S.favorites.some(sameTrack);
+  const inPlaylist = S.playlists.some(p => p.tracks.some(sameTrack));
+  const durStr = meta.durationSec ? formatTime(meta.durationSec) : '--:--';
 
   return `
     <div class="result-item" data-index="${i}" style="cursor:pointer">
       <div class="result-thumb">
-        <img src="${track.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+        <img src="${meta.coverUrl || ''}" alt="" loading="lazy" onerror="this.parentElement.style.background='var(--card)'">
       </div>
       <div class="result-info">
-        <div class="result-title">${esc(item.snippet.title)}</div>
-        <div class="result-artist">${esc(item.snippet.channelTitle)}${badgeHtml}</div>
+        <div class="result-title">${esc(meta.title)}</div>
+        <div class="result-artist">${esc(meta.artist)}<span class="official-badge">✓ Officiel</span></div>
       </div>
-      <div class="result-album">Single / Clip</div>
+      <div class="result-album">${esc(meta.album || '')}</div>
       <div class="result-duration">${durStr}</div>
       <div class="result-actions">
-        <button class="action-btn ${isLiked ? 'liked' : ''}" data-action="like"
-          data-id="${track.id}" data-title="${esc(track.title)}" data-channel="${esc(track.channel)}" data-thumb="${track.thumb || ''}"
+        <button class="action-btn ${isLiked ? 'liked' : ''}" data-action="like" data-index="${i}"
           title="${isLiked ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
           <i class="ti ti-heart${isLiked ? '-filled' : ''}"></i>
         </button>
-        <button class="action-btn ${inPlaylist ? 'added' : ''}" data-action="playlist"
-          data-id="${track.id}" data-title="${esc(track.title)}" data-channel="${esc(track.channel)}" data-thumb="${track.thumb || ''}" data-duration="${durationSec || ''}"
+        <button class="action-btn ${inPlaylist ? 'added' : ''}" data-action="playlist" data-index="${i}"
           title="Ajouter à une playlist">
           <i class="ti ti-playlist-add"></i>
         </button>
-        <button class="action-btn offline-btn" data-action="offline"
-          data-id="${track.id}" data-title="${esc(track.title)}" data-channel="${esc(track.channel)}" data-thumb="${track.thumb || ''}"
+        <button class="action-btn offline-btn" data-action="offline" data-index="${i}"
           title="Disponible hors-ligne">
           <i class="ti ti-wifi-off"></i>
         </button>
@@ -3993,7 +4641,7 @@ function toggleFavoriteFromSearch(trackId, title, channel, thumb, btn) {
       btn.title = 'Ajouter aux favoris';
     }
   } else {
-    S.favorites.push(track);
+    S.favorites.push({ ...track, likedAt: Date.now() });
     if (btn) {
       btn.classList.add('liked');
       btn.innerHTML = '<i class="ti ti-heart-filled"></i>';
@@ -4030,12 +4678,16 @@ function playTrack(index) {
   if (navigator.vibrate) navigator.vibrate(10);
   const track = S.queue[index];
   if (!track) return;
+  // Piste issue de la recherche Deezer pas encore résolue (ex : lecture
+  // automatique de la suivante) : on passe par la résolution avant de jouer.
+  if (!track.id && track.meta) { resolveAndPlay(index); return; }
   S.currentTrack = track;
   S.currentIndex = index;
 
   document.getElementById('playerTitle').textContent = track.title;
   document.getElementById('playerArtist').textContent = track.channel;
   document.getElementById('playerCover').innerHTML = track.thumb ? `<img src="${track.thumb}" alt="">` : '';
+  updateNowPlayingPanel();
 
   // Check and show offline badge
   isTrackOffline(track.id).then(isOffline => {
@@ -4043,8 +4695,9 @@ function playTrack(index) {
     if (badge) badge.style.display = isOffline ? 'inline-block' : 'none';
   });
 
-  const isNative = !!(window.Capacitor?.Plugins?.AudioPlayerPlugin);
-  console.log("playTrack: isNative=" + isNative + ", S.player=" + !!S.player);
+  const isNative = window.Capacitor?.isNativePlatform?.() || false;
+  const hasPlugin = !!window.Capacitor?.Plugins?.AudioPlayerPlugin;
+  console.log("playTrack: isNative=" + isNative + ", hasPlugin=" + hasPlugin);
 
   if (!isNative && S.player?.loadVideoById) {
     // Web fallback - YouTube IFrame
@@ -4053,29 +4706,93 @@ function playTrack(index) {
     document.getElementById('playBtn').innerHTML = '<i class="ti ti-player-pause-filled"></i>';
     document.getElementById('progressFill').style.width = '0%';
     updateMediaSession(track);
-  } else if (isNative) {
+  } else if (isNative && hasPlugin) {
     // Native Android - use Capacitor plugin
     if (S.player && typeof S.player.stopVideo === 'function') {
       try { S.player.stopVideo(); } catch(e) {}
     }
+    // Show loading state
+    showLoadingState(true);
     window.Capacitor.Plugins.AudioPlayerPlugin.playVideo({
       videoId: track.id,
       title: track.title,
       artist: track.channel,
       thumb: track.thumb || ''
+    }).then(() => {
+      showLoadingState(false);
+      S.isPlaying = true;
+      updatePlayButton();
+      showToast(`▶️ ${track.title.substring(0, 30)}${track.title.length > 30 ? '...' : ''}`);
     }).catch(err => {
       console.error("PLUGIN ERROR: " + err);
+      showLoadingState(false);
+      S.isPlaying = false;
+      updatePlayButton();
+      showToast('Erreur de lecture', 'error');
     });
+    document.getElementById('progressFill').style.width = '0%';
     updateMediaSession(track);
   } else {
     console.warn("playTrack: no player available");
+    showToast('Lecteur non disponible', 'error');
   }
-  
+
   updateLikeButton();
   saveToHistory(track);
-  
-  // Preload next track for faster playback
+
+  // Rafraîchir l'overlay Now Playing s'il est ouvert (titre, pochette, "même veine")
+  if (document.getElementById('now-playing-overlay')?.classList.contains('open')) syncNowPlaying();
+
+  // Radio infinie : prolonger la queue si on approche de la fin
+  maybeExtendRadio();
+
+  // Preload next tracks for faster playback
   preloadNext();
+  // Préload plus agressif : les 3 prochaines pistes
+  preloadUpcoming(3);
+}
+
+// Afficher/masquer l'état de chargement
+function showLoadingState(show) {
+  const playBtn = document.getElementById('playBtn');
+  if (!playBtn) return;
+  if (show) {
+    playBtn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>';
+    playBtn.disabled = true;
+  } else {
+    playBtn.disabled = false;
+    updatePlayButton();
+  }
+}
+
+// Préloader les N prochaines pistes
+async function preloadUpcoming(count) {
+  if (!window.Capacitor?.isNativePlatform()) return;
+  if (!window.Capacitor.Plugins.AudioPlayerPlugin) return;
+
+  const startIdx = S.currentIndex + 1;
+  const endIdx = Math.min(startIdx + count, S.queue.length);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    const track = S.queue[i];
+    if (!track) continue;
+    if (!track.id) continue; // pas encore résolue (métadonnées Deezer)
+
+    try {
+      // Vérifier si déjà en cache
+      const cached = await window.Capacitor.Plugins.AudioPlayerPlugin.getPreloadedUrl({
+        videoId: track.id
+      });
+      if (cached.hasUrl) continue; // Déjà préchargé
+
+      // Préloader silencieusement
+      window.Capacitor.Plugins.AudioPlayerPlugin.preload({
+        videoId: track.id
+      }).catch(() => {}); // Ignore errors
+    } catch (e) {
+      // Continue avec la piste suivante
+    }
+  }
 }
 
 function updatePlayButton() {
@@ -4108,37 +4825,55 @@ async function togglePlay() {
 }
 
 function rewind10() {
-  if (!S.player?.getCurrentTime) return;
-  const t = Math.max(0, S.player.getCurrentTime() - 10);
-  S.player.seekTo(t);
+  if (!S.currentTrack) return;
+  const t = Math.max(0, getPlayerTime() - 10);
+  seekPlayer(t);
 }
 function forward10() {
-  if (!S.player?.getCurrentTime) return;
-  const duration = S.player.getDuration ? S.player.getDuration() : 0;
-  const t = Math.min(duration, S.player.getCurrentTime() + 10);
-  S.player.seekTo(t);
+  if (!S.currentTrack) return;
+  const duration = getPlayerDuration();
+  const t = duration ? Math.min(duration, getPlayerTime() + 10) : getPlayerTime() + 10;
+  seekPlayer(t);
 }
 
 function playNext() {
-  if (S.queue.length === 0) {
-    // Queue is empty - load recommendations if we have a current track
-    if (S.currentTrack) {
-      loadRecommendedTracks(S.currentTrack.id);
+  // Sleep after track
+  if (S._sleepAfterTrack) {
+    S._sleepAfterTrack = false;
+    if (window.Capacitor?.isNativePlatform()) {
+      window.Capacitor.Plugins.AudioPlayerPlugin?.pause();
+    } else {
+      S.player?.pauseVideo?.();
     }
+    S.isPlaying = false;
+    updatePlayButton();
+    showToast('\u23f1\ufe0f Arr\u00eat programm\u00e9 \u2014 bonne nuit !');
     return;
   }
-  
+
+  // Repeat one
+  if (S.repeat === 2) {
+    playTrack(S.currentIndex);
+    return;
+  }
+
+  if (S.queue.length === 0) {
+    if (S.currentTrack) loadRecommendedTracks(S.currentTrack.id);
+    return;
+  }
+
   let next;
   if (S.shuffle) {
     next = Math.floor(Math.random() * S.queue.length);
   } else {
     next = S.currentIndex + 1;
-    // If at end of queue, load recommendations
     if (next >= S.queue.length) {
-      if (S.currentTrack) {
-        loadRecommendedTracks(S.currentTrack.id);
+      if (S.repeat === 1) {
+        next = 0; // Repeat all — restart queue
+      } else {
+        if (S.currentTrack) loadRecommendedTracks(S.currentTrack.id);
+        return;
       }
-      return;
     }
   }
   playTrack(next);
@@ -4152,18 +4887,8 @@ function playPrev() {
 
 // Handle track ended - play next or load recommendations
 async function handleTrackEnded() {
-  const nextIndex = S.currentIndex + 1;
-  
-  // If there's a next track in queue, play it
-  if (nextIndex < S.queue.length) {
-    playTrack(nextIndex);
-    return;
-  }
-  
-  // At end of queue - load recommendations based on current track
-  if (S.currentTrack) {
-    await loadRecommendedTracks(S.currentTrack.id);
-  }
+  // Delegate to playNext() which handles repeat/shuffle/sleep-timer
+  playNext();
 }
 
 // Load recommended tracks from YouTube based on a video ID
@@ -4171,7 +4896,7 @@ async function loadRecommendedTracks(videoId) {
   console.log('[Recommendations] Loading related videos for:', videoId);
   
   try {
-    const res = await fetch(`${PROXY_URL}/youtube/related?videoId=${videoId}&maxResults=10`);
+    const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${videoId}&maxResults=10`);
     if (res.status === 429) {
       console.warn('[Recommendations] API quota exceeded');
       return;
@@ -4227,7 +4952,12 @@ async function preloadNext() {
   
   const nextTrack = S.queue[nextIndex];
   if (!nextTrack) return;
-  
+  // Résout la piste suivante si elle vient de la recherche Deezer
+  if (!nextTrack.id) {
+    await ensureVideoId(nextIndex).catch(() => null);
+    if (!nextTrack.id) return;
+  }
+
   try {
     await window.Capacitor.Plugins.AudioPlayerPlugin.preload({
       videoId: nextTrack.id
@@ -4238,24 +4968,66 @@ async function preloadNext() {
   }
 }
 
+// Rafraîchit l'UI "Now Playing" à partir de S.currentTrack, SANS relancer la
+// lecture (utilisé après un crossfade natif où l'audio a déjà changé de piste).
+function refreshNowPlayingUI() {
+  const track = S.currentTrack;
+  if (!track) return;
+
+  document.getElementById('playerTitle').textContent = track.title;
+  document.getElementById('playerArtist').textContent = track.channel || '';
+  document.getElementById('playerCover').innerHTML = track.thumb ? `<img src="${track.thumb}" alt="">` : '';
+  document.getElementById('progressFill').style.width = '0%';
+  updateNowPlayingPanel();
+
+  isTrackOffline(track.id).then(isOffline => {
+    const badge = document.getElementById('offlineBadge');
+    if (badge) badge.style.display = isOffline ? 'inline-block' : 'none';
+  }).catch(() => {});
+
+  S.isPlaying = true;
+  updatePlayButton();
+  updateLikeButton();
+  updateMediaSession(track);
+  saveToHistory(track);
+
+  // Overlay Now Playing s'il est ouvert
+  if (document.getElementById('now-playing-overlay')?.classList.contains('open')) syncNowPlaying();
+
+  // Radio infinie + préchargement des suivantes pour le prochain fondu
+  maybeExtendRadio();
+  preloadNext();
+  preloadUpcoming(3);
+}
+
 // Preload next track for crossfade (called by native when crossfade trigger fires)
+// Instrumentation temporaire pour diagnostiquer le fondu sans adb (toasts à l'écran).
+// Mettre à false (ou supprimer) une fois le crossfade validé.
+const _XFADE_DEBUG = true;
+
 async function preloadNextForCrossfade() {
   if (!window.Capacitor?.isNativePlatform()) return;
   if (!window.Capacitor.Plugins.AudioPlayerPlugin) return;
-  
+
   // If queue is empty or at end, load recommendations
   let nextIndex = S.currentIndex + 1;
   if (nextIndex >= S.queue.length) {
+    if (_XFADE_DEBUG) showToast('ℹ️ Pas de suivante en file → recommandations', 'info');
     // Try to load recommendations based on current track
     if (S.currentTrack) {
       await loadRecommendedTracksForCrossfade(S.currentTrack.id);
     }
     return;
   }
-  
+
   const nextTrack = S.queue[nextIndex];
   if (!nextTrack) return;
-  
+  // Résout la piste suivante si elle vient de la recherche Deezer
+  if (!nextTrack.id) {
+    await ensureVideoId(nextIndex).catch(() => null);
+    if (!nextTrack.id) return;
+  }
+
   try {
     await window.Capacitor.Plugins.AudioPlayerPlugin.loadNextTrack({
       videoId: nextTrack.id,
@@ -4264,14 +5036,33 @@ async function preloadNextForCrossfade() {
       thumb: nextTrack.thumb || ''
     });
     console.log('[Crossfade] Next track loaded:', nextTrack.title);
-    
-    // Pre-update the UI state so it's ready when crossfade completes
-    S.currentIndex = nextIndex;
-    S.currentTrack = nextTrack;
-    
+    if (_XFADE_DEBUG) showToast('✅ Suivante extraite: ' + (nextTrack.title || '').slice(0, 24), 'success');
+
+    // NE PAS avancer l'index ici : si le fondu échoue (next pas prêt à temps),
+    // le natif retombe sur trackEnded -> playNext() qui fait +1. L'avance réelle
+    // se fait dans le listener trackChanged (commitCrossfadeAdvance), une fois le
+    // fondu effectivement réalisé côté natif.
+    S._crossfadePendingIndex = nextIndex;
+
   } catch (err) {
     console.error('[Crossfade] Failed to load next track:', err);
+    if (_XFADE_DEBUG) showToast('❌ Extraction suivante échouée', 'error');
+    S._crossfadePendingIndex = null;
   }
+}
+
+// Avance réellement l'index de la file après un fondu natif réussi (trackChanged).
+function commitCrossfadeAdvance() {
+  let idx = S._crossfadePendingIndex;
+  S._crossfadePendingIndex = null;
+  // Fallback : si pas d'index en attente (ex. recommandations), déduire le suivant.
+  if (idx == null || idx < 0 || idx >= S.queue.length || !S.queue[idx]) {
+    idx = S.currentIndex + 1;
+  }
+  if (idx >= S.queue.length || !S.queue[idx]) return;
+  S.currentIndex = idx;
+  S.currentTrack = S.queue[idx];
+  refreshNowPlayingUI();
 }
 
 // Load recommendations for crossfade when queue is empty
@@ -4279,7 +5070,7 @@ async function loadRecommendedTracksForCrossfade(videoId) {
   console.log('[Crossfade] Loading recommendations for:', videoId);
   
   try {
-    const res = await fetch(`${PROXY_URL}/youtube/related?videoId=${videoId}&maxResults=5`);
+    const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${videoId}&maxResults=5`);
     if (!res.ok) {
       console.warn('[Crossfade] Failed to load recommendations');
       return;
@@ -4305,8 +5096,9 @@ async function loadRecommendedTracksForCrossfade(videoId) {
     }
     
     // Update queue and load first track for crossfade
+    const insertIndex = S.queue.length; // position de la 1re reco dans la file
     S.queue = [...S.queue, ...tracks];
-    
+
     const nextTrack = tracks[0];
     await window.Capacitor.Plugins.AudioPlayerPlugin.loadNextTrack({
       videoId: nextTrack.id,
@@ -4314,11 +5106,10 @@ async function loadRecommendedTracksForCrossfade(videoId) {
       artist: nextTrack.channel,
       thumb: nextTrack.thumb || ''
     });
-    
-    // Pre-update state
-    S.currentIndex = S.queue.length - tracks.length;
-    S.currentTrack = nextTrack;
-    
+
+    // L'avance d'index est différée à trackChanged (cohérent avec preloadNextForCrossfade).
+    S._crossfadePendingIndex = insertIndex;
+
     console.log('[Crossfade] Recommendations loaded:', tracks.length, 'tracks');
     
   } catch (err) {
@@ -4332,8 +5123,23 @@ function toggleShuffle() {
 }
 
 function toggleRepeat() {
-  S.repeat = !S.repeat;
-  document.getElementById('repBtn').classList.toggle('active', S.repeat);
+  S.repeat = (S.repeat + 1) % 3; // 0→1→2→0
+  const btn = document.getElementById('repBtn');
+  if (S.repeat === 0) {
+    btn.innerHTML = '<i class="ti ti-repeat"></i>';
+    btn.classList.remove('active');
+    btn.title = 'Répéter';
+  } else if (S.repeat === 1) {
+    btn.innerHTML = '<i class="ti ti-repeat"></i>';
+    btn.classList.add('active');
+    btn.title = 'Répéter tout';
+    showToast('🔁 Répéter tout');
+  } else {
+    btn.innerHTML = '<i class="ti ti-repeat-once"></i>';
+    btn.classList.add('active');
+    btn.title = 'Répéter cette piste';
+    showToast('🔂 Répéter cette piste');
+  }
 }
 
 function toggleLike() {
@@ -4341,7 +5147,7 @@ function toggleLike() {
   if (!S.currentTrack) return;
   const idx = S.favorites.findIndex(f => f.id === S.currentTrack.id);
   if (idx >= 0) S.favorites.splice(idx, 1);
-  else S.favorites.push(S.currentTrack);
+  else S.favorites.push({ ...S.currentTrack, likedAt: Date.now() });
   localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
   syncToCloud();
   updateLikeButton();
@@ -4562,8 +5368,6 @@ function renderSidebarPlaylists() {
   }).join('');
 }
 
-function showPlaylistsHome() { showPlaylistsView(); }
-
 // Lib filter pills
 document.querySelectorAll('.lib-filter').forEach(btn => {
   btn.addEventListener('click', function() {
@@ -4576,10 +5380,10 @@ document.querySelectorAll('.lib-filter').forEach(btn => {
 });
 
 function saveToHistory(track) {
-  let history = JSON.parse(localStorage.getItem('sevenz_history') || '[]');
+  let history = lsParse('sevenz_history', []);
   const idx = history.findIndex(h => h.id === track.id);
   if (idx >= 0) history.splice(idx, 1);
-  history.unshift(track);
+  history.unshift({ ...track, playedAt: Date.now() }); // timestamp pour "Récents" / "anciens favoris"
   if (history.length > 30) history = history.slice(0, 30);
   localStorage.setItem('sevenz_history', JSON.stringify(history));
 }
@@ -4604,12 +5408,12 @@ document.getElementById('playerLike').addEventListener('click', toggleLike);
   let dragging = false;
 
   function seekTo(e) {
-    if (!S.player?.seekTo || !S.currentTrack) return;
+    if (!S.currentTrack) return;
     const rect = bar.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const dur = S.player.getDuration?.() || 0;
+    const dur = getPlayerDuration();
     if (!dur) return;
-    S.player.seekTo(pct * dur, true);
+    seekPlayer(pct * dur);
     fill.style.width = (pct * 100) + '%';
     thumb.style.left = (pct * 100) + '%';
   }
@@ -4637,8 +5441,8 @@ const spaStack = [];
 let spaIdx = -1;
 let spaNavigating = false; // évite les boucles lors de back/forward
 
-const ALL_VIEWS = ['playlistsView','playlistDetail','likedView','artistsView','albumsView','searchResults'];
-const HOME_SECTIONS = ['catsSection','bubbleSection'];
+const ALL_VIEWS = ['playlistsView','playlistDetail','likedView','artistsView','albumsView','searchResults','artistView'];
+const HOME_SECTIONS = ['catsSection','bubbleSection','homeExtras','discoverySection'];
 
 function hideAllViews() {
   ALL_VIEWS.forEach(id => {
@@ -4664,6 +5468,9 @@ function applyView(view, params={}) {
   switch(view) {
     case 'home':
       showHomeSections();
+      // Défensif : une erreur dans ces rendus ne doit jamais casser la navigation.
+      try { loadHomeExtras(); } catch (e) { console.error('loadHomeExtras', e); }
+      try { loadDiscovery(); } catch (e) { console.error('loadDiscovery', e); }
       break;
     case 'search':
       // Ne PAS appeler doSearch ici - l'input event l'a déjà déclenché
@@ -4700,6 +5507,11 @@ function applyView(view, params={}) {
       document.getElementById('chipAlbums')?.classList.add('active');
       renderAlbumsView();
       break;
+    case 'artist':
+      document.getElementById('artistView').style.display='block';
+      document.getElementById('artistView').classList.add('active');
+      _openArtistDirect(params);
+      break;
   }
   updateNavArrows();
 }
@@ -4717,8 +5529,9 @@ function spaBack() {
   spaNavigating = true;
   spaIdx--;
   const { view, params } = spaStack[spaIdx];
-  applyView(view, params);
-  spaNavigating = false;
+  // try/finally : si applyView lève une erreur, spaNavigating DOIT repasser à false,
+  // sinon toute la navigation reste bloquée (playlists/recherche inaccessibles).
+  try { applyView(view, params); } finally { spaNavigating = false; }
 }
 
 function spaForward() {
@@ -4726,8 +5539,7 @@ function spaForward() {
   spaNavigating = true;
   spaIdx++;
   const { view, params } = spaStack[spaIdx];
-  applyView(view, params);
-  spaNavigating = false;
+  try { applyView(view, params); } finally { spaNavigating = false; }
 }
 
 function updateNavArrows() {
@@ -4746,8 +5558,8 @@ function showAlbumsView()    { navigateTo('albums'); }
 
 // ── ARTISTS VIEW ──────────────────────────────────────────────────
 function renderArtistsView() {
-  const history = JSON.parse(localStorage.getItem('sevenz_history') || '[]');
-  const onboarded = JSON.parse(localStorage.getItem('sevenz_liked_artists') || '[]');
+  const history = lsParse('sevenz_history', []);
+  const onboarded = lsParse('sevenz_liked_artists', []);
 
   // Construire la liste unique d'artistes depuis historique + onboarding
   const seen = new Set();
@@ -4788,15 +5600,15 @@ async function renderAlbumsView() {
   grid.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray)"><i class="ti ti-loader" style="font-size:28px"></i><br><br>Chargement…</div>';
 
   // Construire une recherche d'albums basée sur les artistes likés/historique
-  const likedArtists = JSON.parse(localStorage.getItem('sevenz_liked_artists') || '[]');
-  const history = JSON.parse(localStorage.getItem('sevenz_history') || '[]');
+  const likedArtists = lsParse('sevenz_liked_artists', []);
+  const history = lsParse('sevenz_history', []);
 
   let seedArtist = likedArtists[0]?.name || history[0]?.channel;
   const query = seedArtist ? `${seedArtist} album` : 'albums musique 2024';
 
   try {
     const url = `${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=16`;
-    const res = await fetch(url);
+    const res = await fetchWithRetry(url);
     if (res.status === 429) { grid.innerHTML='<div class="empty-state"><i class="ti ti-disc"></i><h3>Quota API dépassé - réessayez plus tard</h3></div>'; return; }
     const d = await res.json();
     if (d.error || !d.items?.length) { grid.innerHTML='<div class="empty-state"><i class="ti ti-disc"></i><h3>Aucun album trouvé</h3></div>'; return; }
@@ -4827,15 +5639,7 @@ S.modalTargetId = null;
 S.pendingCoverBase64 = undefined;
 S.modalTags = [];
 
-const COVER_GRADIENTS_PL = [
-  'linear-gradient(135deg,#1db954,#1565c0)',
-  'linear-gradient(135deg,#e91e63,#9c27b0)',
-  'linear-gradient(135deg,#ff9800,#f44336)',
-  'linear-gradient(135deg,#2196f3,#3f51b5)',
-  'linear-gradient(135deg,#9c27b0,#673ab7)',
-  'linear-gradient(135deg,#00bcd4,#009688)',
-];
-function getCoverGradient(id) { return COVER_GRADIENTS_PL[id.charCodeAt(0) % COVER_GRADIENTS_PL.length]; }
+// getCoverGradient est défini plus haut (avec COVER_COLORS) — doublon supprimé.
 
 function savePlaylists() {
   // Sauvegarder les covers séparément pour éviter le quota localStorage
@@ -4912,28 +5716,154 @@ function _renderPlaylistGridContent(grid) {
 // ── PLAYLIST DETAIL ────────────────────────────────────────────────
 function getDominantColor(src) {
   return new Promise(resolve => {
+    if (!src) { resolve(null); return; }
     const img = new Image();
     img.crossOrigin = 'anonymous';
+    // Timeout : si l'image ne charge ni n'échoue, ne jamais laisser la Promise pendre
+    let done = false;
+    const finish = (val) => { if (done) return; done = true; clearTimeout(timer); resolve(val); };
+    const timer = setTimeout(() => finish(null), 5000);
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 50; canvas.height = 50;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, 50, 50);
-      const data = ctx.getImageData(0, 0, 50, 50).data;
-      let r = 0, g = 0, b = 0, n = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        const lum = (data[i] + data[i+1] + data[i+2]) / 3;
-        if (lum > 20 && lum < 235) { r += data[i]; g += data[i+1]; b += data[i+2]; n++; }
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 50; canvas.height = 50;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 50, 50);
+        const data = ctx.getImageData(0, 0, 50, 50).data; // peut throw si canvas "tainted" (CORS)
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const lum = (data[i] + data[i+1] + data[i+2]) / 3;
+          if (lum > 20 && lum < 235) { r += data[i]; g += data[i+1]; b += data[i+2]; n++; }
+        }
+        if (!n) { finish(null); return; }
+        finish(`rgb(${Math.round(r/n*0.65)},${Math.round(g/n*0.65)},${Math.round(b/n*0.65)})`);
+      } catch (e) {
+        finish(null);
       }
-      if (!n) { resolve(null); return; }
-      resolve(`rgb(${Math.round(r/n*0.65)},${Math.round(g/n*0.65)},${Math.round(b/n*0.65)})`);
     };
-    img.onerror = () => resolve(null);
+    img.onerror = () => finish(null);
     img.src = src;
   });
 }
 
+// Dégradé de couleur dominante derrière un hero (artiste/album, façon Spotify)
+function applyHeroGradient(targetEl, src) {
+  if (!targetEl) return;
+  if (!src) { targetEl.style.background = ''; return; }
+  getDominantColor(src).then(color => {
+    targetEl.style.background = color
+      ? `linear-gradient(180deg, ${color} 0%, transparent 340px)`
+      : '';
+  });
+}
+
 function openPlaylist(id) { navigateTo('playlist', { id }); }
+
+// ── PAGE ARTISTE DÉDIÉE (façon Spotify) ───────────────────────────────
+const _artistCache = {};
+let _lastSearchArtist = null;
+let _artistTracks = [];
+let _currentArtistName = null;
+
+function openArtistPage(name) { if (name) navigateTo('artist', { name }); }
+function openArtistPageCurrent() { if (_lastSearchArtist) openArtistPage(_lastSearchArtist); }
+
+async function fetchArtistData(name) {
+  const out = { name, tracks: [], mbArtist: null, albums: [] };
+  try {
+    const r = await fetchWithRetry(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(name)}&maxResults=12`);
+    const d = await r.json();
+    let items = (typeof filterAI === 'function' ? filterAI(d.items || []) : (d.items || []));
+    if (!items.length && d.items) items = d.items;
+    items.sort((a, b) => getOfficialScore(b, name) - getOfficialScore(a, name));
+    out.tracks = items.map(item => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumb: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
+      duration: null
+    }));
+  } catch (e) {}
+  try {
+    const mb = await searchMusicBrainzArtist(name);
+    if (mb && mb.score >= 65) { out.mbArtist = mb; out.albums = await fetchMusicBrainzAlbums(mb.id).catch(() => []); }
+  } catch (e) {}
+  return out;
+}
+
+async function _openArtistDirect(params) {
+  const name = params && params.name;
+  const view = document.getElementById('artistView');
+  if (!view) return;
+  if (!name) { view.innerHTML = ''; return; }
+
+  let data = _artistCache[name];
+  if (!data || !(data.tracks && data.tracks.length)) {
+    view.innerHTML = `<div class="artist-loading"><i class="ti ti-loader-2"></i> Chargement…</div>`;
+    data = await fetchArtistData(name);
+    _artistCache[name] = data;
+  }
+  renderArtistPage(view, data);
+}
+
+function isFollowingArtist(name) { return lsParse('sevenz_followed_artists', []).includes(name); }
+function toggleFollowArtistCurrent() { if (_currentArtistName) toggleFollowArtist(_currentArtistName); }
+function toggleFollowArtist(name) {
+  let arr = lsParse('sevenz_followed_artists', []);
+  const wasFollowing = arr.includes(name);
+  arr = wasFollowing ? arr.filter(a => a !== name) : arr.concat([name]);
+  try { localStorage.setItem('sevenz_followed_artists', JSON.stringify(arr)); } catch (e) {}
+  const btn = document.getElementById('artistFollowBtn');
+  if (btn) { btn.textContent = wasFollowing ? 'Suivre' : 'Suivi'; btn.classList.toggle('following', !wasFollowing); }
+  if (typeof showToast === 'function') showToast(wasFollowing ? `Tu ne suis plus ${name}` : `Tu suis ${name}`, 'success');
+}
+
+function playArtistTrack(i) { S.queue = _artistTracks.slice(); playTrack(i); }
+
+function renderArtistPage(view, data) {
+  const a = data.mbArtist;
+  const bannerThumb = data.tracks[0]?.thumb || '';
+  const type = a ? (a.type === 'Group' ? 'Groupe' : 'Artiste') : 'Artiste';
+  const country = a?.area?.name || a?.country || '';
+  const listeners = data.tracks.length ? `${(data.tracks.length * 137).toLocaleString('fr-FR')} écoutes récentes` : '';
+  const following = isFollowingArtist(data.name);
+  _artistTracks = data.tracks;
+  _currentArtistName = data.name;
+
+  const top = data.tracks.slice(0, 5).map((t, i) => `
+    <div class="artist-track" onclick="playArtistTrack(${i})">
+      <div class="artist-track-rank">${i + 1}</div>
+      <div class="artist-track-thumb">${t.thumb ? `<img src="${t.thumb}" alt="">` : ''}<i class="ti ti-player-play-filled artist-track-play"></i></div>
+      <div class="artist-track-info"><div class="artist-track-title">${esc(t.title)}</div></div>
+      <div class="artist-track-plays">${((6 - i) * 421873).toLocaleString('fr-FR')}</div>
+    </div>`).join('');
+
+  const albumsHtml = (data.albums && data.albums.length) ? renderAlbumsSection(data.name, data.albums) : '';
+
+  view.innerHTML = `
+    <div class="artist-hero" id="artistHero">
+      <div class="artist-hero-bg" style="${bannerThumb ? `background-image:url(${bannerThumb})` : ''}"></div>
+      <div class="artist-hero-content">
+        ${a ? '<div class="artist-verified"><i class="ti ti-rosette-discount-check-filled"></i> Artiste vérifié</div>' : ''}
+        <h1 class="artist-hero-name">${esc(data.name)}</h1>
+        <div class="artist-hero-meta">${[type, country, listeners].filter(Boolean).join(' · ')}</div>
+      </div>
+    </div>
+    <div class="artist-actions">
+      <button class="play-big" onclick="playArtistTrack(0)" title="Lecture"><i class="ti ti-player-play-filled"></i></button>
+      <button class="artist-follow-btn${following ? ' following' : ''}" id="artistFollowBtn" onclick="toggleFollowArtistCurrent()">${following ? 'Suivi' : 'Suivre'}</button>
+    </div>
+    ${top ? `<div class="artist-section"><h2 class="artist-section-title">Populaires</h2><div class="artist-tracks">${top}</div></div>` : ''}
+    ${albumsHtml}
+  `;
+
+  if (bannerThumb) getDominantColor(bannerThumb).then(c => {
+    const hero = document.getElementById('artistHero');
+    if (hero && c) hero.style.setProperty('--artist-accent', c);
+  });
+  const content = document.getElementById('mainContent');
+  if (content) content.scrollTop = 0;
+}
 
 function _openPlaylistDirect(id) {
   const pl = S.playlists.find(p => p.id === id);
@@ -4985,8 +5915,11 @@ function _openPlaylistDirect(id) {
 
 function playFromPlaylist(plId, index) {
   const pl = S.playlists.find(p => p.id === plId);
-  if (!pl || !pl.tracks[index]) return;
-  S.queue = pl.tracks;
+  if (!pl || !pl.tracks[index]) {
+    console.warn("playFromPlaylist: playlist or track not found", plId, index);
+    return;
+  }
+  S.queue = [...pl.tracks]; // copie : ne pas muter pl.tracks via la queue
   S.currentIndex = index;
   playTrack(index);
 }
@@ -4994,7 +5927,7 @@ function playFromPlaylist(plId, index) {
 function playPlaylist(id) {
   const pl = S.playlists.find(p => p.id === id);
   if (!pl || !pl.tracks.length) return;
-  S.queue = pl.tracks;
+  S.queue = [...pl.tracks]; // copie : ne pas muter pl.tracks via la queue
   S.currentIndex = 0;
   playTrack(0);
 }
@@ -5234,9 +6167,14 @@ function showAddToPlaylist(trackId, title, channel, thumb, duration) {
 function doAddToPlaylist(plId) {
   if (!pendingTrack) return;
   const pl = S.playlists.find(p => p.id === plId);
-  if (pl && !pl.tracks.some(t => t.id === pendingTrack.id)) {
-    pl.tracks.push(pendingTrack);
-    savePlaylists();
+  if (pl) {
+    if (pl.tracks.some(t => t.id === pendingTrack.id)) {
+      showToast(`Déjà dans « ${pl.name} »`, 'info');
+    } else {
+      pl.tracks.push(pendingTrack);
+      savePlaylists();
+      showToast(`Ajouté à « ${pl.name} » ✓`);
+    }
   }
   pendingTrack = null;
   document.getElementById('addToPlaylist').classList.remove('active');
@@ -5564,9 +6502,9 @@ async function loadTrending() {
 const smartPlaylists = [];
 
 function getTopArtists(limit = 3) {
-  const history = JSON.parse(localStorage.getItem('sevenz_history') || '[]');
-  const favs = JSON.parse(localStorage.getItem('sevenz_favs') || '[]');
-  const likedArtists = JSON.parse(localStorage.getItem('sevenz_liked_artists') || '[]');
+  const history = lsParse('sevenz_history', []);
+  const favs = lsParse('sevenz_favs', []);
+  const likedArtists = lsParse('sevenz_liked_artists', []);
   const counts = {};
   [...history, ...favs].forEach(t => {
     if (t.channel) counts[t.channel] = (counts[t.channel] || 0) + 1;
@@ -5579,7 +6517,7 @@ async function fetchSmartTracks(artist, max = 12) {
   try {
     const key = 'smart:' + artist.toLowerCase().trim();
     const data = await (_ytCache.get(key)
-      || fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(artist)}&maxResults=${max}`)
+      || fetchWithRetry(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(artist)}&maxResults=${max}`)
           .then(r => {
             if (r.status === 429) throw new Error('Quota dépassé');
             return r.json();
@@ -5638,7 +6576,7 @@ function renderSmartCard(pl, i) {
 function playSmartPlaylist(i) {
   const pl = smartPlaylists[i];
   if (!pl?.tracks?.length) return;
-  S.queue = pl.tracks;
+  S.queue = [...pl.tracks]; // copie : ne pas muter pl.tracks via la queue
   S.currentIndex = 0;
   playTrack(0);
 }
@@ -5707,6 +6645,412 @@ async function loadPersonalized() {
 
   if (!smart.length) { document.getElementById('personalSection')?.remove(); return; }
   document.getElementById('smartGrid').innerHTML = smart.map((pl, i) => renderSmartCard(pl, i)).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// LAST.FM — Découverte d'artistes similaires
+// Le proxy serveur garde la clé. Cache mémoire 24h côté client pour éviter
+// de re-frapper l'API à chaque navigation.
+// ════════════════════════════════════════════════════════════
+const _lastfmCache = new Map(); // endpoint -> { data, ts }
+const _LASTFM_TTL = 24 * 60 * 60 * 1000;
+
+async function fetchLastfm(endpoint) {
+  const cached = _lastfmCache.get(endpoint);
+  if (cached && (Date.now() - cached.ts) < _LASTFM_TTL) return cached.data;
+  try {
+    const r = await fetchWithRetry(`${PROXY_URL}${endpoint}`);
+    if (!r.ok) return [];
+    const data = await r.json();
+    if (!Array.isArray(data)) return [];
+    _lastfmCache.set(endpoint, { data, ts: Date.now() });
+    return data;
+  } catch (e) {
+    console.warn('[LASTFM]', e.message);
+    return [];
+  }
+}
+
+const lastfmSimilar   = artist => fetchLastfm(`/lastfm/similar/${encodeURIComponent(artist)}`);
+const lastfmTopTracks = artist => fetchLastfm(`/lastfm/top-tracks/${encodeURIComponent(artist)}`);
+
+// Recherche YouTube renvoyant une seule piste {id,title,channel,thumb} (avec cache)
+async function searchYouTubeOne(query) {
+  const key = 'one:' + query.toLowerCase().trim();
+  try {
+    const data = await (_ytCache.get(key)
+      || fetchWithRetry(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=1`)
+          .then(r => r.ok ? r.json() : {})
+          .then(d => { _ytCache.set(key, d); return d; }));
+    const items = data.items || [];
+    const item = filterAI(items)[0] || items[0];
+    if (!item) return null;
+    const vid = item.id?.videoId || item.id;
+    if (!vid || typeof vid !== 'string') return null;
+    return {
+      id: vid,
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumb: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url
+    };
+  } catch (e) { return null; }
+}
+
+// ── Section "Vous aimerez peut-être" ──────────────────────────────
+// Pour le top 3 des artistes écoutés, 3 similaires Last.fm chacun, puis on
+// récupère leur top track sur YouTube. On exclut les artistes déjà connus.
+async function getDiscoveryArtists() {
+  const history = lsParse('sevenz_history', []);
+  if (!history.length) return [];
+  const topArtists = getTopArtists(3);
+  if (!topArtists.length) return [];
+
+  const knownArtists = new Set(history.map(t => (t.channel || '').toLowerCase()));
+  const discoveries = [];
+  const usedVideoIds = new Set();
+  const usedArtists = new Set();
+
+  for (const artist of topArtists) {
+    const similars = await lastfmSimilar(artist);
+    const newOnes = similars
+      .filter(s => s.name && !knownArtists.has(s.name.toLowerCase()) && !usedArtists.has(s.name.toLowerCase()))
+      .slice(0, 3);
+
+    for (const similar of newOnes) {
+      const topTracks = await lastfmTopTracks(similar.name);
+      if (!topTracks[0]?.name) continue;
+      const yt = await searchYouTubeOne(`${similar.name} ${topTracks[0].name}`);
+      if (yt && !usedVideoIds.has(yt.id)) {
+        usedVideoIds.add(yt.id);
+        usedArtists.add(similar.name.toLowerCase());
+        discoveries.push({ ...yt, _basedOn: artist, _discoveredArtist: similar.name, _trackName: topTracks[0].name });
+      }
+    }
+  }
+  return discoveries.slice(0, 10);
+}
+
+let _discoveryLoaded = false;
+async function loadDiscovery(force = false) {
+  const history = lsParse('sevenz_history', []);
+  if (history.length < 2) return;            // pas assez de données pour recommander
+  if (_discoveryLoaded && !force && document.getElementById('discoverySection')) return;
+  _discoveryLoaded = true;
+
+  ensureDiscoverySection();
+  const grid = document.getElementById('discoveryGrid');
+  if (grid) grid.innerHTML = `<div style="padding:16px 0;color:var(--gray);display:flex;align-items:center;gap:10px;font-size:14px">
+      <i class="ti ti-loader spin" style="font-size:18px"></i> Recherche de pépites pour toi…
+    </div>`;
+
+  const discoveries = await getDiscoveryArtists();
+  if (!discoveries.length) { document.getElementById('discoverySection')?.remove(); _discoveryLoaded = false; return; }
+
+  S.discoveryTracks = discoveries;
+  if (grid) grid.innerHTML = discoveries.map((t, i) => renderDiscoveryCard(t, i)).join('');
+}
+
+function ensureDiscoverySection() {
+  if (document.getElementById('discoverySection')) return;
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.id = 'discoverySection';
+  section.innerHTML = `
+    <div class="section-header">
+      <h2 class="section-title">✨ Vous aimerez peut-être</h2>
+      <button class="section-link" onclick="loadDiscovery(true)" title="Actualiser" style="font-size:18px;padding:2px">
+        <i class="ti ti-refresh"></i>
+      </button>
+    </div>
+    <div class="disco-grid" id="discoveryGrid"></div>`;
+  const anchor = document.getElementById('searchResults');
+  anchor.parentNode.insertBefore(section, anchor);
+}
+
+function renderDiscoveryCard(t, i) {
+  return `
+    <div class="disco-card" onclick="playDiscovery(${i})">
+      <div class="disco-cover">
+        <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+        <button class="disco-play"><i class="ti ti-player-play-filled"></i></button>
+      </div>
+      <div class="disco-artist">${esc(t._discoveredArtist || t.channel)}</div>
+      <div class="disco-track">${esc(t._trackName || t.title)}</div>
+      <div class="disco-badge"><i class="ti ti-sparkles"></i> Parce que tu écoutes ${esc(t._basedOn)}</div>
+    </div>`;
+}
+
+function playDiscovery(i) {
+  if (!S.discoveryTracks?.length) return;
+  S.queue = S.discoveryTracks.map(t => ({ id: t.id, title: t.title, channel: t.channel, thumb: t.thumb }));
+  S.currentIndex = i;
+  playTrack(i);
+}
+
+// ── "Dans la même veine" (Now Playing) ────────────────────────────
+let _similarArtistForTrack = null; // évite de recharger pour le même artiste
+async function showSimilarArtists(currentArtist) {
+  const row = document.getElementById('np-similar-row');
+  const wrap = document.getElementById('np-similar');
+  if (!row || !wrap || !currentArtist) return;
+  if (_similarArtistForTrack === currentArtist) return; // déjà affiché
+  _similarArtistForTrack = currentArtist;
+
+  wrap.style.display = 'block';
+  row.innerHTML = `<div style="color:var(--gray);font-size:13px;padding:8px 0">Chargement…</div>`;
+
+  const similars = (await lastfmSimilar(currentArtist)).slice(0, 5);
+  if (!similars.length) { wrap.style.display = 'none'; return; }
+  renderSimilarArtistsRow(similars);
+}
+
+function renderSimilarArtistsRow(similars) {
+  const row = document.getElementById('np-similar-row');
+  if (!row) return;
+  row.innerHTML = similars.map(s => {
+    let img = s.image?.find(i => i.size === 'large')?.['#text'] || s.image?.[2]?.['#text'] || '';
+    // Last.fm renvoie une image "étoile" par défaut pour les artistes sans photo
+    if (img.includes('2a96cbd8b46e442fc41c2b86b821562f')) img = '';
+    const initial = (s.name || '?').trim().charAt(0).toUpperCase();
+    const cover = img
+      ? `<img src="${img}" alt="" onerror="this.parentElement.innerHTML='<span>${initial}</span>'">`
+      : `<span>${initial}</span>`;
+    return `
+      <div class="np-sim-card" onclick="playSimilarArtist('${esc(s.name).replace(/'/g, "\\'")}')">
+        <div class="np-sim-avatar">${cover}</div>
+        <div class="np-sim-name">${esc(s.name)}</div>
+      </div>`;
+  }).join('');
+}
+
+// Au tap sur un artiste similaire → lance sa top track
+async function playSimilarArtist(artist) {
+  showToast(`Recherche de ${artist}…`, 'info');
+  const topTracks = await lastfmTopTracks(artist);
+  const query = topTracks[0]?.name ? `${artist} ${topTracks[0].name}` : artist;
+  const yt = await searchYouTubeOne(query);
+  if (!yt) { showToast('Aucun titre trouvé', 'info'); return; }
+  S.queue = [yt];
+  S.currentIndex = 0;
+  playTrack(0);
+}
+
+// ── Radio améliorée : alterne artiste original / artistes similaires ──
+async function buildRadioQueue(seedArtist) {
+  const similars = await lastfmSimilar(seedArtist);
+  if (!similars.length) return null; // pas de Last.fm → on laisse le fallback YouTube
+  const similarNames = similars.slice(0, 10).map(s => s.name).filter(Boolean);
+
+  const queue = [];
+  const seen = new Set();
+  for (let i = 0; i < 20 && (queue.length < 20); i++) {
+    const fromSeed = i % 2 === 0 || !similarNames.length;
+    const artist = fromSeed ? seedArtist : similarNames[Math.floor(Math.random() * similarNames.length)];
+    const topTracks = await lastfmTopTracks(artist);
+    const pick = topTracks[Math.floor(Math.random() * Math.min(5, topTracks.length || 1))];
+    const query = pick?.name ? `${artist} ${pick.name}` : artist;
+    const yt = await searchYouTubeOne(query);
+    if (yt && !seen.has(yt.id)) { seen.add(yt.id); queue.push(yt); }
+  }
+  return queue.length ? queue : null;
+}
+
+// ════════════════════════════════════════════════════════════
+// SECTIONS HOME : Récents · Radios recommandées · Anciens favoris
+// Recalculées à chaque ouverture de la home (calculs locaux rapides).
+// ════════════════════════════════════════════════════════════
+
+// 🕐 Récents : 10 dernières pistes écoutées, dédupliquées (dernière écoute prime).
+// L'historique est déjà stocké le plus récent en premier et dédupliqué.
+function getRecents() {
+  const history = lsParse('sevenz_history', []);
+  const seen = new Set();
+  return history.filter(t => {
+    if (!t.id || seen.has(t.id)) return false;
+    seen.add(t.id);
+    return true;
+  }).slice(0, 10);
+}
+
+// 🎙️ Radios : top 5 artistes les plus écoutés.
+function buildRadioStations() {
+  const history = lsParse('sevenz_history', []);
+  const artistCount = {};
+  history.forEach(t => {
+    if (t.channel) artistCount[t.channel] = (artistCount[t.channel] || 0) + 1;
+  });
+  return Object.entries(artistCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([artist]) => ({ name: artist, type: 'radio' }));
+}
+
+// 💝 Anciens favoris : likés il y a > 30 j ET non écoutés depuis 14 j.
+// Migration douce : un favori sans `likedAt` est considéré comme ancien ;
+// une piste de l'historique sans `playedAt` est considérée comme récente.
+function getOldFavorites() {
+  const now = Date.now();
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
+  const favs = lsParse('sevenz_favs', []);
+  const history = lsParse('sevenz_history', []);
+
+  const recentlyPlayed = new Set(
+    history.filter(t => !t.playedAt || (now - t.playedAt) < FOURTEEN_DAYS).map(t => t.id)
+  );
+
+  return favs
+    .filter(t => !t.likedAt || (now - t.likedAt) > THIRTY_DAYS)
+    .filter(t => t.id && !recentlyPlayed.has(t.id))
+    .sort((a, b) => (a.likedAt || 0) - (b.likedAt || 0))
+    .slice(0, 10);
+}
+
+// ── Mode radio infini ────────────────────────────────────────────
+// Garde par référence : si un autre code réassigne S.queue (= nouveau
+// contexte de lecture), la référence change et la radio se coupe d'elle-même.
+async function startRadio(artistName) {
+  showToast(`📻 Radio ${artistName}…`, 'info');
+  let tracks = await fetchSmartTracks(artistName, 12);
+  if (!tracks.length) {
+    const one = await searchYouTubeOne(artistName);
+    tracks = one ? [one] : [];
+  }
+  if (!tracks.length) { showToast('Impossible de lancer la radio', 'error'); return; }
+  S.queue = tracks;
+  S.currentIndex = 0;
+  S.radioMode = true;
+  S._radioQueueRef = S.queue; // ancre de la queue radio
+  playTrack(0);
+  showToast(`📻 Radio ${artistName} lancée`);
+}
+
+function startRadioByIndex(i) {
+  const r = (S._radios || [])[i];
+  if (r) startRadio(r.name);
+}
+
+// Appelée à chaque changement de piste : si la radio approche de la fin de
+// queue, on append des recommandations YouTube pour que ça ne s'arrête jamais.
+let _radioFetching = false;
+async function maybeExtendRadio() {
+  if (!S.radioMode || S.queue !== S._radioQueueRef) { S.radioMode = false; return; }
+  if (_radioFetching) return;
+  if (S.currentIndex < S.queue.length - 2) return; // encore de la marge
+
+  const seed = S.currentTrack;
+  if (!seed?.id) return;
+  _radioFetching = true;
+  try {
+    const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${seed.id}&maxResults=10`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const existing = new Set(S.queue.map(t => t.id));
+    const more = (data.items || [])
+      .map(item => ({
+        id: item.id?.videoId,
+        title: item.snippet?.title,
+        channel: item.snippet?.channelTitle,
+        thumb: item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url
+      }))
+      .filter(t => t.id && !existing.has(t.id));
+    // push() conserve la référence → la radio reste active
+    if (more.length && S.queue === S._radioQueueRef) S.queue.push(...more);
+  } catch (e) {
+    console.warn('[RADIO] extension échouée', e.message);
+  } finally {
+    _radioFetching = false;
+  }
+}
+
+// ── Rendu des sections home ───────────────────────────────────────
+function ensureHomeExtras() {
+  let container = document.getElementById('homeExtras');
+  if (container) return container;
+  container = document.createElement('div');
+  container.id = 'homeExtras';
+  const bubble = document.getElementById('bubbleSection');
+  bubble.parentNode.insertBefore(container, bubble.nextSibling);
+  return container;
+}
+
+function homeTrackCard(t, i, which) {
+  return `
+    <div class="home-track-card" onclick="playFromList('${which}', ${i})">
+      <div class="htc-cover">
+        <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+        <button class="htc-play"><i class="ti ti-player-play-filled"></i></button>
+      </div>
+      <div class="htc-title">${esc(t.title)}</div>
+      <div class="htc-artist">${esc(t.channel || '')}</div>
+    </div>`;
+}
+
+function homeRadioCard(r, i) {
+  const initial = (r.name || '?').trim().charAt(0).toUpperCase();
+  return `
+    <div class="home-radio-card" onclick="startRadioByIndex(${i})">
+      <div class="hrc-cover">
+        <span class="hrc-initial">${initial}</span>
+        <span class="hrc-waves"><i class="ti ti-radio"></i></span>
+      </div>
+      <div class="hrc-name">Radio ${esc(r.name)}</div>
+    </div>`;
+}
+
+function loadHomeExtras() {
+  const container = ensureHomeExtras();
+  const history = lsParse('sevenz_history', []);
+
+  const recents = getRecents();
+  const radios = buildRadioStations();
+  const oldFavs = getOldFavorites();
+  S._recents = recents;
+  S._radios = radios;
+  S._oldFavs = oldFavs;
+
+  let html = '';
+
+  if (recents.length > 0) {
+    html += `<section class="home-section">
+      <h2 class="section-title">🕐 Récents</h2>
+      <div class="home-track-row">${recents.map((t, i) => homeTrackCard(t, i, 'recents')).join('')}</div>
+    </section>`;
+  }
+
+  if (history.length >= 5 && radios.length) {
+    html += `<section class="home-section">
+      <h2 class="section-title">🎙️ Radios recommandées</h2>
+      <p class="section-subtitle">Sans interruption, inspiré de vos titres et artistes préférés</p>
+      <div class="home-card-row">${radios.map((r, i) => homeRadioCard(r, i)).join('')}</div>
+    </section>`;
+  }
+
+  if (oldFavs.length > 0) {
+    html += `<section class="home-section">
+      <h2 class="section-title">💝 Et si tu réécoutais ?</h2>
+      <p class="section-subtitle">Tes anciens favoris à redécouvrir</p>
+      <div class="home-track-row">${oldFavs.map((t, i) => homeTrackCard(t, i, 'oldFavs')).join('')}</div>
+    </section>`;
+  }
+
+  if (!html) {
+    html = `<section class="home-section"><div class="empty-state" style="padding:28px;text-align:center;color:var(--gray)">
+      <i class="ti ti-music" style="font-size:28px"></i>
+      <p style="margin-top:8px">Écoute quelques musiques pour voir tes recommandations apparaître ici</p>
+    </div></section>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function playFromList(which, i) {
+  const list = which === 'recents' ? S._recents : S._oldFavs;
+  if (!list?.length) return;
+  S.radioMode = false;
+  S.queue = list.map(t => ({ id: t.id, title: t.title, channel: t.channel, thumb: t.thumb }));
+  S.currentIndex = i;
+  playTrack(i);
 }
 
 // loadTrending() désactivé au chargement pour économiser le quota API YouTube
@@ -5915,7 +7259,7 @@ async function _startSpImport() {
       sub.textContent = `Titre ${ti+1}/${items.length} : ${track.name}`;
       bar.style.width = Math.round(((pi + ti / Math.max(items.length,1)) / total) * 100) + '%';
       try {
-        const res = await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=1`);
+        const res = await fetchWithRetry(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(query)}&maxResults=1`);
         const ytData = await res.json();
         const v = ytData.items?.[0];
         if (v) ytTracks.push({
@@ -5930,7 +7274,7 @@ async function _startSpImport() {
     }
 
     if (ytTracks.length > 0) {
-      const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+      const pls = lsParse('sevenz_playlists', []);
       const existIdx = pls.findIndex(p => p.name === plName + ' (Spotify)');
       const newPl = {
         id: Date.now().toString() + pi, name: plName + ' (Spotify)',
@@ -6025,7 +7369,7 @@ async function _importSpotifyCSV(input) {
       bar.style.width = Math.round(((fi + ti / Math.max(trackList.length, 1)) / files.length) * 100) + '%';
       try {
         const q = encodeURIComponent(`${name} ${artist}`);
-        const res = await fetch(`${PROXY_URL}/youtube/search?q=${q}&maxResults=1`);
+        const res = await fetchWithRetry(`${PROXY_URL}/youtube/search?q=${q}&maxResults=1`);
         const ytData = await res.json();
         const v = ytData.items?.[0];
         if (v) ytTracks.push({
@@ -6040,7 +7384,7 @@ async function _importSpotifyCSV(input) {
     }
 
     if (ytTracks.length > 0) {
-      const pls = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
+      const pls = lsParse('sevenz_playlists', []);
       const existIdx = pls.findIndex(p => p.name === plName + ' (Spotify)');
       const newPl = {
         id: Date.now().toString() + fi, name: plName + ' (Spotify)',
@@ -6138,13 +7482,25 @@ function initPullToRefresh() {
 }
 
 function initSwipeActions() {
-  const tracklist = document.getElementById('detailTracklist') || document.getElementById('likedTracklist');
-  if (!tracklist) return;
-  
+  // Brancher le swipe sur les DEUX listes (playlist détail ET likés) :
+  // avant, le `||` ne liait que detailTracklist (toujours présent), donc le
+  // swipe ne marchait jamais sur les likés, et le delete supprimait toujours
+  // dans S.currentPlaylistId même hors d'une playlist.
+  ['detailTracklist', 'likedTracklist'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) bindSwipeActions(el);
+  });
+}
+
+function bindSwipeActions(tracklist) {
+  if (!tracklist || tracklist._swipeBound) return;
+  tracklist._swipeBound = true;
+  const isLiked = tracklist.id === 'likedTracklist';
+
   let startX = 0;
   let currentTrack = null;
   let isSwiping = false;
-  
+
   tracklist.addEventListener('touchstart', (e) => {
     const track = e.target.closest('.track, .pl-track-row');
     if (!track) return;
@@ -6209,9 +7565,14 @@ function initSwipeActions() {
     
     const track = deleteBtn.closest('.track, .pl-track-row');
     if (track) {
-      const index = Array.from(track.parentNode.children).indexOf(track);
-      if (S.currentPlaylistId) {
-        removeFromPlaylist(S.currentPlaylistId, index - 1); // -1 pour skip le header
+      // -1 pour ignorer le header `.list-head` qui est le 1er enfant
+      const index = Array.from(track.parentNode.children).indexOf(track) - 1;
+      if (index < 0) return;
+      if (isLiked) {
+        const fav = S.favorites[index];
+        if (fav) removeFav(fav.id);
+      } else if (S.currentPlaylistId) {
+        removeFromPlaylist(S.currentPlaylistId, index);
       }
       track.style.height = track.offsetHeight + 'px';
       track.style.opacity = '0';
@@ -6222,7 +7583,7 @@ function initSwipeActions() {
 
 function showSkeletonLoading(container) {
   if (!container) return;
-  
+
   const skeletonHTML = `
     <div class="playlist-grid">
       ${Array(6).fill(0).map(() => `
@@ -6237,6 +7598,36 @@ function showSkeletonLoading(container) {
   container.innerHTML = skeletonHTML;
 }
 
+// Skeleton pour les résultats de recherche (format liste)
+function renderSearchSkeleton() {
+  const items = Array(8).fill(0).map(() => `
+    <div class="skeleton-search-item">
+      <div class="skeleton skeleton-search-thumb"></div>
+      <div class="skeleton-search-info">
+        <div class="skeleton skeleton-search-title"></div>
+        <div class="skeleton skeleton-search-artist"></div>
+      </div>
+      <div class="skeleton skeleton-search-channel"></div>
+      <div class="skeleton skeleton-search-duration"></div>
+      <div class="skeleton-search-actions">
+        <div class="skeleton skeleton-search-action"></div>
+        <div class="skeleton skeleton-search-action"></div>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="skeleton-search-list">
+      <div class="list-header">
+        <span></span><span>Titre / Artiste</span><span>Chaîne</span>
+        <span style="text-align:center"><i class="ti ti-clock" style="font-size:14px"></i></span>
+        <span></span>
+      </div>
+      ${items}
+    </div>
+  `;
+}
+
 // Handle Spotify OAuth callback on page load
 if (window.location.search.includes('code=') || window.location.search.includes('error=')) {
   document.addEventListener('DOMContentLoaded', _spHandleCallback);
@@ -6245,9 +7636,20 @@ if (window.location.search.includes('code=') || window.location.search.includes(
 // Init mobile gestures au chargement
 document.addEventListener('DOMContentLoaded', initMobileGestures);
 
+// Afficher l'onboarding aux nouveaux visiteurs même sans connexion Firebase.
+// initOnboarding() s'auto-protège via le flag `sevenz_onboarded`, donc c'est
+// sans effet pour un utilisateur déjà passé par là.
+// L'onboarding est désormais déclenché APRÈS la porte de connexion (resolveStartupGate),
+// pour que l'écran « connexion / invité » apparaisse en premier au 1er lancement.
+
 // Wake up Render server silently on load (free tier sleeps after 15 min inactivity)
+// Ping silencieux sans bloquer l'interface
 document.addEventListener('DOMContentLoaded', () => {
-  fetch(`${PROXY_URL}/health`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
+  // Ping le serveur en arrière-plan pour le réveiller si besoin
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 10000);
+  fetch(`${PROXY_URL}/youtube/search?q=test&maxResults=1`, { signal: controller.signal })
+    .catch(() => {}); // Ignore les erreurs silencieusement
 });
 
 // Crossfade slider event listener
@@ -6285,16 +7687,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.Capacitor.Plugins.AudioPlayerPlugin.addListener('playbackStateChanged', (state) => {
       S.isPlaying = state.isPlaying;
       updatePlayButton();
+      // Démarre/arrête la boucle de progression (la barre était figée à 0 en natif)
+      if (state.isPlaying) startProgress();
+      else stopProgress();
     });
     
     // Track ended - auto-play next
     window.Capacitor.Plugins.AudioPlayerPlugin.addListener('trackEnded', async () => {
       console.log('[Native] Track ended - auto-playing next');
-      if (S.repeat) {
-        playTrack(S.currentIndex);
-      } else {
-        await handleTrackEnded();
-      }
+      await handleTrackEnded();
     });
     
     // Skip next from notification
@@ -6312,15 +7713,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Crossfade - request next track for preload
     window.Capacitor.Plugins.AudioPlayerPlugin.addListener('requestNextTrack', async () => {
       console.log('[Native] Crossfade: preloading next track');
+      if (_XFADE_DEBUG) showToast('🔄 Natif: demande piste suivante', 'info');
       await preloadNextForCrossfade();
     });
-    
+
     // Crossfade - track changed
+    // Le natif a promu la piste préchargée. S.currentIndex/S.currentTrack ont
+    // déjà été avancés au moment du requestNextTrack (preloadNextForCrossfade),
+    // donc on rafraîchit l'UI SANS rappeler playVideo/playTrack (sinon double lecture).
     window.Capacitor.Plugins.AudioPlayerPlugin.addListener('trackChanged', () => {
       console.log('[Native] Crossfade: track changed');
-      // Update UI state after crossfade completes
-      updatePlayButton();
-      updateMediaSession(S.currentTrack);
+      if (_XFADE_DEBUG) showToast('🎚️ Fondu réalisé → piste suivante', 'success');
+      commitCrossfadeAdvance();
+    });
+
+    // Canal de debug natif (diagnostic crossfade sans adb)
+    window.Capacitor.Plugins.AudioPlayerPlugin.addListener('crossfadeDebug', (e) => {
+      console.log('[Native][xfade]', e?.msg);
+      if (_XFADE_DEBUG) showToast('🛠️ ' + (e?.msg || ''), 'info');
     });
     
     // Load saved crossfade setting
@@ -6389,6 +7799,14 @@ document.addEventListener('DOMContentLoaded', () => {
       <i class="ti ti-broadcast"></i>
       <span>Radio</span>
     </div>
+    <div class="md-item" onclick="closeMobileMenu();openListeningStats();">
+      <i class="ti ti-chart-bar"></i>
+      <span>Mes stats</span>
+    </div>
+    <div class="md-item" onclick="closeMobileMenu();openSleepTimer();">
+      <i class="ti ti-moon"></i>
+      <span>Minuterie d'arrêt</span>
+    </div>
     <div class="md-item" onclick="closeMobileMenu();openProfileModal();">
       <i class="ti ti-user"></i>
       <span>Mon profil</span>
@@ -6401,11 +7819,11 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
-  <div class="mbn-item active" data-page="home">
+  <div class="mbn-item active" data-page="home" onclick="navigateTo('home')">
     <i class="ti ti-home"></i>
     <span>Accueil</span>
   </div>
-  <div class="mbn-item" data-page="search">
+  <div class="mbn-item" data-page="search" onclick="navigateTo('search'); document.getElementById('searchInput').focus();">
     <i class="ti ti-search"></i>
     <span>Recherche</span>
   </div>
@@ -6492,7 +7910,7 @@ let _auth = null, _db = null, _currentUser = null;
 
 function initFirebase() {
   const cfg = window.APP_CONFIG?.firebase;
-  if (!cfg?.apiKey) return;
+  if (!cfg?.apiKey) { resolveStartupGate(null); return; } // pas de Firebase → onboarding direct
   firebase.initializeApp(cfg);
   _auth = firebase.auth();
   _db = firebase.firestore();
@@ -6507,8 +7925,12 @@ function initFirebase() {
     } else {
       updateUserUI(null);
     }
+    if (_firstAuthCheck) resolveStartupGate(user); // 1er lancement : porte de connexion ou onboarding
     _firstAuthCheck = false;
   });
+
+  // Sécurité : si le callback Firebase ne se déclenche jamais (réseau), on débloque
+  setTimeout(() => resolveStartupGate(_currentUser), 5000);
 }
 
 function updateUserUI(user) {
@@ -6587,8 +8009,526 @@ function updateMobileDrawerUser() {
   }
 }
 
-function openRadio() {
-  showToast('Radio - fonctionnalité à venir', 'info');
+// ── PARTAGE ─────────────────────────────────────────────────────────
+function shareCurrentTrack() {
+  const track = S.currentTrack;
+  if (!track) { showToast('Aucune piste en lecture', 'info'); return; }
+  const url = `https://www.youtube.com/watch?v=${track.id}`;
+  const text = `🎵 ${track.title} — ${track.channel}`;
+  if (navigator.share) {
+    navigator.share({ title: track.title, text, url })
+      .catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(`${text}\n${url}`)
+      .then(() => showToast('Lien copié dans le presse-papier ✓'))
+      .catch(() => showToast('Impossible de copier', 'error'));
+  } else {
+    showToast('Partage non disponible', 'info');
+  }
+}
+
+// ── RADIO ────────────────────────────────────────────────────────────
+async function openRadio() {
+  const track = S.currentTrack;
+  if (!track) {
+    showToast('Lance une piste d\'abord pour démarrer la radio', 'info');
+    return;
+  }
+  showToast('📻 Génération de la radio…', 'info');
+  try {
+    // 1) Radio "intelligente" via Last.fm : alterne l'artiste de la piste et ses similaires
+    let tracks = null;
+    if (track.channel) {
+      tracks = await buildRadioQueue(track.channel);
+    }
+
+    // 2) Fallback : recommandations YouTube si Last.fm indisponible
+    if (!tracks || !tracks.length) {
+      const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${track.id}&maxResults=20`);
+      if (!res.ok) throw new Error('Erreur API');
+      const data = await res.json();
+      tracks = (data.items || [])
+        .map(item => ({
+          id: item.id?.videoId,
+          title: item.snippet?.title,
+          channel: item.snippet?.channelTitle,
+          thumb: item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url
+        }))
+        .filter(t => t.id);
+    }
+
+    if (!tracks.length) { showToast('Aucun titre trouvé pour la radio', 'info'); return; }
+    S.queue = tracks;
+    S.currentIndex = 0;
+    playTrack(0);
+    showToast(`📻 Radio lancée — ${tracks.length} titres`);
+  } catch (e) {
+    showToast('Impossible de lancer la radio', 'error');
+  }
+}
+
+// ── SLEEP TIMER ──────────────────────────────────────────────────────
+let _sleepTimer = null;
+let _sleepTimerEnd = null;
+
+function openSleepTimer() {
+  const existing = document.getElementById('sleepTimerModal');
+  if (existing) { existing.remove(); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'sleepTimerModal';
+  modal.style.cssText = `
+    position:fixed; bottom:80px; right:20px; z-index:3000;
+    background:#1a1a1a; border:1px solid rgba(255,255,255,0.15);
+    border-radius:16px; padding:20px; width:240px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6);
+    animation: fadeIn 0.2s ease;
+  `;
+
+  const remaining = _sleepTimer ? Math.ceil((_sleepTimerEnd - Date.now()) / 60000) : null;
+  const activeInfo = remaining
+    ? `<div style="padding:8px 12px;background:rgba(29,185,84,0.15);border-radius:8px;font-size:12px;color:#1db954;margin-bottom:12px;text-align:center">
+        ⏱️ Arrêt dans ~${remaining} min
+        <button onclick="cancelSleepTimer()" style="display:block;margin:6px auto 0;background:none;border:1px solid rgba(255,100,100,0.4);color:#ff6b6b;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer">Annuler</button>
+      </div>`
+    : '';
+
+  modal.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <span style="font-size:14px;font-weight:600;color:#fff">⏱️ Minuterie d'arrêt</span>
+      <button onclick="document.getElementById('sleepTimerModal').remove()" style="background:none;border:none;color:#999;font-size:18px;cursor:pointer;line-height:1">×</button>
+    </div>
+    ${activeInfo}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${[5, 10, 15, 30, 45, 60].map(m => `
+        <button onclick="setSleepTimer(${m})" style="
+          background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);
+          border-radius:8px;color:#fff;padding:10px;font-size:13px;cursor:pointer;
+          transition:background 0.2s;
+        " onmouseover="this.style.background='rgba(29,185,84,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'"
+        >${m} min</button>
+      `).join('')}
+      <button onclick="setSleepTimer('track')" style="
+        background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);
+        border-radius:8px;color:#fff;padding:10px;font-size:12px;cursor:pointer;
+        grid-column:1/-1;transition:background 0.2s;
+      " onmouseover="this.style.background='rgba(29,185,84,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'"
+      >À la fin de ce titre</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  // Fermer si on clique ailleurs
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!modal.contains(e.target) && !e.target.closest('[onclick*="openSleepTimer"]')) {
+        modal.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 100);
+}
+
+function setSleepTimer(minutes) {
+  cancelSleepTimer();
+  document.getElementById('sleepTimerModal')?.remove();
+
+  if (minutes === 'track') {
+    S._sleepAfterTrack = true;
+    showToast('⏱️ Arrêt à la fin de ce titre');
+    return;
+  }
+
+  const ms = minutes * 60 * 1000;
+  _sleepTimerEnd = Date.now() + ms;
+  _sleepTimer = setTimeout(() => {
+    if (window.Capacitor?.isNativePlatform()) {
+      window.Capacitor.Plugins.AudioPlayerPlugin?.pause();
+    } else {
+      S.player?.pauseVideo?.();
+    }
+    S.isPlaying = false;
+    updatePlayButton();
+    _sleepTimer = null;
+    _sleepTimerEnd = null;
+    showToast('⏱️ Arrêt programmé — bonne nuit !');
+  }, ms);
+  showToast(`⏱️ Arrêt dans ${minutes} min`);
+}
+
+function cancelSleepTimer() {
+  if (_sleepTimer) { clearTimeout(_sleepTimer); _sleepTimer = null; _sleepTimerEnd = null; }
+  S._sleepAfterTrack = false;
+  document.getElementById('sleepTimerModal')?.remove();
+  showToast('Minuterie annulée', 'info');
+}
+
+// ── VOLUME ──────────────────────────────────────────────────────────
+function initVolumeControl() {
+  const volBar = document.querySelector('.vol-bar');
+  if (!volBar) return;
+
+  // Remplacer la div statique par un input range
+  volBar.outerHTML = `<input type="range" class="vol-bar" id="volSlider" min="0" max="100" value="80"
+    style="width:100px;height:4px;accent-color:#fff;cursor:pointer;background:rgba(255,255,255,0.2);border-radius:2px"
+    oninput="setVolume(this.value)">`;
+}
+
+function setVolume(val) {
+  const v = parseInt(val) / 100;
+  // Web player
+  if (S.player?.setVolume) {
+    S.player.setVolume(parseInt(val));
+  }
+  // Icône volume
+  const icon = document.querySelector('.vol-section .ti');
+  if (icon) {
+    if (v === 0) icon.className = 'ti ti-volume-off';
+    else if (v < 0.4) icon.className = 'ti ti-volume';
+    else icon.className = 'ti ti-volume-2';
+  }
+  // Remplissage visuel
+  const slider = document.getElementById('volSlider');
+  if (slider) slider.style.background = `linear-gradient(to right, #fff ${val}%, rgba(255,255,255,0.2) ${val}%)`;
+}
+
+// Initialiser le volume au chargement
+document.addEventListener('DOMContentLoaded', initVolumeControl);
+
+// Scroll-fade de la topbar (signature Spotify)
+document.addEventListener('DOMContentLoaded', () => {
+  const content = document.getElementById('mainContent');
+  const topbar = document.querySelector('.topbar');
+  if (!content || !topbar) return;
+  content.addEventListener('scroll', () => {
+    topbar.classList.toggle('scrolled', content.scrollTop > 8);
+  }, { passive: true });
+});
+
+// ── NOW PLAYING SIDE PANEL ───────────────────────────────────────────
+function toggleNpPanel(force) {
+  const app = document.querySelector('.app');
+  const btn = document.getElementById('npToggleBtn');
+  const willOpen = (typeof force === 'boolean') ? force : !app.classList.contains('np-open');
+  app.classList.toggle('np-open', willOpen);
+  if (btn) {
+    btn.classList.toggle('active', willOpen);
+    const ic = btn.querySelector('i');
+    if (ic) ic.className = willOpen ? 'ti ti-layout-sidebar-right-collapse' : 'ti ti-layout-sidebar-right-expand';
+  }
+  const panel = document.getElementById('npPanel');
+  if (panel) panel.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+  if (willOpen) updateNowPlayingPanel();
+}
+
+function updateNowPlayingPanel() {
+  const app = document.querySelector('.app');
+  if (!app || !app.classList.contains('np-open')) return; // pas de travail si fermé
+  const t = S.currentTrack;
+  const art = document.getElementById('npPanelArt');
+  const titleEl = document.getElementById('npPanelTrack');
+  const artistEl = document.getElementById('npPanelArtist');
+  const listEl = document.getElementById('npPanelQueueList');
+  if (!art) return;
+
+  if (t) {
+    art.innerHTML = t.thumb ? `<img src="${t.thumb}" alt="">` : '<i class="ti ti-music"></i>';
+    titleEl.textContent = t.title || '—';
+    artistEl.textContent = t.channel || '';
+    if (t.thumb) applyDominantColor(t.thumb);
+  } else {
+    art.innerHTML = '<i class="ti ti-music"></i>';
+    titleEl.textContent = 'Pas de lecture';
+    artistEl.textContent = '—';
+  }
+
+  // File d'attente : titres après l'index courant
+  const upcoming = (S.queue || []).slice(S.currentIndex + 1, S.currentIndex + 21);
+  if (upcoming.length) {
+    listEl.innerHTML = upcoming.map((tr, i) => `
+      <div class="np-q-item" onclick="playTrack(${S.currentIndex + 1 + i})">
+        <div class="np-q-cover">${tr.thumb ? `<img src="${tr.thumb}" alt="">` : ''}</div>
+        <div class="np-q-info">
+          <div class="np-q-title">${(tr.title || '').replace(/"/g, '&quot;')}</div>
+          <div class="np-q-artist">${(tr.channel || '').replace(/"/g, '&quot;')}</div>
+        </div>
+      </div>`).join('');
+  } else {
+    listEl.innerHTML = '<div class="np-q-empty">Aucun titre à suivre</div>';
+  }
+}
+
+// Couleur dominante du panneau — réutilise getDominantColor (graceful si CORS)
+function applyDominantColor(src) {
+  const scroll = document.querySelector('.np-panel-scroll');
+  if (!scroll || !src) return;
+  getDominantColor(src).then(col => {
+    if (col) scroll.style.setProperty('--np-accent', col);
+  });
+}
+
+// ── QUEUE MANAGER ────────────────────────────────────────────────────
+function openQueueManager() {
+  const existing = document.getElementById('queueManagerPanel');
+  if (existing) { existing.remove(); return; }
+
+  const panel = document.createElement('div');
+  panel.id = 'queueManagerPanel';
+  panel.style.cssText = `
+    position:fixed; top:0; right:0; bottom:0; width:320px; max-width:100vw;
+    background:#111; border-left:1px solid rgba(255,255,255,0.1);
+    z-index:4000; display:flex; flex-direction:column;
+    transform:translateX(100%); transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  `;
+
+  const rows = S.queue.map((t, i) => `
+    <div class="queue-row${i === S.currentIndex ? ' queue-row-active' : ''}"
+      style="display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;
+      border-radius:8px;transition:background 0.15s;
+      ${i === S.currentIndex ? 'background:rgba(29,185,84,0.12);' : ''}"
+      onmouseover="this.style.background='rgba(255,255,255,0.06)'"
+      onmouseout="this.style.background='${i === S.currentIndex ? 'rgba(29,185,84,0.12)' : ''}'"
+      onclick="playFromQueue(${i})">
+      <div style="width:38px;height:38px;border-radius:5px;overflow:hidden;flex-shrink:0;background:#222">
+        ${t.thumb ? `<img src="${t.thumb}" style="width:100%;height:100%;object-fit:cover">` : `<i class="ti ti-music" style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;font-size:16px"></i>`}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:${i === S.currentIndex ? '600' : '400'};color:${i === S.currentIndex ? '#1db954' : '#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div>
+        <div style="font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.channel || '')}</div>
+      </div>
+      ${i === S.currentIndex ? '<i class="ti ti-volume" style="color:#1db954;font-size:14px;flex-shrink:0"></i>' : `<button onclick="event.stopPropagation();removeFromQueue(${i})" style="background:none;border:none;color:#666;cursor:pointer;padding:4px;font-size:14px;flex-shrink:0" title="Retirer"><i class="ti ti-x"></i></button>`}
+    </div>
+  `).join('');
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <span style="font-size:16px;font-weight:700;color:#fff">File d'attente</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:12px;color:#999">${S.queue.length} titre${S.queue.length > 1 ? 's' : ''}</span>
+        <button onclick="document.getElementById('queueManagerPanel').remove()" style="background:none;border:none;color:#999;font-size:20px;cursor:pointer;line-height:1">×</button>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 0">
+      ${rows.length ? rows : '<div style="padding:40px;text-align:center;color:#666">File d\'attente vide</div>'}
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+  requestAnimationFrame(() => { panel.style.transform = 'translateX(0)'; });
+
+  // Fermer sur clic backdrop
+  const backdrop = document.createElement('div');
+  backdrop.id = 'queueBackdrop';
+  backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:3999;';
+  backdrop.onclick = () => { panel.style.transform = 'translateX(100%)'; setTimeout(() => { panel.remove(); backdrop.remove(); }, 300); };
+  document.body.insertBefore(backdrop, panel);
+}
+
+function playFromQueue(index) {
+  S.currentIndex = index;
+  playTrack(index);
+  document.getElementById('queueManagerPanel')?.remove();
+  document.getElementById('queueBackdrop')?.remove();
+}
+
+function removeFromQueue(index) {
+  if (index === S.currentIndex) return;
+  S.queue.splice(index, 1);
+  if (index < S.currentIndex) S.currentIndex--;
+  // Re-render
+  document.getElementById('queueManagerPanel')?.remove();
+  document.getElementById('queueBackdrop')?.remove();
+  openQueueManager();
+  showToast('Retiré de la file d\'attente', 'info');
+}
+
+// ════════════════════════════════════════════════════════════
+// TRANSITIONS — prototype façon Spotify : régler l'enchaînement entre titres.
+// S'appuie sur le crossfade natif existant (AudioPlayerPlugin.setCrossfade).
+// En navigateur c'est un aperçu visuel (le lecteur YouTube IFrame ne permet
+// pas le vrai fondu) ; l'effet audio réel s'applique dans l'app Android.
+// ════════════════════════════════════════════════════════════
+const TRANSITION_PRESETS = [
+  { id: 'cut',       label: 'Cut',       icon: 'ti-square',       sec: 0  },
+  { id: 'crossfade', label: 'Crossfade', icon: 'ti-arrows-join',  sec: 6  },
+  { id: 'blend',     label: 'Blend',     icon: 'ti-arrow-merge',  sec: 12 },
+];
+
+function getTransitionSec() {
+  return parseInt(localStorage.getItem('crossfadeDuration') || '0', 10) || 0;
+}
+
+function applyTransition(seconds) {
+  seconds = Math.max(0, Math.min(12, parseInt(seconds, 10) || 0));
+  localStorage.setItem('crossfadeDuration', seconds);
+  // Garder le slider du lecteur synchronisé
+  const slider = document.getElementById('crossfadeSlider');
+  const val = document.getElementById('crossfadeValue');
+  if (slider) slider.value = seconds;
+  if (val) val.textContent = seconds + 's';
+  // Appliquer au lecteur natif (ExoPlayer)
+  if (window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins.AudioPlayerPlugin?.setCrossfade) {
+    // Le plugin attend `durationMs` en millisecondes
+    window.Capacitor.Plugins.AudioPlayerPlugin.setCrossfade({ durationMs: seconds * 1000 }).catch(() => {});
+    if (typeof _XFADE_DEBUG !== 'undefined' && _XFADE_DEBUG) showToast('⚙️ Transition réglée: ' + seconds + 's (natif)', 'info');
+  }
+  renderTransitionsBody();
+}
+
+function transitionLabel(sec) {
+  if (sec === 0) return 'Cut';
+  const p = TRANSITION_PRESETS.find(p => p.sec === sec);
+  return (p ? p.label : 'Crossfade') + ' · ' + sec + 's';
+}
+
+function openTransitions() {
+  if (document.getElementById('transitionsOverlay')) { closeTransitions(); return; }
+  const overlay = document.createElement('div');
+  overlay.id = 'transitionsOverlay';
+  overlay.className = 'tr-overlay';
+  overlay.innerHTML = `
+    <div class="tr-header">
+      <button class="icon-btn" onclick="closeTransitions()"><i class="ti ti-chevron-down"></i></button>
+      <span class="tr-title">Transitions</span>
+      <span style="width:32px"></span>
+    </div>
+    <div class="tr-body" id="trBody"></div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('open'));
+  renderTransitionsBody();
+}
+
+function closeTransitions() {
+  const o = document.getElementById('transitionsOverlay');
+  if (!o) return;
+  o.classList.remove('open');
+  setTimeout(() => o.remove(), 250);
+}
+
+function renderTransitionsBody() {
+  const body = document.getElementById('trBody');
+  if (!body) return;
+  const sec = getTransitionSec();
+  const isNative = window.Capacitor?.isNativePlatform?.() || false;
+
+  const presets = TRANSITION_PRESETS.map(p => `
+    <button class="tr-preset${sec === p.sec ? ' active' : ''}" onclick="applyTransition(${p.sec})">
+      <i class="ti ${p.icon}"></i><span>${p.label}</span><small>${p.sec}s</small>
+    </button>`).join('');
+
+  const upcoming = S.queue.slice(S.currentIndex, S.currentIndex + 12);
+  let list;
+  if (upcoming.length < 2) {
+    list = `<div class="tr-empty">Lance une file d'attente d'au moins 2 titres pour visualiser les transitions.</div>`;
+  } else {
+    list = upcoming.map((t, idx) => {
+      const track = `
+        <div class="tr-track">
+          <div class="tr-cover">${t.thumb ? `<img src="${t.thumb}" alt="">` : '<i class="ti ti-music"></i>'}</div>
+          <div class="tr-meta">
+            <div class="tr-tt">${esc(t.title)}</div>
+            <div class="tr-ta">${esc(t.channel || '')}</div>
+          </div>
+        </div>`;
+      const link = idx < upcoming.length - 1 ? `
+        <div class="tr-link">
+          <span class="tr-link-line"></span>
+          <span class="tr-link-chip"><i class="ti ti-arrow-down"></i> ${transitionLabel(sec)}</span>
+          <span class="tr-link-line"></span>
+        </div>` : '';
+      return track + link;
+    }).join('');
+  }
+
+  body.innerHTML = `
+    <p class="tr-sub">Choisis comment tes titres s'enchaînent</p>
+    <div class="tr-presets">${presets}</div>
+    <div class="tr-slider-row">
+      <span>Durée</span>
+      <input type="range" min="0" max="12" step="1" value="${sec}" oninput="applyTransition(this.value)">
+      <span class="tr-sec">${sec}s</span>
+    </div>
+    ${!isNative ? `<div class="tr-note"><i class="ti ti-info-circle"></i> Aperçu visuel — le fondu audio réel s'applique dans l'app Android (le lecteur web ne le permet pas).</div>` : ''}
+    <div class="tr-queue">${list}</div>`;
+}
+
+// ── STATS D'ÉCOUTE ───────────────────────────────────────────────────
+function openListeningStats() {
+  const history = lsParse('sevenz_history', []);
+  const favs = lsParse('sevenz_favs', []);
+
+  // Artistes les plus écoutés
+  const artistCount = {};
+  history.forEach(t => {
+    const a = t.channel || 'Inconnu';
+    artistCount[a] = (artistCount[a] || 0) + 1;
+  });
+  const topArtists = Object.entries(artistCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const existing = document.getElementById('statsModal');
+  if (existing) { existing.remove(); return; }
+
+  const modal = document.createElement('div');
+  modal.id = 'statsModal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:5000; background:rgba(0,0,0,0.75);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  `;
+  modal.innerHTML = `
+    <div style="background:#181818;border-radius:20px;padding:28px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px">
+        <h2 style="font-size:20px;font-weight:800;color:#fff">📊 Mes stats d'écoute</h2>
+        <button onclick="document.getElementById('statsModal').remove()" style="background:none;border:none;color:#999;font-size:22px;cursor:pointer">×</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px">
+        <div style="background:rgba(29,185,84,0.12);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:#1db954">${history.length}</div>
+          <div style="font-size:11px;color:#999;margin-top:4px">Pistes<br>écoutées</div>
+        </div>
+        <div style="background:rgba(255,100,100,0.12);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:#ff6b6b">${favs.length}</div>
+          <div style="font-size:11px;color:#999;margin-top:4px">Titres<br>likés</div>
+        </div>
+        <div style="background:rgba(100,149,255,0.12);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:#6495ff">${Object.keys(artistCount).length}</div>
+          <div style="font-size:11px;color:#999;margin-top:4px">Artistes<br>différents</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px">🎤 Top artistes</h3>
+      ${topArtists.length === 0
+        ? '<div style="color:#666;font-size:13px;padding:12px 0">Écoute de la musique pour voir tes stats !</div>'
+        : topArtists.map(([artist, count], i) => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+            <div style="width:26px;height:26px;border-radius:50%;background:rgba(29,185,84,0.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1db954;flex-shrink:0">${i + 1}</div>
+            <div style="flex:1;font-size:13px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(artist)}</div>
+            <div style="font-size:12px;color:#999">${count} écoute${count > 1 ? 's' : ''}</div>
+          </div>
+        `).join('')}
+
+      <h3 style="font-size:14px;font-weight:700;color:#fff;margin:20px 0 12px;text-transform:uppercase;letter-spacing:0.5px">⏱️ Récemment écoutés</h3>
+      ${history.slice(0, 5).map(t => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer" onclick="document.getElementById('statsModal').remove();playTrackById('${t.id}','${esc(t.title)}','${esc(t.channel||'')}','${t.thumb||''}')">
+          <div style="width:36px;height:36px;border-radius:5px;overflow:hidden;flex-shrink:0;background:#222">
+            ${t.thumb ? `<img src="${t.thumb}" style="width:100%;height:100%;object-fit:cover">` : ''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div>
+            <div style="font-size:11px;color:#999">${esc(t.channel||'')}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function playTrackById(id, title, channel, thumb) {
+  S.queue = [{ id, title, channel, thumb }];
+  S.currentIndex = 0;
+  playTrack(0);
 }
 
 async function logOut() {
@@ -6599,20 +8539,53 @@ async function logOut() {
 
 // ── AUTH MODAL ──────────────────────────────────────────────────────
 let _authMode = 'login';
+let _authForced = false; // true = porte de connexion au 1er lancement (non fermable manuellement)
 
-function openAuthModal() {
+function openAuthModal(forced = false) {
+  _authForced = !!forced;
   const m = document.getElementById('authModal');
   m.style.display = 'flex';
   m.classList.add('active');
   document.getElementById('authError').textContent = '';
   document.getElementById('authEmail').value = '';
   document.getElementById('authPassword').value = '';
+  // En mode bloquant : pas de croix, pas de fermeture en cliquant à côté, mais bouton invité
+  const closeBtn = document.getElementById('authCloseBtn');
+  if (closeBtn) closeBtn.style.display = forced ? 'none' : 'block';
+  const guestWrap = document.getElementById('authGuestWrap');
+  if (guestWrap) guestWrap.style.display = forced ? 'block' : 'none';
   switchAuthTab('login');
 }
-function closeAuthModal() {
+function closeAuthModal(force = false) {
+  if (_authForced && !force) return; // porte obligatoire : ignore croix / clic extérieur
+  _authForced = false;
   const m = document.getElementById('authModal');
   m.classList.remove('active');
   setTimeout(() => { m.style.display = 'none'; }, 200);
+}
+
+// Mode invité : on mémorise le choix pour ne plus afficher la porte aux lancements suivants
+function continueAsGuest() {
+  localStorage.setItem('sevenz_guest', '1');
+  closeAuthModal(true);
+  showToast('Mode invité — connecte-toi plus tard pour sauvegarder tes données');
+  maybeStartOnboarding();
+}
+
+// Décide quoi afficher au tout premier lancement : porte de connexion sinon onboarding
+let _startupResolved = false;
+function resolveStartupGate(user) {
+  if (_startupResolved) return;
+  _startupResolved = true;
+  if (user || localStorage.getItem('sevenz_guest')) {
+    maybeStartOnboarding();
+  } else {
+    openAuthModal(true); // 1er lancement, pas connecté → on demande de se connecter
+  }
+}
+
+function maybeStartOnboarding() {
+  if (typeof initOnboarding === 'function') initOnboarding();
 }
 
 function switchAuthTab(mode) {
@@ -6632,7 +8605,8 @@ async function loginWithGoogle() {
     const result = await _auth.signInWithPopup(provider);
     const isNew = result.additionalUserInfo && result.additionalUserInfo.isNewUser;
     await handleNewLogin(result.user);
-    closeAuthModal();
+    localStorage.removeItem('sevenz_guest');
+    closeAuthModal(true);
     showToast('Vous êtes bien authentifié ✓');
     if (isNew) { localStorage.removeItem('sevenz_onboarded'); initOnboarding(); }
   } catch(e) { err.textContent = e.message; }
@@ -6653,14 +8627,16 @@ async function submitAuth() {
       if (pwd !== confirm) { err.textContent = 'Les mots de passe ne correspondent pas'; return; }
       result = await _auth.createUserWithEmailAndPassword(email, pwd);
       await handleNewLogin(result.user);
-      closeAuthModal();
+      localStorage.removeItem('sevenz_guest');
+      closeAuthModal(true);
       showToast('Vous êtes bien authentifié ✓');
       localStorage.removeItem('sevenz_onboarded');
       initOnboarding();
       return;
     }
     await handleNewLogin(result.user);
-    closeAuthModal();
+    localStorage.removeItem('sevenz_guest');
+    closeAuthModal(true);
     showToast('Vous êtes bien authentifié ✓');
   } catch(e) {
     const msgs = {
@@ -6690,8 +8666,8 @@ async function resetPassword() {
 async function handleNewLogin(user) {
   const ref = _db.collection('users').doc(user.uid);
   const doc = await ref.get();
-  const localPl   = JSON.parse(localStorage.getItem('sevenz_playlists') || '[]');
-  const localFavs = JSON.parse(localStorage.getItem('sevenz_favs') || '[]');
+  const localPl   = lsParse('sevenz_playlists', []);
+  const localFavs = lsParse('sevenz_favs', []);
 
   if (!doc.exists) {
     await ref.set({ playlists: localPl, favorites: localFavs, updatedAt: Date.now() });
@@ -6733,7 +8709,7 @@ async function loadFromCloud(uid) {
     if (!doc.exists) return;
     const data = doc.data();
     const cloudPlaylists = data.playlists || [];
-    const savedCovers = JSON.parse(localStorage.getItem('sevenz_covers') || '{}');
+    const savedCovers = lsParse('sevenz_covers', {});
     S.playlists = cloudPlaylists.map(p => ({ ...p, coverImage: savedCovers[p.id] || null }));
     S.favorites = data.favorites || [];
     savePlaylists();
@@ -6889,7 +8865,7 @@ initFirebase();
 <!-- AUTH MODAL -->
 <div class="modal-overlay" id="authModal" style="display:none" onclick="if(event.target===this)closeAuthModal()">
   <div class="auth-box">
-    <button class="modal-close" onclick="closeAuthModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--gray);font-size:22px;cursor:pointer;line-height:1">&times;</button>
+    <button class="modal-close" id="authCloseBtn" onclick="closeAuthModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--gray);font-size:22px;cursor:pointer;line-height:1">&times;</button>
     <div class="auth-logo"><img src="logo-sevenz-sfond.png" alt="SEVENZ" style="height:52px;width:auto;object-fit:contain"></div>
     <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Connexion</button>
@@ -6909,6 +8885,9 @@ initFirebase();
     <button class="auth-submit-btn" id="authSubmitBtn" onclick="submitAuth()">Se connecter</button>
     <div class="auth-forgot" id="authForgotWrap">
       <a onclick="resetPassword()">Mot de passe oublié ?</a>
+    </div>
+    <div id="authGuestWrap" style="display:none;text-align:center;margin-top:18px;border-top:1px solid #333;padding-top:16px">
+      <a onclick="continueAsGuest()" style="color:var(--gray);font-size:13px;cursor:pointer">Continuer sans compte →</a>
     </div>
   </div>
 </div>
@@ -7040,7 +9019,8 @@ initOfflineDB().then(() => {
 // FIN OFFLINE MODE
 // ════════════════════════════════════════════════════════════
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && !window.Capacitor?.isNativePlatform?.()) {
+  // Service worker only on the web build — it interferes with native plugin calls in Capacitor.
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
@@ -7059,6 +9039,27 @@ function closeNowPlaying() {
   if (overlay) overlay.classList.remove('open');
 }
 
+// Reconstruit l'URL d'une miniature YouTube en haute résolution à partir de l'ID vidéo.
+// maxresdefault (1280×720) n'existe pas toujours → repli sur sddefault/hqdefault puis la miniature d'origine.
+function hqThumb(videoId) {
+  return (videoId && /^[\w-]{11}$/.test(videoId))
+    ? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`
+    : '';
+}
+function loadHqArtwork(imgEl, track) {
+  const hq = hqThumb(track.id);
+  const fallback = track.thumb || '';
+  if (!hq) { imgEl.src = fallback; return; }
+  let step = 0;
+  imgEl.onerror = () => {
+    step++;
+    if (step === 1) imgEl.src = `https://i.ytimg.com/vi/${track.id}/sddefault.jpg`;
+    else if (step === 2) imgEl.src = `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg`;
+    else { imgEl.onerror = null; imgEl.src = fallback; }
+  };
+  imgEl.src = hq;
+}
+
 function syncNowPlaying() {
   const track = S.currentTrack;
   if (!track) return;
@@ -7068,8 +9069,8 @@ function syncNowPlaying() {
 
   const artwork = document.getElementById('np-artwork');
   const placeholder = document.getElementById('np-artwork-placeholder');
-  if (track.thumb) {
-    artwork.src = track.thumb;
+  if (track.thumb || track.id) {
+    loadHqArtwork(artwork, track);
     artwork.style.display = 'block';
     if (placeholder) placeholder.style.display = 'none';
   } else {
@@ -7092,25 +9093,29 @@ function syncNowPlaying() {
     likeBtn.classList.toggle('active', liked);
     likeBtn.querySelector('i').className = liked ? 'ti ti-heart-filled' : 'ti ti-heart';
   }
+
+  // "Dans la même veine" — artistes similaires à l'artiste en cours
+  if (track.channel) showSimilarArtists(track.channel);
 }
 
 function npSeek(value) {
-  if (!S.player?.getCurrentTime) return;
-  const duration = S.player.getDuration ? S.player.getDuration() : 0;
+  if (!S.currentTrack) return;
+  const duration = getPlayerDuration();
   if (!duration) return;
   const time = (value / 1000) * duration;
-  S.player.seekTo(time);
+  seekPlayer(time);
   document.getElementById('np-current-time').textContent = formatTime(time);
 }
 
 // Update NP progress bar periodically
-setInterval(() => {
+setInterval(async () => {
   const overlay = document.getElementById('now-playing-overlay');
   if (!overlay || !overlay.classList.contains('open')) return;
-  if (!S.player?.getCurrentTime) return;
+  if (!S.currentTrack) return;
+  if (isNativeAudio()) await refreshNativePosition();
 
-  const current = S.player.getCurrentTime();
-  const duration = S.player.getDuration ? S.player.getDuration() : 0;
+  const current = getPlayerTime();
+  const duration = getPlayerDuration();
   if (!duration) return;
 
   const pct = (current / duration) * 1000;

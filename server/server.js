@@ -6,6 +6,8 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+const ytdl = require('youtube-dl-exec');
+
 const { getFallbackSearch, getFallbackTrending, getFallbackVideos } = require('./fallback-data');
 const { searchInvidious, getTrendingInvidious, getVideosInvidious } = require('./invidious-client');
 
@@ -185,6 +187,104 @@ app.get('/api/health', (req, res) => {
       video: videoCache.getStats()
     }
   });
+});
+
+// ════════════════════════════════════════════════════════════
+// RECHERCHE MÉTADONNÉES (Deezer)
+// ════════════════════════════════════════════════════════════
+// Sépare la recherche d'entités officielles (artiste/titre/album/durée)
+// de la résolution du flux audio (NewPipeExtractor côté APK).
+
+const metadataCache = new NodeCache({ stdTTL: 21600, checkperiod: 600 }); // 6h
+
+// Normalise une chaîne pour comparaison : minuscules, sans ponctuation,
+// sans espaces multiples, sans les suffixes d'édition audio.
+function normalizeMetadataText(text) {
+  if (!text || typeof text !== 'string') return '';
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // accents
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()\[\]"'|?]/g, ' ') // ponctuation -> espace
+    .replace(/\b(feat(uring)?|ft|with)\b\.?/g, ' ') // feat.
+    .replace(/\b(remastered|remaster|explicit|clean|hd|official video|official audio|audio|video|live|acoustic|instrumental|radio edit|extended|deluxe)\b/g, ' ')
+    .replace(/\b(sped up|slowed|reverb|8d|nightcore)\b/g, ' ')
+    .replace(/\(\d{4}\)/g, ' ') // années entre parenthèses
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function durationSecToMs(sec) { return (sec || 0) * 1000; }
+
+function msToDurationSec(ms) {
+  if (!ms || ms <= 0) return null;
+  return Math.round(ms / 1000);
+}
+
+function deezerCoverUrl(small, medium, big, xl) {
+  return xl || big || medium || small || null;
+}
+
+function mapDeezerTrackToResult(track) {
+  return {
+    artist: track.artist?.name || '',
+    title: track.title || '',
+    album: track.album?.title || '',
+    durationSec: msToDurationSec(track.duration * 1000) || track.duration || 0,
+    coverUrl: deezerCoverUrl(
+      track.album?.cover,
+      track.album?.cover_medium,
+      track.album?.cover_big,
+      track.album?.cover_xl
+    ),
+    isrc: track.isrc || null,
+    source: 'deezer',
+    sourceId: String(track.id || '')
+  };
+}
+
+// PROXY: Recherche de métadonnées sur Deezer (pas de clé API requise)
+app.get('/api/search', rateLimit, async (req, res) => {
+  const { q, limit = 15 } = req.query;
+
+  if (!q || typeof q !== 'string' || q.trim().length < 2) {
+    return res.status(400).json({ error: 'Paramètre q requis (min 2 caractères)' });
+  }
+
+  const cleanQ = q.trim().slice(0, 200);
+  const cacheKey = `metadata:${cleanQ.toLowerCase()}:${limit}`;
+  const cached = metadataCache.get(cacheKey);
+  if (cached) {
+    return res.json({ ...cached, cached: true });
+  }
+
+  try {
+    const url = `https://api.deezer.com/search?q=${encodeURIComponent(cleanQ)}&limit=${Math.min(parseInt(limit) || 15, 50)}`;
+    const response = await axios.get(url, { timeout: 8000 });
+
+    if (response.data.error) {
+      throw new Error(response.data.error.message || 'Deezer API error');
+    }
+
+    const results = (response.data.data || [])
+      .map(mapDeezerTrackToResult)
+      .filter(r => r.artist && r.title);
+
+    const payload = {
+      query: cleanQ,
+      count: results.length,
+      results
+    };
+
+    metadataCache.set(cacheKey, payload);
+    res.json(payload);
+  } catch (error) {
+    console.error('[DEEZER SEARCH ERROR]', error.message);
+    res.status(502).json({
+      error: 'Erreur lors de la recherche de métadonnées',
+      details: error.message
+    });
+  }
 });
 
 // PROXY: Recherche YouTube avec coalescing et quota tracking
@@ -634,12 +734,14 @@ app.get('/api/lastfm/top-tracks/:artist', rateLimit, async (req, res) => {
 // ════════════════════════════════════════════════════════════
 
 // Instances Invidious avec fallback automatique
+// Liste mise à jour depuis https://api.invidious.io/ (juin 2026)
 const INVIDIOUS_INSTANCES = [
   'https://inv.nadeko.net',
   'https://invidious.nerdvpn.de',
-  'https://yt.cdaut.de',
-  'https://invidious.privacyredirect.com',
-  'https://yewtu.be'
+  'https://invidious.f5.si',
+  'https://yt.chocolatemoo53.com',
+  'https://inv.thepixora.com',
+  'https://invidious.tiekoetter.com'
 ];
 
 // Valide l'URL audio renvoyée par une instance Invidious tierce avant de la
@@ -658,7 +760,43 @@ function isAllowedAudioUrl(rawUrl, instance) {
   }
 }
 
-// Récupère le stream audio via Invidious avec fallback entre instances
+// Fallback yt-dlp quand Invidious est bloqué
+async function getAudioStreamWithYtdl(videoId) {
+  try {
+    console.log(`[YTDL] Extraction stream pour ${videoId}`);
+    const result = await ytdl(`https://www.youtube.com/watch?v=${videoId}`, {
+      dumpSingleJson: true,
+      simulate: true,
+      noCheckCertificates: true,
+      noWarnings: true,
+      preferFreeFormats: true,
+      formatSort: 'abr'
+    });
+
+    const audioFormats = (result.formats || [])
+      .filter(f => f.vcodec === 'none' && f.acodec && f.acodec !== 'none')
+      .sort((a, b) => (b.abr || 0) - (a.abr || 0));
+
+    if (audioFormats.length === 0) {
+      throw new Error('Aucun format audio trouvé via yt-dlp');
+    }
+
+    const best = audioFormats[0];
+    return {
+      audioUrl: best.url,
+      title: result.title || 'Unknown',
+      author: result.uploader || 'Unknown Artist',
+      duration: result.duration || 0,
+      mimeType: best.ext ? `audio/${best.ext}` : 'audio/webm',
+      instance: 'yt-dlp'
+    };
+  } catch (e) {
+    console.error('[YTDL] échec', e.message);
+    throw e;
+  }
+}
+
+// Récupère le stream audio via Invidious avec fallback entre instances, puis yt-dlp
 async function getAudioStream(videoId) {
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
@@ -667,7 +805,11 @@ async function getAudioStream(videoId) {
       // axios plutôt que fetch global : fonctionne sur toutes les versions de Node
       const response = await axios.get(`${instance}/api/v1/videos/${videoId}`, {
         timeout: 10000,
-        validateStatus: () => true
+        validateStatus: () => true,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
+          'Accept': 'application/json'
+        }
       });
 
       if (response.status < 200 || response.status >= 300) {
@@ -716,8 +858,9 @@ async function getAudioStream(videoId) {
       continue;
     }
   }
-  
-  throw new Error('Toutes les instances Invidious sont inaccessibles');
+
+  console.log('[INVIDIOUS] Toutes les instances ont échoué, tentative yt-dlp...');
+  return getAudioStreamWithYtdl(videoId);
 }
 
 // Route pour lister les instances disponibles
@@ -727,29 +870,122 @@ app.get('/api/stream/instances', (req, res) => {
   res.json({ instances: INVIDIOUS_INSTANCES });
 });
 
+// Proxy audio : contourne les restrictions CORS de googlevideo en streamant
+// depuis le backend. Recommandé pour la lecture navigateur.
+app.get('/api/audio/:videoId', rateLimit, async (req, res) => {
+  const { videoId } = req.params;
+  if (!videoId || !videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
+    return res.status(400).json({ error: 'ID vidéo invalide' });
+  }
+
+  try {
+    const streamData = await getAudioStream(videoId);
+    const head = await axios.head(streamData.audioUrl, {
+      timeout: 10000,
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
+
+    res.set({
+      'Content-Type': head.headers['content-type'] || streamData.mimeType || 'audio/webm',
+      'Accept-Ranges': 'bytes',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+    });
+
+    const upstreamHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    };
+    if (req.headers.range) {
+      upstreamHeaders['Range'] = req.headers.range;
+      res.set('Content-Range', head.headers['content-range']);
+      res.status(206);
+    }
+
+    const upstream = await axios.get(streamData.audioUrl, {
+      responseType: 'stream',
+      timeout: 60000,
+      headers: upstreamHeaders
+    });
+
+    upstream.data.pipe(res);
+    upstream.data.on('error', (err) => {
+      console.error('[AUDIO PROXY] stream error', err.message);
+      if (!res.headersSent) res.status(503).end();
+      else res.end();
+    });
+    upstream.data.on('end', () => res.end());
+  } catch (error) {
+    console.error('[AUDIO PROXY ERROR]', error.message);
+    res.status(503).json({ error: 'Stream indisponible: ' + error.message });
+  }
+});
+
 app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
   const { videoId } = req.params;
 
   if (!videoId || !videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
     return res.status(400).json({ error: 'ID vidéo invalide' });
   }
-  
+
   try {
     const streamData = await getAudioStream(videoId);
-    
+
     res.json({
       videoId,
       title: streamData.title,
       author: streamData.author,
       duration: streamData.duration,
       audioUrl: streamData.audioUrl,
+      proxyUrl: `/api/audio/${videoId}`,
       mimeType: streamData.mimeType.split(';')[0].trim(),
       expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // expire dans 4h
       via: streamData.instance
     });
-    
+
   } catch (error) {
     console.error('[STREAM ERROR]', error.message);
+    res.status(503).json({ error: 'Stream indisponible: ' + error.message });
+  }
+});
+
+// Proxy audio CORS-safe : le navigateur ne peut pas lire directement les URLs googlevideo
+// à cause des restrictions CORS, donc on fait passer le flux par notre backend.
+app.get('/api/proxy/stream/:videoId', rateLimit, async (req, res) => {
+  const { videoId } = req.params;
+
+  if (!videoId || !videoId.match(/^[a-zA-Z0-9_-]{11}$/)) {
+    return res.status(400).json({ error: 'ID vidéo invalide' });
+  }
+
+  try {
+    const streamData = await getAudioStream(videoId);
+
+    console.log(`[PROXY] Stream ${videoId} via ${streamData.instance}`);
+
+    const audioResponse = await axios({
+      method: 'get',
+      url: streamData.audioUrl,
+      responseType: 'stream',
+      timeout: 30000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
+        'Accept': 'audio/webm,audio/ogg,audio/*;q=0.9,*/*;q=0.8',
+        'Referer': 'https://www.youtube.com/'
+      }
+    });
+
+    res.setHeader('Content-Type', streamData.mimeType.split(';')[0].trim());
+    res.setHeader('Accept-Ranges', 'bytes');
+    if (audioResponse.headers['content-length']) {
+      res.setHeader('Content-Length', audioResponse.headers['content-length']);
+    }
+    if (audioResponse.headers['content-range']) {
+      res.setHeader('Content-Range', audioResponse.headers['content-range']);
+      res.status(206);
+    }
+
+    audioResponse.data.pipe(res);
+  } catch (error) {
+    console.error('[PROXY ERROR]', error.message);
     res.status(503).json({ error: 'Stream indisponible: ' + error.message });
   }
 });

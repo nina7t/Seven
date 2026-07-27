@@ -6,7 +6,23 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const ytdl = require('youtube-dl-exec');
+// yt-dlp n'est qu'un FALLBACK d'extraction audio (quand toutes les instances
+// Invidious sont bloquées). Chargement paresseux et tolérant : son absence doit
+// dégrader cette seule fonctionnalité, jamais empêcher le serveur de démarrer.
+let _ytdl = null;
+let _ytdlUnavailable = false;
+function getYtdl() {
+  if (_ytdlUnavailable) return null;
+  if (_ytdl) return _ytdl;
+  try {
+    _ytdl = require('youtube-dl-exec');
+    return _ytdl;
+  } catch (e) {
+    console.warn('[YTDL] module indisponible, fallback yt-dlp désactivé:', e.message);
+    _ytdlUnavailable = true;
+    return null;
+  }
+}
 
 const { getFallbackSearch, getFallbackTrending, getFallbackVideos } = require('./fallback-data');
 const { searchInvidious, getTrendingInvidious, getVideosInvidious } = require('./invidious-client');
@@ -762,6 +778,9 @@ function isAllowedAudioUrl(rawUrl, instance) {
 
 // Fallback yt-dlp quand Invidious est bloqué
 async function getAudioStreamWithYtdl(videoId) {
+  const ytdl = getYtdl();
+  if (!ytdl) throw new Error('Fallback yt-dlp indisponible sur ce serveur');
+
   try {
     console.log(`[YTDL] Extraction stream pour ${videoId}`);
     const result = await ytdl(`https://www.youtube.com/watch?v=${videoId}`, {

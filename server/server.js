@@ -1556,60 +1556,6 @@ app.get('/api/spotify/me/playlists', rateLimit, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════
-// DEEZER PLAYLIST IMPORT
-// ════════════════════════════════════════════════════════════
-
-function extractDeezerPlaylistId(raw) {
-  if (!raw || typeof raw !== 'string') return null;
-  const m = raw.match(/playlist\/(\d+)/);
-  return m ? m[1] : null;
-}
-
-async function fetchDeezerPlaylistTracks(playlistId) {
-  const tracks = [];
-  let url = `https://api.deezer.com/playlist/${playlistId}/tracks?limit=100`;
-  while (url) {
-    const { data } = await axios.get(url, { timeout: 10000 });
-    if (data && data.error && Object.keys(data.error).length) {
-      throw new Error(data.error.message || 'Deezer API error');
-    }
-    (data.data || []).forEach(t => tracks.push(mapDeezerTrackToResult(t)));
-    url = data.next || null;
-  }
-  return tracks;
-}
-
-app.get('/api/deezer/playlist', rateLimit, async (req, res) => {
-  const { url } = req.query;
-  const playlistId = extractDeezerPlaylistId(url);
-  if (!playlistId) {
-    return res.status(400).json({ error: 'URL Deezer playlist invalide' });
-  }
-  try {
-    const [info, tracks] = await Promise.all([
-      deezerGet(`/playlist/${playlistId}`).catch(() => null),
-      fetchDeezerPlaylistTracks(playlistId)
-    ]);
-    const coverUrl = info?.picture_xl || info?.picture_big || info?.picture_medium || info?.picture_small || '';
-    res.json({
-      playlist: {
-        name: info?.title || 'Playlist Deezer',
-        description: info?.description || '',
-        coverUrl,
-        externalUrl: info?.link || `https://www.deezer.com/playlist/${playlistId}`
-      },
-      count: tracks.length,
-      tracks
-    });
-  } catch (error) {
-    console.error('[DEEZER PLAYLIST]', error.message);
-    const status = error.response?.status || 502;
-    const msg = error.response?.data?.error?.message || error.message || 'Erreur Deezer';
-    res.status(status).json({ error: msg });
-  }
-});
-
-// ════════════════════════════════════════════════════════════
 // FIN STREAM URL
 // ════════════════════════════════════════════════════════════
 

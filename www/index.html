@@ -1574,9 +1574,6 @@ h1, h2, h3 {
 .sp-import-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: #1DB954; border: none; border-radius: 99px; color: #000; font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.16s, background 0.16s; }
 .sp-import-btn:hover { transform: scale(1.04); background: #1ed760; }
 .sp-import-btn i { font-size: 18px; }
-.dz-import-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: #FF5500; border: none; border-radius: 99px; color: #000; font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.16s, background 0.16s; }
-.dz-import-btn:hover { transform: scale(1.04); background: #FF7700; }
-.dz-import-btn i { font-size: 18px; }
 .spotify-progress { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin: 12px 0 4px; overflow: hidden; }
 .spotify-progress-bar { height: 100%; width: 0%; background: #1DB954; transition: width 0.2s; }
 .spotify-tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
@@ -1592,6 +1589,25 @@ h1, h2, h3 {
 .csv-file-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray); padding: 6px 8px; background: rgba(255,255,255,0.05); border-radius: 10px; }
 .csv-file-item i { color: var(--accent-primary); }
 .spotify-playlist-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+/* ── Import Deezer ── */
+.dz-import-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: #a238ff; border: none; border-radius: 99px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.16s, background 0.16s; }
+.dz-import-btn:hover { transform: scale(1.04); background: #b357ff; }
+.dz-import-btn i { font-size: 18px; }
+.dz-progress-bar { background: #a238ff !important; }
+.dz-hint { color: var(--gray); font-size: 13px; margin-bottom: 12px; line-height: 1.45; }
+.dz-hint strong { color: var(--white); }
+.dz-pl-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+.dz-pl-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; cursor: pointer; }
+.dz-pl-item:hover { background: rgba(255,255,255,0.06); }
+.dz-pl-item input { width: 17px; height: 17px; accent-color: #a238ff; flex: 0 0 auto; cursor: pointer; }
+.dz-pl-cover { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 6px; object-fit: cover; background: var(--card); }
+.dz-pl-copy { min-width: 0; flex: 1; }
+.dz-pl-copy strong { display: block; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dz-pl-copy span { font-size: 12px; color: var(--gray); }
+.dz-select-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.dz-select-row button { background: none; border: 0; color: var(--gray); font-size: 12px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em; }
+.dz-select-row button:hover { color: var(--white); }
+.dz-status { font-size: 12.5px; color: var(--gray); min-height: 17px; margin-top: 6px; }
 .spotify-playlist-item { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 12px; cursor: pointer; transition: background 0.15s; }
 .spotify-playlist-item:hover { background: rgba(255,255,255,0.08); }
 .spotify-playlist-thumb { width: 40px; height: 40px; border-radius: 10px; background: #282828; background-size: cover; background-position: center; flex-shrink: 0; }
@@ -3768,16 +3784,45 @@ button.t-like:hover, button.t-more:hover { opacity: 1; background: rgba(255,255,
 <!-- ── DEEZER IMPORT MODAL ── -->
 <div class="modal-overlay" id="deezerImportModal">
   <div class="modal" style="width:520px">
-    <h2 class="modal-title"><i class="ti ti-brand-deezer" style="color:#FF5500"></i> Importer depuis Deezer</h2>
-    <p style="color:var(--gray);font-size:13px;margin-bottom:12px;">Colle un lien public de playlist Deezer. Les titres seront ajoutés avec correspondance YouTube différée (résolue à la lecture).</p>
-    <input type="text" class="modal-input" id="deezerUrlInput" placeholder="https://www.deezer.com/playlist/...">
+    <h2 class="modal-title"><i class="ti ti-brand-deezer" style="color:#a238ff"></i> Importer depuis Deezer</h2>
+    <div class="spotify-tabs">
+      <button class="dz-tab sp-tab active" data-tab="url" onclick="switchDeezerTab('url')">Une playlist</button>
+      <button class="dz-tab sp-tab" data-tab="profile" onclick="switchDeezerTab('profile')">Tout un profil</button>
+    </div>
+
+    <div class="dz-tab-body" id="deezerTab-url">
+      <p class="dz-hint">Colle le lien d'une playlist Deezer. Elle doit être <strong>publique</strong> : sur Deezer, ouvre la playlist → <strong>Modifier</strong> → bascule « Publique ».</p>
+      <input type="text" class="modal-input" id="deezerUrlInput" placeholder="https://www.deezer.com/playlist/…">
+      <div class="modal-actions">
+        <button class="modal-btn cancel" onclick="closeDeezerImportModal()">Annuler</button>
+        <button class="modal-btn submit" id="deezerImportSubmit" onclick="importDeezerPlaylist()">Importer</button>
+      </div>
+    </div>
+
+    <div class="dz-tab-body" id="deezerTab-profile" style="display:none">
+      <p class="dz-hint">Colle le lien du profil Deezer pour importer plusieurs playlists d'un coup. Seules les playlists <strong>publiques</strong> apparaissent.</p>
+      <input type="text" class="modal-input" id="deezerProfileInput" placeholder="https://www.deezer.com/profile/…">
+      <div class="modal-actions" id="deezerProfileActions">
+        <button class="modal-btn cancel" onclick="closeDeezerImportModal()">Annuler</button>
+        <button class="modal-btn submit" id="deezerProfileSubmit" onclick="loadDeezerProfile()">Voir les playlists</button>
+      </div>
+      <div id="deezerProfileResult" style="display:none">
+        <div class="dz-select-row">
+          <span class="dz-hint" style="margin:0" id="deezerProfileName"></span>
+          <button onclick="toggleAllDeezerPlaylists()" id="deezerSelectAll">Tout sélectionner</button>
+        </div>
+        <div class="dz-pl-list" id="deezerPlaylistList"></div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" onclick="closeDeezerImportModal()">Annuler</button>
+          <button class="modal-btn submit" id="deezerMultiSubmit" onclick="importSelectedDeezerPlaylists()">Importer la sélection</button>
+        </div>
+      </div>
+    </div>
+
     <div class="spotify-progress" id="deezerProgress">
-      <div class="spotify-progress-bar" id="deezerProgressBar"></div>
+      <div class="spotify-progress-bar dz-progress-bar" id="deezerProgressBar"></div>
     </div>
-    <div class="modal-actions">
-      <button class="modal-btn cancel" onclick="closeDeezerImportModal()">Annuler</button>
-      <button class="modal-btn submit" id="deezerImportSubmit" onclick="importFromDeezer()">Importer</button>
-    </div>
+    <div class="dz-status" id="deezerStatus"></div>
   </div>
 </div>
 
@@ -5055,7 +5100,6 @@ async function doSearch(query) {
     if (isArtistQuery) {
       fetchArtistData(query).then(data => {
         if (token !== _searchToken || !data.deezer) return;
-        _lastSearchArtist = data.name;
         _artistCache[data.name] = data;
 
         const list = document.getElementById('srList');
@@ -5114,36 +5158,6 @@ async function searchMusicBrainzArtist(query) {
     const data = await res.json();
     return (_mbCache[key] = data.artists?.[0] || null);
   } catch(e) { return (_mbCache[key] = null); }
-}
-
-function countryFlag(code) {
-  if (!code || code.length !== 2) return '';
-  try { return code.toUpperCase().replace(/./g, c => String.fromCodePoint(c.charCodeAt(0) + 127397)); }
-  catch(e) { return ''; }
-}
-
-function renderArtistCard(artist, fallbackThumb) {
-  const flag = countryFlag(artist.country);
-  const tags = (artist.tags || []).slice(0, 5).map(t => `<span class="mb-tag">${esc(t.name)}</span>`).join('');
-  const type = artist.type === 'Group' ? 'Groupe' : 'Artiste';
-  const area = artist.area?.name || '';
-  const year = artist['life-span']?.begin ? artist['life-span'].begin.substring(0,4) : '';
-  const meta = [flag + (area ? ' ' + area : ''), year ? 'Actif depuis ' + year : ''].filter(Boolean).join(' · ');
-
-  return `
-    <div class="mb-artist-card" onclick="openArtistPageCurrent()" style="cursor:pointer" title="Voir la page de ${esc(artist.name)}">
-      <div class="mb-avatar">
-        ${fallbackThumb ? `<img src="${fallbackThumb}" alt="${esc(artist.name)}" onerror="this.style.display='none'">` : ''}
-        <div class="mb-avatar-shine"></div>
-      </div>
-      <div class="mb-artist-info">
-        <div class="mb-type">${type}${meta ? ' · ' + meta : ''}</div>
-        <div class="mb-name">${esc(artist.name)}</div>
-        ${artist.disambiguation ? `<div class="mb-disambig">${esc(artist.disambiguation)}</div>` : ''}
-        ${tags ? `<div class="mb-tags">${tags}</div>` : ''}
-      </div>
-    </div>
-  `;
 }
 
 // Carte artiste en tête des résultats : vraie photo Deezer, nombre de fans,
@@ -6476,16 +6490,6 @@ function attrEnc(str) {
   return encodeURIComponent(String(str || '')).replace(/'/g, '%27');
 }
 
-// Nom d'artiste cliquable → page artiste. `extraClass` permet de conserver la
-// classe de style du contexte d'appel (.t-artist, .result-artist, …).
-function artistLink(name, extraClass) {
-  const clean = cleanArtistName(name);
-  if (!clean) return `<span class="${extraClass || ''}">${esc(name || '')}</span>`;
-  return `<span class="${extraClass ? extraClass + ' ' : ''}artist-link" role="link" tabindex="0"`
-    + ` title="Voir ${esc(clean)}"`
-    + ` onclick="event.stopPropagation();openArtistEncoded('${attrEnc(clean)}')">${esc(name || clean)}</span>`;
-}
-
 // Pose un nom d'artiste cliquable dans un élément existant (barre de lecture,
 // lecteur plein écran) : innerHTML plutôt que textContent, d'où le passage par esc().
 function setArtistField(id, name, fallback) {
@@ -6495,7 +6499,8 @@ function setArtistField(id, name, fallback) {
   el.innerHTML = raw ? artistLinkInline(raw) : esc(fallback || '—');
 }
 
-// Variante sans wrapper : à injecter dans un élément qui a déjà sa classe.
+// Nom d'artiste cliquable → page artiste, à injecter dans l'élément qui porte
+// déjà sa classe de style (.t-artist, .result-artist, …).
 function artistLinkInline(name) {
   const clean = cleanArtistName(name);
   if (!clean) return esc(name || '');
@@ -7037,7 +7042,7 @@ async function importFromSpotify() {
     }
     bar.style.width = '70%';
     const data = await res.json();
-    await createPlaylistFromImportData(data, 'spotify', 'Spotify');
+    await createPlaylistFromSpotifyData(data);
     bar.style.width = '100%';
     setTimeout(() => {
       closeSpotifyImportModal();
@@ -7053,7 +7058,10 @@ async function importFromSpotify() {
   }
 }
 
-async function createPlaylistFromImportData(data, source = 'spotify', sourceLabel = 'Spotify') {
+// Spotify et Deezer renvoient la même forme : une playlist + des métadonnées
+// de pistes sans videoId (résolu à la lecture).
+function createPlaylistFromImport(data, source, opts = {}) {
+  const label = source === 'deezer' ? 'Deezer' : 'Spotify';
   const tracks = (data.tracks || []).map(meta => ({
     id: null,
     title: meta.title || '',
@@ -7063,10 +7071,11 @@ async function createPlaylistFromImportData(data, source = 'spotify', sourceLabe
     album: meta.album || '',
     meta
   }));
+  const creator = data.playlist?.creator ? ` de ${data.playlist.creator}` : '';
   const pl = {
-    id: Date.now().toString(),
-    name: data.playlist?.name || `Playlist ${sourceLabel}`,
-    description: `Importée depuis ${sourceLabel}` + (data.playlist?.externalUrl ? ` · ${data.playlist.externalUrl}` : ''),
+    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+    name: data.playlist?.name || `Playlist ${label}`,
+    description: `Importée depuis ${label}${creator}` + (data.playlist?.externalUrl ? ` · ${data.playlist.externalUrl}` : ''),
     tags: [source, 'import'],
     coverImage: data.playlist?.coverUrl || null,
     tracks,
@@ -7074,72 +7083,187 @@ async function createPlaylistFromImportData(data, source = 'spotify', sourceLabe
   };
   S.playlists.unshift(pl);
   savePlaylists();
+
+  // En import groupé, l'appelant rafraîchit une seule fois à la fin.
+  if (opts.silent) return pl;
+
   showPlaylistsView();
   renderPlaylistGrid();
   renderSidebarPlaylists();
   showToast(`${tracks.length} titre${tracks.length > 1 ? 's' : ''} importé${tracks.length > 1 ? 's' : ''} ✓`);
+  return pl;
 }
 
-// ── DEEZER IMPORT ──────────────────────────────────────────────────
+// Conservé : l'import Spotify par lien appelle encore ce nom.
+async function createPlaylistFromSpotifyData(data) {
+  return createPlaylistFromImport(data, 'spotify');
+}
+
+// ── IMPORT DEEZER ──────────────────────────────────────────────────
+// L'API publique Deezer ne demande ni clé ni connexion : le lien suffit tant
+// que la playlist est publique. Les pistes arrivent avec leurs métadonnées
+// officielles (durée, ISRC, pochette) et sans videoId — il est résolu à la
+// lecture, comme pour la recherche.
+
 function openDeezerImportModal() {
   const modal = document.getElementById('deezerImportModal');
-  const input = document.getElementById('deezerUrlInput');
-  const bar = document.getElementById('deezerProgressBar');
-  const progress = document.getElementById('deezerProgress');
-  input.value = '';
-  bar.style.width = '0%';
-  progress.style.display = 'none';
+  if (!modal) return;
   modal.classList.add('active');
-  setTimeout(() => input.focus(), 50);
+  switchDeezerTab('url');
+  setTimeout(() => document.getElementById('deezerUrlInput')?.focus(), 50);
 }
 
 function closeDeezerImportModal() {
-  document.getElementById('deezerImportModal').classList.remove('active');
+  document.getElementById('deezerImportModal')?.classList.remove('active');
+  dzResetProgress();
 }
 
-async function importFromDeezer() {
-  const input = document.getElementById('deezerUrlInput');
-  const submit = document.getElementById('deezerImportSubmit');
-  const progress = document.getElementById('deezerProgress');
-  const bar = document.getElementById('deezerProgressBar');
-  const url = input.value.trim();
+function switchDeezerTab(tab) {
+  document.querySelectorAll('.dz-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('deezerTab-url').style.display     = tab === 'url' ? 'block' : 'none';
+  document.getElementById('deezerTab-profile').style.display = tab === 'profile' ? 'block' : 'none';
+  dzResetProgress();
+}
 
+function dzResetProgress() {
+  const bar = document.getElementById('deezerProgressBar');
+  const prog = document.getElementById('deezerProgress');
+  const status = document.getElementById('deezerStatus');
+  if (bar) bar.style.width = '0%';
+  if (prog) prog.style.display = 'none';
+  if (status) status.textContent = '';
+}
+
+function dzProgress(pct, message) {
+  const bar = document.getElementById('deezerProgressBar');
+  const prog = document.getElementById('deezerProgress');
+  const status = document.getElementById('deezerStatus');
+  if (prog) prog.style.display = 'block';
+  if (bar) bar.style.width = pct + '%';
+  if (status && message !== undefined) status.textContent = message;
+}
+
+async function fetchDeezerPlaylist(urlOrId) {
+  const res = await fetchWithRetry(`${PROXY_URL}/deezer/playlist?url=${encodeURIComponent(urlOrId)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data;
+}
+
+async function importDeezerPlaylist() {
+  const input  = document.getElementById('deezerUrlInput');
+  const submit = document.getElementById('deezerImportSubmit');
+  const url = input.value.trim();
   if (!url) { input.focus(); return; }
-  if (!/deezer\.com\/(?:[a-z]{2}\/)?playlist\/\d+|^\d+$/.test(url)) {
-    showToast('Lien Deezer playlist invalide', 'error');
-    return;
-  }
 
   submit.disabled = true;
   submit.textContent = 'Import…';
-  progress.style.display = 'block';
-  bar.style.width = '30%';
+  dzProgress(25, 'Lecture de la playlist…');
 
   try {
-    const res = await fetchWithRetry(`${PROXY_URL}/deezer/playlist?url=${encodeURIComponent(url)}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Erreur ${res.status}`);
-    }
-    bar.style.width = '70%';
-    const data = await res.json();
-    await createPlaylistFromImportData(data, 'deezer', 'Deezer');
-    bar.style.width = '100%';
-    setTimeout(() => {
-      closeDeezerImportModal();
-      submit.disabled = false;
-      submit.textContent = 'Importer';
-      bar.style.width = '0%';
-      progress.style.display = 'none';
-    }, 300);
+    const data = await fetchDeezerPlaylist(url);
+    dzProgress(75, `${data.count} titre${data.count > 1 ? 's' : ''} récupéré${data.count > 1 ? 's' : ''}…`);
+    createPlaylistFromImport(data, 'deezer');
+    dzProgress(100, 'Terminé');
+    setTimeout(closeDeezerImportModal, 400);
   } catch (e) {
     console.error('[Deezer import]', e);
-    showToast(e.message || 'Échec de l\'import Deezer', 'error');
+    showToast(e.message || "Échec de l'import Deezer", 'error');
+    dzProgress(0, e.message || '');
+  } finally {
     submit.disabled = false;
     submit.textContent = 'Importer';
-    bar.style.width = '0%';
   }
 }
+
+let _dzProfilePlaylists = [];
+
+async function loadDeezerProfile() {
+  const input  = document.getElementById('deezerProfileInput');
+  const submit = document.getElementById('deezerProfileSubmit');
+  const url = input.value.trim();
+  if (!url) { input.focus(); return; }
+
+  submit.disabled = true;
+  submit.textContent = 'Chargement…';
+  dzProgress(40, 'Lecture du profil…');
+
+  try {
+    const res = await fetchWithRetry(`${PROXY_URL}/deezer/profile?url=${encodeURIComponent(url)}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+
+    _dzProfilePlaylists = data.playlists || [];
+    document.getElementById('deezerProfileName').textContent =
+      `${data.user.name} · ${_dzProfilePlaylists.length} playlist${_dzProfilePlaylists.length > 1 ? 's' : ''} publique${_dzProfilePlaylists.length > 1 ? 's' : ''}`;
+    document.getElementById('deezerPlaylistList').innerHTML = _dzProfilePlaylists.map((pl, i) => `
+      <label class="dz-pl-item">
+        <input type="checkbox" data-dz-index="${i}">
+        ${pl.cover ? `<img class="dz-pl-cover" src="${esc(pl.cover)}" alt="" loading="lazy">` : '<div class="dz-pl-cover"></div>'}
+        <div class="dz-pl-copy">
+          <strong>${esc(pl.title)}</strong>
+          <span>${pl.nbTracks} titre${pl.nbTracks > 1 ? 's' : ''}</span>
+        </div>
+      </label>`).join('');
+
+    document.getElementById('deezerProfileActions').style.display = 'none';
+    document.getElementById('deezerProfileResult').style.display = 'block';
+    dzResetProgress();
+  } catch (e) {
+    console.error('[Deezer profil]', e);
+    showToast(e.message || 'Profil illisible', 'error');
+    dzProgress(0, e.message || '');
+  } finally {
+    submit.disabled = false;
+    submit.textContent = 'Voir les playlists';
+  }
+}
+
+function toggleAllDeezerPlaylists() {
+  const boxes = [...document.querySelectorAll('#deezerPlaylistList input[data-dz-index]')];
+  const allOn = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !allOn; });
+  document.getElementById('deezerSelectAll').textContent = allOn ? 'Tout sélectionner' : 'Tout désélectionner';
+}
+
+async function importSelectedDeezerPlaylists() {
+  const chosen = [...document.querySelectorAll('#deezerPlaylistList input[data-dz-index]:checked')]
+    .map(b => _dzProfilePlaylists[parseInt(b.dataset.dzIndex)])
+    .filter(Boolean);
+
+  if (!chosen.length) { showToast('Sélectionne au moins une playlist', 'info'); return; }
+
+  const submit = document.getElementById('deezerMultiSubmit');
+  submit.disabled = true;
+  submit.textContent = 'Import…';
+
+  // Import séquentiel : une playlist qui échoue ne doit pas annuler les autres.
+  let done = 0, failed = 0;
+  for (let i = 0; i < chosen.length; i++) {
+    const pl = chosen[i];
+    dzProgress(Math.round((i / chosen.length) * 100), `${i + 1}/${chosen.length} · ${pl.title}`);
+    try {
+      const data = await fetchDeezerPlaylist(pl.id);
+      createPlaylistFromImport(data, 'deezer', { silent: true });
+      done++;
+    } catch (e) {
+      console.warn('[Deezer import]', pl.title, e.message);
+      failed++;
+    }
+  }
+
+  dzProgress(100, 'Terminé');
+  renderPlaylistGrid();
+  renderSidebarPlaylists();
+  showToast(
+    failed ? `${done} playlist(s) importée(s), ${failed} en échec` : `${done} playlist${done > 1 ? 's' : ''} importée${done > 1 ? 's' : ''} ✓`,
+    failed ? 'info' : 'success'
+  );
+  submit.disabled = false;
+  submit.textContent = 'Importer la sélection';
+  setTimeout(closeDeezerImportModal, 600);
+}
+
 
 // OAuth Spotify — popup + postMessage
 let spotifyAuthPopup = null;
@@ -7236,7 +7360,7 @@ async function importUserPlaylist(playlistId) {
     }
     bar.style.width = '70%';
     const data = await res.json();
-    await createPlaylistFromImportData(data, 'spotify', 'Spotify');
+    await createPlaylistFromSpotifyData(data);
     bar.style.width = '100%';
     setTimeout(() => {
       closeSpotifyImportModal();
@@ -7262,7 +7386,10 @@ setTimeout(() => {
     if (e.target === document.getElementById('deezerImportModal')) closeDeezerImportModal();
   });
   document.getElementById('deezerUrlInput')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') importFromDeezer();
+    if (e.key === 'Enter') importDeezerPlaylist();
+  });
+  document.getElementById('deezerProfileInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') loadDeezerProfile();
   });
   document.getElementById('csvImportModal')?.addEventListener('click', e => {
     if (e.target === document.getElementById('csvImportModal')) closeCsvImportModal();
@@ -7522,7 +7649,6 @@ function openPlaylist(id) { navigateTo('playlist', { id }); }
 
 // ── PAGE ARTISTE DÉDIÉE (façon Spotify) ───────────────────────────────
 const _artistCache = {};
-let _lastSearchArtist = null;
 let _artistTracks = [];
 let _artistDisco = { albums: [], singles: [] };
 let _currentArtistName = null;
@@ -7537,7 +7663,6 @@ function openArtistPage(name) {
   dismissNowPlayingOverlay();
   navigateTo('artist', { name });
 }
-function openArtistPageCurrent() { if (_lastSearchArtist) openArtistPage(_lastSearchArtist); }
 
 // Une piste Deezer devient une entrée de file de lecture : `id` (videoId) reste
 // null, il est résolu au clic par ensureVideoId(), exactement comme en recherche.
@@ -7596,7 +7721,7 @@ async function fetchArtistData(name) {
       if (mb && mb.score >= 65) {
         out.mbArtist = mb;
         const mbAlbums = await fetchMusicBrainzAlbums(mb.id).catch(() => []);
-        out.albums = mbAlbums.map(a => ({ id: null, mbid: a.id, title: a.name, cover: a.cover, year: a.year, type: a.type, nbTracks: 0 }));
+        out.albums = mbAlbums.map(a => ({ id: null, mbid: a.id, title: a.name, cover: a.cover, year: a.year, type: a.type }));
       }
     } catch (e) {}
   }
@@ -9945,6 +10070,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="md-item" onclick="closeMobileMenu();showPlaylistsHome();">
       <i class="ti ti-playlist"></i>
       <span>Mes playlists</span>
+    </div>
+    <div class="md-item" onclick="closeMobileMenu();navigateTo('playlists');openDeezerImportModal();">
+      <i class="ti ti-brand-deezer"></i>
+      <span>Importer depuis Deezer</span>
     </div>
     <div class="md-item" onclick="closeMobileMenu();openRadio();">
       <i class="ti ti-broadcast"></i>

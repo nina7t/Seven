@@ -7382,6 +7382,15 @@ setTimeout(() => {
   document.getElementById('spotifyUrlInput')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') importFromSpotify();
   });
+  document.getElementById('deezerImportModal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('deezerImportModal')) closeDeezerImportModal();
+  });
+  document.getElementById('deezerUrlInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') importDeezerPlaylist();
+  });
+  document.getElementById('deezerProfileInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') loadDeezerProfile();
+  });
   document.getElementById('csvImportModal')?.addEventListener('click', e => {
     if (e.target === document.getElementById('csvImportModal')) closeCsvImportModal();
   });

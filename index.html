@@ -2410,10 +2410,12 @@ button.t-like:hover, button.t-more:hover { opacity: 1; background: rgba(255,255,
   /* ══ PLAYLISTS LIST VIEW — Style Spotify Mobile ══ */
   .playlists-view { padding: 0 0 100px; }
   .playlists-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    /* Titre sur une ligne, boutons d'import sur la suivante : à trois boutons,
+       la disposition en rangée unique rognait le dernier. */
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 12px;
     margin-bottom: 20px;
     padding: 20px 16px 0;
     position: sticky;
@@ -2440,11 +2442,21 @@ button.t-like:hover, button.t-more:hover { opacity: 1; background: rgba(255,255,
     gap: 6px;
   }
   .create-pl-btn i { font-size: 16px; }
+  /* Trois boutons ne tiennent pas sur une largeur de téléphone : la rangée
+     défile horizontalement plutôt que de rogner le dernier bouton. */
   .playlists-header-actions { 
     display: flex;
     gap: 8px; 
     align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 16px;
   }
+  .playlists-header-actions::-webkit-scrollbar { display: none; }
+  .playlists-header-actions > * { flex: 0 0 auto; }
+  /* Marge de respiration en fin de rangée pour montrer qu'elle défile. */
+  .playlists-header-actions::after { content: ''; flex: 0 0 4px; }
   .sp-import-btn { display: none !important; }
 
   /* Grille responsive inspirée Spotify */
@@ -6321,7 +6333,7 @@ function openPlaylistDetail(id) {
 
   const grad = getCoverGradient(pl.id);
   const coverStyle = pl.coverImage
-    ? `background-image:url("${cssUrl(pl.coverImage)}"); background-size:cover; background-position:center; background-repeat:no-repeat;`
+    ? `background-image:url('${cssUrl(pl.coverImage)}'); background-size:cover; background-position:center; background-repeat:no-repeat;`
     : `background:${grad}`;
 
   const trackRows = pl.tracks.length === 0
@@ -6424,7 +6436,7 @@ function renderSidebarPlaylists() {
 
   container.innerHTML = pls.map(p => {
     const coverStyle = p.coverImage
-      ? `background-image:url("${cssUrl(p.coverImage)}"); background-size:cover; background-position:center; background-repeat:no-repeat;`
+      ? `background-image:url('${cssUrl(p.coverImage)}'); background-size:cover; background-position:center; background-repeat:no-repeat;`
       : `background:${getCoverGradient(p.id)}`;
     const tagsText = p.tags && p.tags.length ? p.tags.slice(0, 2).join(', ') : '';
     const meta = `Playlist${tagsText ? ' • ' + tagsText : ''}`;
@@ -6903,7 +6915,7 @@ function renderArtistsView() {
   grid.innerHTML = artists.map(a => {
     const initial = a.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const bg = a.thumb
-      ? `background-image:url("${cssUrl(a.thumb)}"); background-size:cover; background-position:center; background-repeat:no-repeat;`
+      ? `background-image:url('${cssUrl(a.thumb)}'); background-size:cover; background-position:center; background-repeat:no-repeat;`
       : `background:${a.grad ? 'linear-gradient(135deg,#'+a.grad+')' : 'linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))'}`;
     return `<div class="playlist-card" onclick="openArtistEncoded('${attrEnc(a.name)}')">
       <div class="playlist-cover" style="${bg};border-radius:50%">
@@ -7071,11 +7083,11 @@ function createPlaylistFromImport(data, source, opts = {}) {
     album: meta.album || '',
     meta
   }));
-  const creator = data.playlist?.creator ? ` de ${data.playlist.creator}` : '';
+  const creator = data.playlist?.creator ? `De ${data.playlist.creator} · ` : '';
   const pl = {
     id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
     name: data.playlist?.name || `Playlist ${label}`,
-    description: `Importée depuis ${label}${creator}` + (data.playlist?.externalUrl ? ` · ${data.playlist.externalUrl}` : ''),
+    description: `${creator}Importée depuis ${label}` + (data.playlist?.externalUrl ? ` · ${data.playlist.externalUrl}` : ''),
     tags: [source, 'import'],
     coverImage: data.playlist?.coverUrl || null,
     tracks,
@@ -7579,7 +7591,7 @@ function _renderPlaylistGridContent(grid) {
   }
   grid.innerHTML = S.playlists.map(p => {
     const coverStyle = p.coverImage
-      ? `background-image:url("${cssUrl(p.coverImage)}"); background-size:cover; background-position:center; background-repeat:no-repeat;`
+      ? `background-image:url('${cssUrl(p.coverImage)}'); background-size:cover; background-position:center; background-repeat:no-repeat;`
       : `background:${getCoverGradient(p.id)}`;
     const coverClass = p.coverImage ? 'playlist-cover has-img' : 'playlist-cover';
     const tags = (p.tags||[]).slice(0,3).map(t => `<span class="detail-tag">${esc(t)}</span>`).join('');
@@ -8023,7 +8035,7 @@ function _openPlaylistDirect(id) {
         <div class="track${S.currentTrack?.id===t.id?' playing':''}" onclick="playFromPlaylist('${id}',${i})">
           <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
           <div class="t-main">
-            <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?'background-image:url("'+cssUrl(t.thumb)+'")':''}"></div>
+            <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?`background-image:url('`+cssUrl(t.thumb)+`')`:''}"></div>
             <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel)}${t.addedBy?.name?` · ajouté par ${esc(t.addedBy.name)}`:''}</div></div>
           </div>
           <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):'--:--'}</div>
@@ -8169,7 +8181,7 @@ function renderLikedView() {
       <div class="track liked-track${S.currentTrack?.id===t.id?' playing':''}" onclick="playTrack(${i})">
         <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
         <div class="t-main">
-          <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?'background-image:url("'+cssUrl(t.thumb)+'")':''}"></div>
+          <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?`background-image:url('`+cssUrl(t.thumb)+`')`:''}"></div>
           <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel)}</div></div>
         </div>
         <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):'--:--'}</div>
@@ -8524,7 +8536,7 @@ function obRenderArtist(artist, delay = 0) {
   card.dataset.name = artist.name;
   card.style.animationDelay = delay + 'ms';
   const bgStyle = artist.img
-    ? `background-image:url("${cssUrl(artist.img)}"); background-size:cover; background-position:center; background-repeat:no-repeat;`
+    ? `background-image:url('${cssUrl(artist.img)}'); background-size:cover; background-position:center; background-repeat:no-repeat;`
     : `background:linear-gradient(135deg,#${artist.grad})`;
   card.innerHTML = `
     <div class="ob-avatar" style="${bgStyle}">

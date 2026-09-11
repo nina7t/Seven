@@ -116,6 +116,7 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 - Vue Artistes / Albums
 - Filtres bibliothèque (Tout / Playlists)
 - Import playlists Spotify via OAuth
+- Import playlists Deezer par lien public ou profil entier (aucune connexion requise)
 
 ### ☁️ Compte & Sync
 - Authentification Firebase (email / password / OAuth)
@@ -154,6 +155,8 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 | FEAT-005 | Pas de navigation par artiste/album (façon Spotify) | `index.html` + `server/server.js` | ✅ Pages artiste & album Deezer + liens cliquables partout |
 | BUG-007 | « Angèle » ouvrait un homonyme à 13 fans au lieu de l'artiste à 1,7 M | `server/server.js` | ✅ Résolution classée par justesse du nom **puis** notoriété |
 | BUG-008 | Albums en double dans la discographie (rééditions Deezer) | `server/server.js` | ✅ `dedupeReleases()` garde l'édition de référence |
+| FEAT-006 | Pas d'import pour les utilisateurs Deezer | `index.html` + `server/server.js` | ✅ Import par lien de playlist ou par profil (lot), sans clé ni OAuth |
+| BUG-009 | Pochettes de playlist jamais affichées | `index.html` | ✅ `style="…url(\"…\")…"` → `url('…')` en 7 endroits |
 
 ---
 
@@ -223,6 +226,62 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 ---
 
 ## 9. 📝 JOURNAL
+
+### 11 septembre 2026 — Import de playlists Deezer
+
+**Objectif** : qu'une amie sur Deezer puisse verser ses playlists dans l'app.
+
+**Pourquoi pas d'équivalent Exportify** : l'API publique Deezer ne demande ni clé
+ni OAuth. Le lien de la playlist suffit, tant qu'elle est publique. (Exportify
+existe parce que Spotify impose un token même pour une playlist publique.)
+
+**Backend — `server/server.js`**
+- `GET /api/deezer/playlist?url=` → playlist + tracklist complète. Accepte une URL
+  complète, avec préfixe de langue (`/fr/playlist/…`) ou un identifiant nu.
+- `GET /api/deezer/profile?url=` → playlists publiques d'un profil, pour l'import en lot.
+- Cache 1 h. `deezerGetRaw()` ajouté à côté de `deezerGet()` : les handlers d'import
+  ont besoin de lire l'erreur Deezer pour formuler leur propre message.
+
+**Frontend — `index.html`**
+- Bouton « Importer Deezer » dans l'en-tête Playlists + entrée dans le menu mobile.
+- Modale à deux onglets : **Une playlist** (coller un lien) et **Tout un profil**
+  (cases à cocher, « Tout sélectionner », import séquentiel).
+- `createPlaylistFromSpotifyData()` généralisée en `createPlaylistFromImport(data, source)` —
+  Spotify et Deezer renvoient la même forme.
+- Les pistes arrivent avec `id: null` + `meta` : `playTrack()` délègue à `resolveAndPlay()`,
+  donc la résolution YouTube se fait au premier clic, pas à l'import.
+
+**Deux pièges de l'API Deezer**
+- La tracklist incluse dans `/playlist/{id}` est **tronquée à 400 titres, sans champ
+  `next`** : une playlist de 636 titres en perdrait 236 en silence. On passe toujours
+  par `/playlist/{id}/tracks?index=&limit=` (vérifié : 636/636 en 7 pages).
+- Les erreurs arrivent en **HTTP 200** avec `{"error":{"code":800}}` dans le corps.
+  Tester le statut ne suffit pas.
+
+**Bug corrigé au passage — voir BUG-009**
+La pochette des playlists ne s'affichait nulle part. Sept endroits construisaient
+`style="…url("…")…"` : le navigateur ferme l'attribut au premier guillemet interne et
+perd l'image. Invisible jusqu'ici (peu de playlists avec pochette), flagrant dès que
+chaque playlist importée en a une. Corrigé partout en `url('…')` — `cssUrl()` échappe
+déjà les apostrophes.
+
+**Régression mobile corrigée** : l'ajout d'un troisième bouton rognait « Nouvelle
+playlist ». L'en-tête passe en colonne sur téléphone (titre puis rangée de boutons
+défilante).
+
+**Vérifié au navigateur (desktop + Pixel 7 + iPhone SE)**
+- Import par lien (76 titres) et import groupé depuis un profil (3 playlists d'un coup)
+- Chaîne de lecture complète : clic → résolution → videoId chargé → barre de lecture à jour
+- Message d'erreur explicite sur playlist privée, profil inexistant, lien d'un autre service
+- Pochettes et vignettes affichées, aucun débordement horizontal
+- Non-régression des pages artiste/album de l'entrée précédente
+
+**Non testé** : la lecture audio réelle (pas de `server/.env` avec clé YouTube en local).
+
+> ⚠️ Comme l'entrée précédente : **ces routes n'existent que sur le serveur local**
+> tant que Render n'est pas redéployé.
+
+---
 
 ### 11 septembre 2026 — Navigation artiste & album (façon Spotify)
 

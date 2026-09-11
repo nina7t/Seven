@@ -4,7 +4,8 @@
   "description": "",
   "main": "build.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node build.js"
   },
   "repository": {
     "type": "git",
@@ -21,9 +22,12 @@
   "dependencies": {
     "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor-community/media": "^9.1.0",
+    "@capacitor-firebase/authentication": "^8.5.1",
     "@capacitor/android": "^8.4.0",
+    "@capacitor/app": "^8.0.0",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.4.0"
   }
 }

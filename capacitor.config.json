@@ -7,13 +7,29 @@
     "backgroundColor": "#121212",
     "allowMixedContent": true
   },
+  "ios": {
+    "backgroundColor": "#121212",
+    "contentInset": "never"
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
       "backgroundColor": "#121212"
     },
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "LIGHT",
+      "hidden": false,
+      "animation": "NONE"
+    },
     "KeepAwake": {},
     "AudioPlayer": {},
-    "YouTubeExtractor": {}
+    "YouTubeExtractor": {},
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": [
+        "google.com"
+      ]
+    }
   }
 }

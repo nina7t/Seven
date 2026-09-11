@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sevenz — Diagnostic APK & Plan de correction</title>
+<style>
+  :root {
+    --bg: #0e0e10;
+    --panel: #18181b;
+    --panel-2: #1f1f23;
+    --border: #2a2a30;
+    --text: #e5e5e5;
+    --muted: #a1a1aa;
+    --accent: #1db954;
+    --accent-dim: #128c3f;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --green: #22c55e;
+    --blue: #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 32px 16px;
+  }
+  .container { max-width: 980px; margin: 0 auto; }
+  header {
+    text-align: center;
+    padding: 48px 24px;
+    background: linear-gradient(135deg, #1db954 0%, #128c3f 100%);
+    border-radius: 16px;
+    margin-bottom: 32px;
+    color: #000;
+  }
+  header h1 { font-size: 36px; font-weight: 800; margin-bottom: 8px; }
+  header p { font-size: 16px; opacity: 0.85; }
+  .badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.25);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+
+  .section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h3 { font-size: 17px; margin: 18px 0 8px; color: var(--accent); }
+  p, li { color: var(--muted); }
+  code, pre {
+    font-family: "SF Mono", Monaco, Menlo, monospace;
+    font-size: 13px;
+    background: #0a0a0c;
+    color: #d4d4d8;
+  }
+  code { padding: 2px 6px; border-radius: 4px; }
+  pre {
+    padding: 14px 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    margin: 8px 0;
+  }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tag.crit { background: var(--red); color: #fff; }
+  .tag.major { background: var(--orange); color: #000; }
+  .tag.minor { background: var(--blue); color: #fff; }
+  .tag.fix { background: var(--green); color: #000; }
+
+  .bug {
+    background: var(--panel-2);
+    border-left: 4px solid var(--red);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .bug.major { border-left-color: var(--orange); }
+  .bug.minor { border-left-color: var(--blue); }
+  .bug.fixed { border-left-color: var(--green); background: rgba(34, 197, 94, 0.05); }
+  .bug h4 {
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .timeline {
+    border-left: 2px solid var(--border);
+    padding-left: 20px;
+    margin: 16px 0;
+  }
+  .timeline-item {
+    position: relative;
+    padding: 8px 0 16px;
+  }
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -27px;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+  }
+  .timeline-item .time {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .timeline-item .what { color: var(--text); margin-top: 2px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .stat {
+    background: var(--panel-2);
+    padding: 18px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .stat .num {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+  }
+  .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  th { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { color: var(--muted); }
+  td:first-child { color: var(--text); }
+
+  .check { color: var(--green); font-weight: 700; }
+  .cross { color: var(--red); font-weight: 700; }
+
+  .cta {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    padding: 10px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Sevenz — Diagnostic APK</h1>
+  <p>Analyse du bug "Failed to fetch" et plan de correction</p>
+  <div class="badge">Build Sevenz-debug-fixed.apk · 15 juin 2026</div>
+</header>
+
+<div class="section">
+  <h2>📊 Résumé exécutif</h2>
+  <div class="stats">
+    <div class="stat">
+      <span class="num">1</span>
+      <span class="label">Bug critique identifié</span>
+    </div>
+    <div class="stat">
+      <span class="num">4</span>
+      <span class="label">Améliorations UX</span>
+    </div>
+    <div class="stat">
+      <span class="num">4</span>
+      <span class="label">Correctifs appliqués</span>
+    </div>
+    <div class="stat">
+      <span class="num">7</span>
+      <span class="label">Call-sites patchés</span>
+    </div>
+  </div>
+  <p>Le bug "Failed to fetch" signalé sur l'APK Sevenz est causé par le <strong>free tier de Render</strong> qui met l'app en veille après 15 min d'inactivité. Le réveil prend 30-60 secondes, ce qui dépasse le timeout de la recherche (15s). Quatre correctifs ont été appliqués dans <code>index.html</code> et l'APK a été rebuildé avec succès.</p>
+</div>
+
+<div class="section">
+  <h2>🐛 Bug racine — Cause du "Failed to fetch"</h2>
+  <div class="bug">
+    <h4><span class="tag crit">Critique</span> Render Free Tier cold-start</h4>
+    <p>Le proxy sur <code>seven-hjai.onrender.com</code> est hébergé sur le plan gratuit de Render. Après 15 minutes sans requête, l'application se met en veille. Le réveil prend typiquement <strong>30 à 60 secondes</strong>, pendant lesquelles toutes les requêtes API échouent avec "Failed to fetch".</p>
+
+    <h3>Vérification empirique</h3>
+    <pre><code>$ curl -m 5 https://seven-hjai.onrender.com/api/health
+→ curl: (28) Operation timed out after 5001 milliseconds
+
+$ curl -m 65 https://seven-hjai.onrender.com/api/health
+→ HTTP 200 | time 3.122649s   ← OK après réveil</code></pre>
+
+    <p>Le serveur fonctionne, mais le cold-start dépasse largement les timeouts appliqués côté client.</p>
+  </div>
+</div>
+
+<div class="section">
+  <h2>✅ Correctifs appliqués</h2>
+
+  <div class="bug fixed">
+    <h4><span class="tag fix">Fix 1</span> Wake-up bloquant au démarrage</h4>
+    <p>La barre de recherche est <code>disabled</code> tant que le serveur n'a pas répondu à un ping <code>/health</code> avec un timeout de 90s. L'utilisateur voit un placeholder clair pendant le réveil.</p>
+    <pre><code>document.addEventListener('DOMContentLoaded', () => {
+  if (!searchInput) return;
+  searchInput.disabled = true;
+  searchInput.placeholder = "Le serveur se réveille...";
+
+  fetch(`${PROXY_URL}/health`, { signal: AbortSignal.timeout(90000) })
+    .then(() => {
+      searchInput.disabled = false;
+      searchInput.placeholder = "Rechercher une musique";
+    })
+    .catch(() => {
+      searchInput.disabled = false;
+      searchInput.placeholder = "Serveur lent — réessaie";
+    });
+});</code></pre>
+  </div>
+
+  <div class="bug fixed">
+    <h4><span class="tag fix">Fix 2</span> Timeout recherche → 60s</h4>
+    <p>Le timeout de la recherche YouTube passe de 15s à 60s pour absorber le cold-start.</p>
+    <pre><code>|| await fetchWithRetry(`${PROXY_URL}/youtube/search?q=...&maxResults=12`,
+  { signal: AbortSignal.timeout(60000) })</code></pre>
+  </div>
+
+  <div class="bug fixed">
+    <h4><span class="tag fix">Fix 3</span> Helper fetchWithRetry + 7 call-sites</h4>
+    <p>Un helper <code>fetchWithRetry</code> ajoute 1 retry automatique avec backoff de 3s en cas d'échec réseau.</p>
+    <pre><code>async function fetchWithRetry(url, options, retries = 1) {
+  try {
+    return await fetch(url, options);
+  } catch (e) {
+    if (retries > 0) {
+      await new Promise(r => setTimeout(r, 3000));
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    throw e;
+  }
+}</code></pre>
+    <p>Call-sites migrés :</p>
+    <ul>
+      <li>Recherche YouTube principale (ligne 3631)</li>
+      <li>Related videos (lignes 4194, 4302)</li>
+      <li>Recherche 16 résultats (4819)</li>
+      <li>Smart tracks par artiste (5607)</li>
+      <li>Recherche maxResults=1 (5943, 6053)</li>
+    </ul>
+  </div>
+
+  <div class="bug fixed">
+    <h4><span class="tag fix">Fix 4</span> Message d'erreur user-friendly</h4>
+    <p>Au lieu d'afficher "Failed to fetch" (cryptique pour l'utilisateur), le catch affiche désormais un message clair quand l'erreur est réseau/timeout.</p>
+    <pre><code>const isNet = e.name === 'TimeoutError' || e.name === 'AbortError'
+              || /fetch/i.test(e.message || '');
+const msg = isNet
+  ? 'Serveur en cours de réveil, réessaie dans 30 secondes.'
+  : `Erreur: ${esc(e.message)}`;</code></pre>
+  </div>
+</div>
+
+<div class="section">
+  <h2>🗂️ Récapitulatif technique</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Correctif</th>
+        <th>Fichier</th>
+        <th>Ligne</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Wake-up bloquant</td>
+        <td><code>index.html</code></td>
+        <td>6273–6290</td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Timeout 60s</td>
+        <td><code>index.html</code></td>
+        <td>3631</td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>fetchWithRetry helper</td>
+        <td><code>index.html</code></td>
+        <td>3329–3337</td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>fetchWithRetry (7 call-sites)</td>
+        <td><code>index.html</code></td>
+        <td>3631, 4194, 4302, 4819, 5607, 5943, 6053</td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Message d'erreur</td>
+        <td><code>index.html</code></td>
+        <td>3748–3750</td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>—</td>
+        <td>Sync <code>index.html</code> → <code>www/</code> → <code>android/assets/</code></td>
+        <td>—</td>
+        <td>—</td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td>—</td>
+        <td>Build APK debug</td>
+        <td><code>app-debug.apk</code></td>
+        <td>11 MB</td>
+        <td><span class="check">✓</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>🧪 Procédure de test recommandée</h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="time">Étape 1</div>
+      <div class="what">Installer l'APK sur un appareil Android et lancer l'app. Le serveur Render est en veille (cold start).</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Étape 2</div>
+      <div class="what">Observer la barre de recherche : elle doit afficher "Le serveur se réveille…" et être <code>disabled</code>.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Étape 3</div>
+      <div class="what">Attendre 30-60 secondes. La barre passe à "Rechercher une musique" et devient active.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Étape 4</div>
+      <div class="what">Taper une recherche (ex. "Booba"). Les résultats s'affichent en moins de 5 secondes.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Étape 5 (optionnel)</div>
+      <div class="what">Si Render est encore en veille au moment du tap, <code>fetchWithRetry</code> retente automatiquement après 3s. L'utilisateur voit les résultats sans intervention.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="time">Étape 6 (optionnel)</div>
+      <div class="what">Si le cold-start dépasse 60s, l'utilisateur voit le message "Serveur en cours de réveil, réessaie dans 30 secondes." au lieu de "Failed to fetch".</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>🚀 Améliorations futures (non bloquantes)</h2>
+  <p>Les points ci-dessous sont identifiés mais <strong>non corrigés</strong> dans cette itération pour rester focalisé sur le bug critique :</p>
+
+  <div class="bug major">
+    <h4><span class="tag major">Moyen</span> Service Worker ne cache pas les API</h4>
+    <p>Le SW (sw.js) n'a en cache que les assets statiques. Si le réseau tombe après le démarrage, les routes <code>/api/*</code> n'ont pas de fallback. Envisager un cache pour les réponses de recherche en mode "stale-while-revalidate".</p>
+  </div>
+
+  <div class="bug minor">
+    <h4><span class="tag minor">Mineur</span> Migration vers un plan Render payant</h4>
+    <p>Le plan "Starter" à 7$/mois élimine le cold-start et résout le problème à la racine. À considérer si l'app est utilisée sérieusement.</p>
+  </div>
+
+  <div class="bug minor">
+    <h4><span class="tag minor">Mineur</span> Cron de keep-alive</h4>
+    <p>Un cron externe (ex. cron-job.org) qui pingue <code>/api/health</code> toutes les 10 minutes empêche Render de dormir. Trade-off : consomme le quota gratuit d'heures.</p>
+  </div>
+</div>
+
+<footer>
+  <p>Diagnostic généré le 15 juin 2026 · Sevenz App · Build <code>Sevenz-debug-fixed.apk</code> (11 MB)</p>
+  <p style="margin-top: 8px;">Fichiers concernés : <code>index.html</code> · <code>www/index.html</code> · <code>android/app/src/main/assets/public/index.html</code></p>
+</footer>
+
+</div>
+</body>
+</html>

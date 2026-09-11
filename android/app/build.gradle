@@ -4,8 +4,8 @@ android {
     namespace = "com.sevenz.app"
     compileSdk = rootProject.ext.compileSdkVersion
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
     defaultConfig {
         applicationId "com.sevenz.app"
@@ -24,6 +24,13 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    testOptions {
+        unitTests {
+            // android.util.Log renvoie des valeurs par défaut au lieu de
+            // lever "not mocked" dans les tests unitaires JVM
+            returnDefaultValues = true
         }
     }
 }

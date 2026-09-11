@@ -13,4 +13,11 @@ ext {
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
+
+    // Connexion Google native (@capacitor-firebase/authentication).
+    // Sans rgcfaIncludeGoogle, le plugin compile les dépendances Google en
+    // compileOnly et signInWithGoogle échoue à l'exécution.
+    rgcfaIncludeGoogle = true
+    androidxCredentialsVersion = '1.3.0'
+    androidxCredentialsPlayServicesAuthVersion = '1.3.0'
 }

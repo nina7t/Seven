@@ -1,26 +1,16 @@
 const fs = require('fs');
+const path = require('path');
 
-const key = process.env.YOUTUBE_API_KEY || '';
-if (!key) {
-  console.warn('Warning: YOUTUBE_API_KEY non définie — l\'app tournera sans clé API');
+// Copie le fichier source vers le dossier webDir utilisé par Capacitor
+const src = path.join(__dirname, 'index.html');
+const destDir = path.join(__dirname, 'www');
+const dest = path.join(destDir, 'index.html');
+
+if (!fs.existsSync(src)) {
+  console.error(`Source not found: ${src}`);
+  process.exit(1);
 }
 
-const proxyUrl = process.env.PROXY_URL || 'http://localhost:3001/api';
-
-const config = `window.APP_CONFIG = {
-  youtubeApiKey: '${key}',
-  proxyUrl: '${proxyUrl}',
-  firebase: {
-    apiKey: "AIzaSyD6DUc0twRqo5U-f1k6mpDz1pT-3QKrjkc",
-    authDomain: "sevenz-7beb7.firebaseapp.com",
-    projectId: "sevenz-7beb7",
-    storageBucket: "sevenz-7beb7.firebasestorage.app",
-    messagingSenderId: "69732113281",
-    appId: "1:69732113281:web:6178d65b335b9e2219e680",
-    measurementId: "G-BMYJVB7TCS"
-  }
-};
-`;
-
-fs.writeFileSync('config.js', config);
-console.log('config.js généré avec succès');
+fs.mkdirSync(destDir, { recursive: true });
+fs.copyFileSync(src, dest);
+console.log(`Built: ${src} -> ${dest} (${fs.statSync(dest).size} bytes)`);

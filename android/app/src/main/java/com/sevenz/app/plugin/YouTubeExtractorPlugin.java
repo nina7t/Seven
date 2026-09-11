@@ -1,6 +1,5 @@
 package com.sevenz.app.plugin;
 
-import android.os.AsyncTask;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -15,8 +14,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * YouTubeExtractor - Extracts audio stream URLs directly on Android
@@ -25,6 +24,7 @@ import java.util.regex.Pattern;
 public class YouTubeExtractorPlugin extends Plugin {
     
     private static final String TAG = "YouTubeExtractor";
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     
     @PluginMethod
     public void getAudioUrl(PluginCall call) {
@@ -37,55 +37,33 @@ public class YouTubeExtractorPlugin extends Plugin {
         
         Log.d(TAG, "Getting audio URL for: " + videoId);
         
-        new ExtractAudioTask(call).execute(videoId);
-    }
-    
-    private class ExtractAudioTask extends AsyncTask<String, Void, JSObject> {
-        
-        private final PluginCall call;
-        
-        ExtractAudioTask(PluginCall call) {
-            this.call = call;
-        }
-        
-        @Override
-        protected JSObject doInBackground(String... params) {
-            String videoId = params[0];
-            
+        executor.execute(() -> {
             try {
                 // Method 1: Try Invidious API (public instances that work)
-                JSObject result = tryInvidious(videoId);
-                if (result != null) {
-                    return result;
+                final JSObject invidiousResult = tryInvidious(videoId);
+                if (invidiousResult != null) {
+                    getActivity().runOnUiThread(() -> call.resolve(invidiousResult));
+                    return;
                 }
                 
                 // Method 2: Try direct YouTube streaming URL extraction
-                result = tryDirectExtraction(videoId);
-                if (result != null) {
-                    return result;
+                final JSObject directResult = tryDirectExtraction(videoId);
+                if (directResult != null) {
+                    getActivity().runOnUiThread(() -> call.resolve(directResult));
+                    return;
                 }
                 
                 // Method 3: Fallback with error message
-                JSObject error = new JSObject();
-                error.put("error", "Could not extract audio URL. Try a different video.");
-                return error;
+                getActivity().runOnUiThread(() -> 
+                    call.reject("Could not extract audio URL. Try a different video."));
                 
             } catch (Exception e) {
                 Log.e(TAG, "Extraction failed", e);
-                JSObject error = new JSObject();
-                error.put("error", "Extraction failed: " + e.getMessage());
-                return error;
+                final String errorMsg = e.getMessage();
+                getActivity().runOnUiThread(() -> 
+                    call.reject("Extraction failed: " + errorMsg));
             }
-        }
-        
-        @Override
-        protected void onPostExecute(JSObject result) {
-            if (result.has("error")) {
-                call.reject(result.getString("error"));
-            } else {
-                call.resolve(result);
-            }
-        }
+        });
     }
     
     /**
@@ -100,40 +78,46 @@ public class YouTubeExtractorPlugin extends Plugin {
         };
         
         for (String instance : instances) {
+            HttpURLConnection conn = null;
             try {
                 Log.d(TAG, "Trying instance: " + instance);
-                
+
                 URL url = new URL(instance + "/api/v1/videos/" + videoId);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(8000);
                 conn.setReadTimeout(8000);
                 conn.addRequestProperty("User-Agent", "Mozilla/5.0");
-                
+
                 int responseCode = conn.getResponseCode();
-                
+
                 if (responseCode == 200) {
-                    BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream())
-                    );
                     StringBuilder response = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream()))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            response.append(line);
+                        }
                     }
-                    reader.close();
-                    
                     return parseInvidiousResponse(response.toString(), videoId, instance);
                 }
-                
-                conn.disconnect();
-                
+
             } catch (Exception e) {
                 Log.d(TAG, "Instance failed: " + instance + " - " + e.getMessage());
+            } finally {
+                // Toujours fermer la connexion (y compris sur le chemin 200 et les exceptions)
+                if (conn != null) conn.disconnect();
             }
         }
-        
+
         return null;
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        executor.shutdownNow();
+        super.handleOnDestroy();
     }
     
     /**

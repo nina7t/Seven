@@ -2,6 +2,7 @@ package com.sevenz.app.plugin;
 
 import android.content.Intent;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -11,16 +12,17 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import com.sevenz.app.AudioService;
+import com.sevenz.app.plugin.DownloaderImpl;
+import com.sevenz.app.resolver.NewPipeResolver;
 
 import org.schabi.newpipe.extractor.NewPipe;
-import org.schabi.newpipe.extractor.exceptions.ExtractionException;
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService;
 import org.schabi.newpipe.extractor.stream.AudioStream;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @CapacitorPlugin(name = "AudioPlayerPlugin")
 public class AudioPlayerPlugin extends Plugin {
@@ -32,22 +34,36 @@ public class AudioPlayerPlugin extends Plugin {
     public static final String ACTION_STOP = "com.sevenz.app.STOP";
     
     // Static instance for AudioService callbacks
-    private static AudioPlayerPlugin instance;
+    private static volatile AudioPlayerPlugin instance;
     
     @Override
     public void load() {
         instance = this;
     }
-    
-    public static void notifyNextTrack(android.content.Context context) {
-        if (instance != null) {
-            instance.notifyListeners("next", new JSObject());
+
+    @PluginMethod
+    public void openAudioSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Unable to open audio settings", e);
         }
     }
     
+    public static void notifyNextTrack(android.content.Context context) {
+        if (instance != null) {
+            // Le JS écoute "skipNext" (et non "next") -> sinon le bouton suivant
+            // de la notification/MediaSession ne déclenchait rien hors de l'app.
+            instance.notifyListeners("skipNext", new JSObject());
+        }
+    }
+
     public static void notifyPreviousTrack(android.content.Context context) {
         if (instance != null) {
-            instance.notifyListeners("previous", new JSObject());
+            instance.notifyListeners("skipPrevious", new JSObject());
         }
     }
     
@@ -71,9 +87,23 @@ public class AudioPlayerPlugin extends Plugin {
         }
     }
     
-    public static void notifyTrackChanged(android.content.Context context) {
+    // `videoId` = piste RÉELLEMENT promue par le natif. Sans lui, le JS devait
+    // deviner laquelle en se fiant à un index posé ~20s plus tôt, et se trompait
+    // dès que la file avait bougé entre-temps.
+    public static void notifyTrackChanged(android.content.Context context, String videoId) {
         if (instance != null) {
-            instance.notifyListeners("trackChanged", new JSObject());
+            JSObject data = new JSObject();
+            data.put("videoId", videoId != null ? videoId : "");
+            instance.notifyListeners("trackChanged", data);
+        }
+    }
+
+    // Canal de debug natif -> JS pour diagnostiquer le crossfade sans adb.
+    public static void notifyCrossfadeDebug(String msg) {
+        if (instance != null) {
+            JSObject data = new JSObject();
+            data.put("msg", msg);
+            instance.notifyListeners("crossfadeDebug", data);
         }
     }
     
@@ -87,14 +117,29 @@ public class AudioPlayerPlugin extends Plugin {
         final String title = call.getString("title", "Unknown");
         final String artist = call.getString("artist", "Unknown Artist");
         final String thumb = call.getString("thumb", "");
-        
+
         if (videoId == null || videoId.isEmpty()) {
             call.reject("videoId is required");
             return;
         }
-        
+
         Log.d(TAG, "playVideo called for: " + videoId);
-        
+
+        // Si l'URL a déjà été préchargée (cache rempli par preload/loadNextTrack),
+        // on démarre IMMÉDIATEMENT sans ré-extraction réseau (1-3s) -> transition fluide
+        // entre les titres (fondu de sortie -> suivante quasi instantanée -> fondu d'entrée).
+        String preloaded = getFreshUrl(videoId);
+        if (preloaded != null && !preloaded.isEmpty()) {
+            Log.d(TAG, "playVideo: URL préchargée en cache -> démarrage immédiat");
+            startAudioService(preloaded, title, artist, thumb, videoId);
+            JSObject result = new JSObject();
+            result.put("success", true);
+            result.put("cached", true);
+            result.put("message", "Playing (cached): " + title);
+            call.resolve(result);
+            return;
+        }
+
         // Run extraction on background thread
         new Thread(() -> {
             try {
@@ -126,42 +171,49 @@ public class AudioPlayerPlugin extends Plugin {
                 
                 if (bestAudio == null) {
                     Log.e(TAG, "No audio stream found");
-                    call.reject("No audio available for this video.");
+                    getActivity().runOnUiThread(() -> call.reject("No audio available for this video."));
                     return;
                 }
-                
+
                 String audioUrl = bestAudio.getUrl();
                 int bitrate = bestAudio.getAverageBitrate();
-                
+
                 Log.d(TAG, "Found audio URL! Bitrate: " + bitrate + " URL length: " + audioUrl.length());
-                
+
                 // Start the AudioService with the extracted URL
-                startAudioService(audioUrl, title, artist, thumb);
-                
-                JSObject result = new JSObject();
-                result.put("success", true);
-                result.put("audioUrl", audioUrl);
-                result.put("bitrate", bitrate);
-                result.put("message", "Playing: " + title);
-                
-                call.resolve(result);
-                
+                startAudioService(audioUrl, title, artist, thumb, videoId);
+
+                getActivity().runOnUiThread(() -> {
+                    JSObject result = new JSObject();
+                    result.put("success", true);
+                    result.put("audioUrl", audioUrl);
+                    result.put("bitrate", bitrate);
+                    result.put("message", "Playing: " + title);
+                    call.resolve(result);
+                });
+
             } catch (Exception e) {
                 String errorDetail = e.getClass().getSimpleName() + ": " + (e.getMessage() != null ? e.getMessage() : "no message");
                 Log.e(TAG, "Extraction failed: " + errorDetail, e);
                 e.printStackTrace();
-                call.reject("Extraction failed: " + errorDetail);
+                getActivity().runOnUiThread(() -> call.reject("Extraction failed: " + errorDetail));
             }
         }).start();
     }
     
     private void startAudioService(String url, String title, String artist, String thumb) {
+        startAudioService(url, title, artist, thumb, null);
+    }
+
+    // `videoId` permet au service de purger la bonne entrée de cache quand
+    // ExoPlayer refuse l'URL (403 sur un lien périmé).
+    private void startAudioService(String url, String title, String artist, String thumb, String videoId) {
         Log.d(TAG, "startAudioService called with URL length: " + (url != null ? url.length() : 0));
         
         Intent intent = new Intent(getContext(), AudioService.class);
-        intent.setAction(ACTION_PLAY);
         intent.putExtra("action", ACTION_PLAY);
         intent.putExtra("url", url);
+        intent.putExtra("videoId", videoId != null ? videoId : "");
         intent.putExtra("title", title);
         intent.putExtra("artist", artist);
         intent.putExtra("thumb", thumb);
@@ -200,7 +252,7 @@ public class AudioPlayerPlugin extends Plugin {
     @PluginMethod
     public void pause(PluginCall call) {
         Intent intent = new Intent(getContext(), AudioService.class);
-        intent.setAction(ACTION_PAUSE);
+        intent.putExtra("action", ACTION_PAUSE);
         getContext().startService(intent);
         
         JSObject result = new JSObject();
@@ -211,7 +263,7 @@ public class AudioPlayerPlugin extends Plugin {
     @PluginMethod
     public void resume(PluginCall call) {
         Intent intent = new Intent(getContext(), AudioService.class);
-        intent.setAction(ACTION_RESUME);
+        intent.putExtra("action", ACTION_RESUME);
         getContext().startService(intent);
         
         JSObject result = new JSObject();
@@ -222,7 +274,7 @@ public class AudioPlayerPlugin extends Plugin {
     @PluginMethod
     public void stop(PluginCall call) {
         Intent intent = new Intent(getContext(), AudioService.class);
-        intent.setAction(ACTION_STOP);
+        intent.putExtra("action", ACTION_STOP);
         getContext().startService(intent);
         
         JSObject result = new JSObject();
@@ -233,12 +285,87 @@ public class AudioPlayerPlugin extends Plugin {
     @PluginMethod
     public void isPlaying(PluginCall call) {
         JSObject result = new JSObject();
-        result.put("isPlaying", false);
+        result.put("isPlaying", AudioService.isLastPlaying());
         call.resolve(result);
     }
-    
-    // URL cache for preloading tracks
-    private static Map<String, String> urlCache = new HashMap<>();
+
+    // Position de lecture courante (en secondes) pour la barre de progression
+    @PluginMethod
+    public void getPosition(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("position", AudioService.getLastPositionSec());
+        result.put("duration", AudioService.getLastDurationSec());
+        result.put("isPlaying", AudioService.isLastPlaying());
+        call.resolve(result);
+    }
+
+    // Seek absolu (en secondes)
+    @PluginMethod
+    public void seekTo(PluginCall call) {
+        double seconds = call.getDouble("position", 0.0);
+        Intent intent = new Intent(getContext(), AudioService.class);
+        intent.putExtra("action", "com.sevenz.app.SEEK");
+        intent.putExtra("positionMs", (long) (seconds * 1000));
+        getContext().startService(intent);
+        call.resolve();
+    }
+
+    // URL cache for preloading tracks (accédé depuis plusieurs threads -> thread-safe)
+    // Les URLs de flux googlevideo EXPIRENT (quelques heures). Ce cache n'avait
+    // aucune péremption : une entrée périmée était resservie telle quelle, ExoPlayer
+    // prenait un 403, et — faute de gestionnaire d'erreur — la lecture s'arrêtait
+    // sans un mot. C'est la panne « ça marchait hier soir ».
+    private static final class CachedUrl {
+        final String url; final long expiresAt;
+        CachedUrl(String url, long expiresAt) { this.url = url; this.expiresAt = expiresAt; }
+    }
+    private static final Map<String, CachedUrl> urlCache = new ConcurrentHashMap<>();
+    private static final long URL_TTL_FALLBACK_MS = 90 * 60 * 1000L;
+    private static final long URL_SAFETY_MARGIN_MS = 5 * 60 * 1000L;
+    private static final int URL_CACHE_MAX = 200;
+
+    /** Les URLs googlevideo portent un paramètre `expire=<epoch sec>`. On s'y fie
+     *  quand il est lisible, avec une marge ; sinon TTL prudent. */
+    private static long computeExpiry(String url) {
+        long fallback = System.currentTimeMillis() + URL_TTL_FALLBACK_MS;
+        try {
+            int i = url.indexOf("expire=");
+            if (i < 0) return fallback;
+            int end = url.indexOf('&', i);
+            String v = end < 0 ? url.substring(i + 7) : url.substring(i + 7, end);
+            long expMs = Long.parseLong(v) * 1000L - URL_SAFETY_MARGIN_MS;
+            return Math.min(expMs, fallback);
+        } catch (Exception e) { return fallback; }
+    }
+
+    private static void putUrl(String videoId, String url) {
+        if (videoId == null || url == null || url.isEmpty()) return;
+        if (urlCache.size() >= URL_CACHE_MAX) urlCache.clear(); // borne mémoire simple
+        urlCache.put(videoId, new CachedUrl(url, computeExpiry(url)));
+    }
+
+    /** null si absente OU périmée (l'entrée périmée est purgée au passage). */
+    private static String getFreshUrl(String videoId) {
+        if (videoId == null) return null;
+        CachedUrl c = urlCache.get(videoId);
+        if (c == null) return null;
+        if (System.currentTimeMillis() >= c.expiresAt) { urlCache.remove(videoId); return null; }
+        return c.url;
+    }
+
+    /** Purge ciblée : appelée quand ExoPlayer refuse une URL (403/410). */
+    public static void invalidateUrl(String videoId) {
+        if (videoId != null && !videoId.isEmpty()) urlCache.remove(videoId);
+    }
+
+    /** Remonte au JS une erreur de LECTURE (distincte d'une erreur d'extraction). */
+    public static void notifyPlaybackError(String videoId, String codeName) {
+        if (instance == null) return;
+        JSObject d = new JSObject();
+        d.put("videoId", videoId != null ? videoId : "");
+        d.put("name", codeName != null ? codeName : "");
+        instance.notifyListeners("playbackError", d);
+    }
     
     @PluginMethod
     public void skipNext(PluginCall call) {
@@ -261,7 +388,7 @@ public class AudioPlayerPlugin extends Plugin {
         }
         
         // Check cache first
-        if (urlCache.containsKey(videoId)) {
+        if (getFreshUrl(videoId) != null) {
             JSObject result = new JSObject();
             result.put("cached", true);
             result.put("videoId", videoId);
@@ -288,7 +415,7 @@ public class AudioPlayerPlugin extends Plugin {
                     .orElse(null);
                 
                 if (bestAudio != null) {
-                    urlCache.put(videoId, bestAudio.getUrl());
+                    putUrl(videoId, bestAudio.getUrl());
                     Log.d(TAG, "Preloaded URL cached for: " + videoId);
                 }
             } catch (Exception e) {
@@ -310,7 +437,7 @@ public class AudioPlayerPlugin extends Plugin {
             return;
         }
         
-        String cachedUrl = urlCache.get(videoId);
+        String cachedUrl = getFreshUrl(videoId);
         JSObject result = new JSObject();
         result.put("videoId", videoId);
         result.put("hasUrl", cachedUrl != null);
@@ -331,7 +458,7 @@ public class AudioPlayerPlugin extends Plugin {
         int durationMs = call.getInt("durationMs", 0);
         
         Intent intent = new Intent(getContext(), AudioService.class);
-        intent.setAction("com.sevenz.app.SET_CROSSFADE");
+        intent.putExtra("action", "com.sevenz.app.SET_CROSSFADE");
         intent.putExtra("durationMs", durationMs);
         getContext().startService(intent);
         
@@ -341,8 +468,16 @@ public class AudioPlayerPlugin extends Plugin {
     }
     
     @PluginMethod
+    public void cancelCrossfade(PluginCall call) {
+        Intent intent = new Intent(getContext(), AudioService.class);
+        intent.putExtra("action", "com.sevenz.app.ABORT_CROSSFADE");
+        getContext().startService(intent);
+        call.resolve();
+    }
+
+    @PluginMethod
     public void loadNextTrack(PluginCall call) {
-        String videoId = call.getString("videoId");
+        final String videoId = call.getString("videoId");
         final String title = call.getString("title", "Unknown");
         final String artist = call.getString("artist", "Unknown Artist");
         final String thumb = call.getString("thumb", "");
@@ -353,12 +488,13 @@ public class AudioPlayerPlugin extends Plugin {
         }
         
         // Check cache first
-        String cachedUrl = urlCache.get(videoId);
+        String cachedUrl = getFreshUrl(videoId);
         if (cachedUrl != null) {
             // Send directly to service
             Intent intent = new Intent(getContext(), AudioService.class);
-            intent.setAction("com.sevenz.app.LOAD_NEXT");
+            intent.putExtra("action", "com.sevenz.app.LOAD_NEXT");
             intent.putExtra("url", cachedUrl);
+            intent.putExtra("videoId", videoId);
             intent.putExtra("title", title);
             intent.putExtra("artist", artist);
             intent.putExtra("thumb", thumb);
@@ -388,24 +524,88 @@ public class AudioPlayerPlugin extends Plugin {
                 
                 if (bestAudio != null) {
                     String audioUrl = bestAudio.getUrl();
-                    urlCache.put(videoId, audioUrl);
+                    putUrl(videoId, audioUrl);
                     
                     // Send to service
                     Intent intent = new Intent(getContext(), AudioService.class);
-                    intent.setAction("com.sevenz.app.LOAD_NEXT");
+                    intent.putExtra("action", "com.sevenz.app.LOAD_NEXT");
                     intent.putExtra("url", audioUrl);
+                    intent.putExtra("videoId", videoId);
                     intent.putExtra("title", title);
                     intent.putExtra("artist", artist);
                     intent.putExtra("thumb", thumb);
                     getContext().startService(intent);
-                    
-                    call.resolve(new JSObject() {{ put("loaded", true); }});
+
+                    getActivity().runOnUiThread(() -> {
+                        JSObject result = new JSObject();
+                        result.put("loaded", true);
+                        call.resolve(result);
+                    });
                 } else {
-                    call.reject("No audio stream found");
+                    getActivity().runOnUiThread(() -> call.reject("No audio stream found"));
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error loading next track", e);
-                call.reject("Extraction failed: " + e.getMessage());
+                getActivity().runOnUiThread(() -> call.reject("Extraction failed: " + e.getMessage()));
+            }
+        }).start();
+    }
+
+    /**
+     * Résout un titre officiel (artiste + titre + durée) en vidéo YouTube fiable.
+     * Recherche via NewPipeExtractor, score les candidats et retourne le meilleur.
+     * Si fetchAudio=true, extrait également l'URL audio du meilleur candidat.
+     * Cette méthode DOIT être appelée depuis l'APK Android (pas sur le web).
+     */
+    @PluginMethod
+    public void resolveTrack(PluginCall call) {
+        final String artist = call.getString("artist", "");
+        final String title = call.getString("title", "");
+        final Integer durationSec = call.getInt("durationSec"); // null si absent
+        final boolean fetchAudio = call.getBoolean("fetchAudio", false);
+
+        if (artist.isEmpty() || title.isEmpty()) {
+            call.reject("artist and title are required");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                NewPipeResolver resolver = new NewPipeResolver(artist, title, durationSec);
+                NewPipeResolver.ResolvedTrack track = resolver.resolve();
+
+                if (track == null) {
+                    getActivity().runOnUiThread(() -> call.reject("No reliable match found"));
+                    return;
+                }
+
+                String audioUrl = null;
+                if (fetchAudio) {
+                    audioUrl = track.fetchAudioUrl();
+                    if (audioUrl != null && !audioUrl.isEmpty()) {
+                        putUrl(track.videoId, audioUrl);
+                    }
+                }
+
+                final String finalAudioUrl = audioUrl;
+                getActivity().runOnUiThread(() -> {
+                    JSObject result = new JSObject();
+                    result.put("videoId", track.videoId);
+                    result.put("title", track.title);
+                    result.put("uploader", track.uploader);
+                    result.put("durationSec", track.durationSec);
+                    result.put("score", track.score);
+                    result.put("url", track.url);
+                    if (finalAudioUrl != null) {
+                        result.put("audioUrl", finalAudioUrl);
+                    }
+                    call.resolve(result);
+                });
+
+            } catch (Exception e) {
+                Log.e(TAG, "resolveTrack failed", e);
+                final String msg = e.getMessage() != null ? e.getMessage() : "Resolution failed";
+                getActivity().runOnUiThread(() -> call.reject("Resolution failed: " + msg));
             }
         }).start();
     }

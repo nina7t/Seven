@@ -1416,6 +1416,24 @@ h1, h2, h3 {
 .ob-count.ready { color: var(--green); }
 
 /* Artist grid */
+.ob-search {
+  display: flex; align-items: center; gap: 10px; width: min(560px, 92%);
+  margin: 0 auto 14px; padding: 8px 8px 8px 16px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 99px;
+}
+.ob-search i { font-size: 18px; color: rgba(255,255,255,0.55); flex: 0 0 auto; }
+.ob-search input {
+  flex: 1; min-width: 0; background: none; border: 0; outline: none;
+  color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px;
+}
+.ob-search input::placeholder { color: rgba(255,255,255,0.45); }
+.ob-search-go {
+  flex: 0 0 auto; border: 0; border-radius: 99px; padding: 9px 16px; cursor: pointer;
+  background: #fff; color: #000; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700;
+}
+.ob-search-go:hover { transform: scale(1.04); }
+.ob-search-status { text-align: center; font-size: 13px; color: rgba(255,255,255,0.55); min-height: 18px; margin-bottom: 10px; }
 .ob-grid {
   display: flex; flex-wrap: wrap; gap: 20px;
   justify-content: center; width: 100%;
@@ -3869,6 +3887,13 @@ button.t-like:hover, button.t-more:hover { opacity: 1; background: rgba(255,255,
       <span style="color:rgba(255,255,255,0.3)">·</span>
       <span id="obHint" style="font-size:13px">Choisis au moins 5 pour continuer</span>
     </div>
+    <div class="ob-search">
+      <i class="ti ti-search"></i>
+      <input type="text" id="obSearchInput" placeholder="Cherche un autre artiste"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();obRunSearch();}">
+      <button class="ob-search-go" onclick="obRunSearch()">Chercher</button>
+    </div>
+    <div class="ob-search-status" id="obSearchStatus"></div>
     <div class="ob-grid" id="obGrid"></div>
   </div>
   <div class="ob-footer">
@@ -5809,47 +5834,95 @@ async function handleTrackEnded() {
 }
 
 // Load recommended tracks from YouTube based on a video ID
+// ── TITRES LIÉS ────────────────────────────────────────────────────
+// L'API YouTube a supprimé `relatedToVideoId` en 2023 ; le contournement
+// utilisait le nom de la CHAÎNE comme graine. Or cette chaîne est souvent le
+// label (« London Records » pour Bronski Beat), pas l'artiste : la suite
+// devenait le catalogue du label, interviews et autres genres compris.
+// On part donc de l'artiste réel via la radio Deezer, et YouTube ne sert plus
+// que de repli.
+
+// Deux uploads d'un même morceau (« Clip Officiel », « audio officiel »,
+// « Remaster ») ne doivent pas se suivre dans la file.
+function trackTitleKey(t) {
+  return String(t || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\(\[][^\)\]]*[\)\]]/g, ' ')          // (Clip Officiel), [Remaster]
+    .replace(/\b(official|officiel|clip|audio|video|vid[ée]o|lyrics?|paroles|hd|hq|remaster(ed)?|version|extended|radio edit|live)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function dedupeTracks(tracks) {
+  const seen = new Set();
+  return tracks.filter(t => {
+    const key = `${trackTitleKey(t.title)}|${(t.channel || '').toLowerCase()}`;
+    if (!key.trim() || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// Radio Deezer : pistes sans videoId (résolu à la lecture), comme la recherche.
+async function fetchDeezerRadio(artist, excludeTitle) {
+  const clean = cleanArtistName(artist);
+  if (!clean) return [];
+  let url = `${PROXY_URL}/deezer/radio?artist=${encodeURIComponent(clean)}`;
+  if (excludeTitle) url += `&exclude=${encodeURIComponent(excludeTitle)}`;
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return dedupeTracks((data.tracks || []).map(metaToTrack));
+}
+
 async function loadRecommendedTracks(videoId) {
-  console.log('[Recommendations] Loading related videos for:', videoId);
-  
+  const seed = S.currentTrack;
+
+  // 1) Radio Deezer, à partir de l'ARTISTE de la piste en cours.
+  if (seed?.channel) {
+    try {
+      const tracks = await fetchDeezerRadio(seed.channel, seed.title);
+      if (tracks.length) {
+        const disliked = new Set(lsParse('sevenz_disliked', []));
+        const queue = tracks.filter(t => !t.id || !disliked.has(t.id));
+        if (queue.length) {
+          S.queue = queue;
+          S.currentIndex = 0;
+          playTrack(0);
+          showToast(`Radio ${cleanArtistName(seed.channel)}`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[Recommandations] radio Deezer indisponible', e.message);
+    }
+  }
+
+  // 2) Repli YouTube (graine = nom de chaîne : moins fiable, mais mieux que rien).
+  if (!videoId) return;
   try {
     const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${videoId}&maxResults=10`);
-    if (res.status === 429) {
-      console.warn('[Recommendations] API quota exceeded');
-      return;
-    }
-    
+    if (res.status === 429) { console.warn('[Recommandations] quota API dépassé'); return; }
+
     const data = await res.json();
-    if (!data.items || data.items.length === 0) {
-      console.warn('[Recommendations] No related videos found');
-      return;
-    }
-    
-    // Convert to track format
-    const tracks = data.items.map(item => ({
+    if (!data.items?.length) return;
+
+    const tracks = dedupeTracks(data.items.map(item => ({
       id: item.id.videoId,
       title: item.snippet.title,
       channel: item.snippet.channelTitle,
       thumb: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url
-    })).filter(t => t.id); // Remove items without videoId
-    
-    if (tracks.length === 0) {
-      console.warn('[Recommendations] No valid tracks found');
-      return;
-    }
-    
-    console.log('[Recommendations] Loaded', tracks.length, 'tracks');
-    
-    // Replace queue with recommendations and play first
+    })).filter(t => t.id && t.id !== videoId));
+
+    if (!tracks.length) return;
+
     S.queue = tracks;
     S.currentIndex = 0;
     playTrack(0);
-    
-    // Show toast notification
     showToast('Lecture des recommandations');
-    
   } catch (err) {
-    console.error('[Recommendations] Error loading:', err);
+    console.error('[Recommandations] échec', err);
   }
 }
 
@@ -8498,16 +8571,65 @@ const GENRE_ADJ = {
 };
 
 // Initial set: 2-3 artistes par genre majeur
-const INITIAL_GENRES = ['hiphop-fr','drill-fr','afro-fr','hiphop-us','trap-us','rnb','pop-fr','afro','electro'];
+// Catalogue élargi : la liste d'origine ne couvrait que rap / trap / R&B / afro,
+// si bien qu'un auditeur de rock ou de variété n'avait littéralement rien à
+// choisir. Les photos viennent de Deezer au rendu (obHydratePhotos).
+const ARTIST_DB_EXTRA = [
+  // Rock
+  { name:'Nirvana',            genre:'rock',       grad:'#455a64,#212121' },
+  { name:'Queen',              genre:'rock',       grad:'#c62828,#4a148c' },
+  { name:'Téléphone',          genre:'rock',       grad:'#ef6c00,#b71c1c' },
+  { name:'Radiohead',          genre:'rock',       grad:'#37474f,#263238' },
+  { name:'Noir Désir',         genre:'rock',       grad:'#212121,#4e342e' },
+  { name:'Arctic Monkeys',     genre:'rock',       grad:'#455a64,#1b1b1e' },
+  // Années 80 / new wave
+  { name:'Bronski Beat',       genre:'80s',        grad:'#d81b60,#5e35b1' },
+  { name:'Depeche Mode',       genre:'80s',        grad:'#263238,#6a1b9a' },
+  { name:'New Order',          genre:'80s',        grad:'#0277bd,#311b92' },
+  { name:'Soft Cell',          genre:'80s',        grad:'#ad1457,#4a148c' },
+  { name:'Indochine',          genre:'80s',        grad:'#1a237e,#b71c1c' },
+  { name:'The Cure',           genre:'80s',        grad:'#212121,#880e4f' },
+  // Chanson française
+  { name:'Jacques Brel',       genre:'chanson-fr', grad:'#5d4037,#3e2723' },
+  { name:'Édith Piaf',         genre:'chanson-fr', grad:'#4e342e,#212121' },
+  { name:'Serge Gainsbourg',   genre:'chanson-fr', grad:'#455a64,#263238' },
+  { name:'Francis Cabrel',     genre:'chanson-fr', grad:'#33691e,#1b5e20' },
+  { name:'Véronique Sanson',   genre:'chanson-fr', grad:'#6a1b9a,#4a148c' },
+  // Pop internationale
+  { name:'Michael Jackson',    genre:'pop-inter',  grad:'#212121,#b71c1c' },
+  { name:'Dua Lipa',           genre:'pop-inter',  grad:'#ad1457,#6a1b9a' },
+  { name:'Coldplay',           genre:'pop-inter',  grad:'#0277bd,#00838f' },
+  { name:'Taylor Swift',       genre:'pop-inter',  grad:'#8e24aa,#c2185b' },
+  { name:'ABBA',               genre:'pop-inter',  grad:'#f9a825,#ef6c00' },
+  // Metal
+  { name:'Metallica',          genre:'metal',      grad:'#212121,#424242' },
+  { name:'Rammstein',          genre:'metal',      grad:'#b71c1c,#212121' },
+  { name:'Gojira',             genre:'metal',      grad:'#1b5e20,#212121' },
+  // Jazz
+  { name:'Miles Davis',        genre:'jazz',       grad:'#1a237e,#263238' },
+  { name:'John Coltrane',      genre:'jazz',       grad:'#4e342e,#212121' },
+  { name:'Nina Simone',        genre:'jazz',       grad:'#4a148c,#311b92' },
+  // Latino
+  { name:'Bad Bunny',          genre:'latino',     grad:'#f9a825,#e65100' },
+  { name:'Rosalía',            genre:'latino',     grad:'#c2185b,#6a1b9a' },
+  // Reggae
+  { name:'Bob Marley',         genre:'reggae',     grad:'#2e7d32,#f9a825' },
+  { name:'Alpha Blondy',       genre:'reggae',     grad:'#f57f17,#1b5e20' },
+];
+
+const INITIAL_GENRES = ['rock','pop-inter','chanson-fr','hiphop-fr','80s','pop-fr','rnb','electro','metal','soul','jazz','hiphop-us','afro','latino','reggae'];
 const INITIAL_PER_GENRE = 2;
 
 let obVisible = new Set();  // names currently in grid
 let obSelected = new Set(); // selected names
 
+function obAllArtists() { return ARTIST_DB.concat(ARTIST_DB_EXTRA); }
+
 function obInitialArtists() {
   const result = [];
+  const all = obAllArtists();
   for (const genre of INITIAL_GENRES) {
-    const pool = ARTIST_DB.filter(a => a.genre === genre);
+    const pool = all.filter(a => a.genre === genre);
     const picked = pool.slice(0, INITIAL_PER_GENRE);
     picked.forEach(a => { if (!obVisible.has(a.name)) { obVisible.add(a.name); result.push(a); } });
   }
@@ -8591,7 +8713,11 @@ function obUpdateCount() {
 }
 
 function finishOnboarding() {
-  const likedArtists = ARTIST_DB.filter(a => obSelected.has(a.name));
+  const known = obAllArtists().filter(a => obSelected.has(a.name));
+  const extra = [...obSelected]
+    .filter(n => !known.some(a => a.name === n))
+    .map(n => ({ name: n, genre: 'custom', grad: '#5e35b1,#1a237e', img: _obPhotos[n] || null }));
+  const likedArtists = known.map(a => ({ ...a, img: _obPhotos[a.name] || a.img || null })).concat(extra);
   localStorage.setItem('sevenz_liked_artists', JSON.stringify(likedArtists));
   localStorage.setItem('sevenz_onboarded', '1');
   const overlay = document.getElementById('onboarding');
@@ -8606,12 +8732,80 @@ function skipOnboarding() {
   document.getElementById('onboarding').classList.add('hidden');
 }
 
+// Photos récupérées chez Deezer : sur 53 entrées d'origine, 2 seulement avaient
+// une image — le reste s'affichait en dégradé avec des initiales.
+const _obPhotos = {};
+
+async function obHydratePhotos(names) {
+  const missing = names.filter(n => !(n in _obPhotos));
+  if (!missing.length) return;
+  try {
+    const res = await fetch(`${PROXY_URL}/deezer/artists?names=${encodeURIComponent(missing.join('|'))}`);
+    if (!res.ok) return;
+    const { artists } = await res.json();
+    (artists || []).forEach(a => {
+      const key = a.query || a.name;
+      if (!key) return;
+      _obPhotos[key] = a.picture || null;
+      if (!a.picture) return;
+      const card = document.querySelector(`.ob-artist[data-name="${CSS.escape(key)}"] .ob-avatar`);
+      if (!card) return;
+      card.style.backgroundImage = `url('${cssUrl(a.picture)}')`;
+      card.style.backgroundSize = 'cover';
+      card.style.backgroundPosition = 'center';
+      const initials = card.querySelector('.ob-initials');
+      if (initials) initials.remove();
+    });
+  } catch (e) {
+    console.warn('[Onboarding] photos indisponibles', e.message);
+  }
+}
+
+// Recherche explicite (bouton ou Entrée) : jamais pendant la frappe.
+async function obRunSearch() {
+  const input = document.getElementById('obSearchInput');
+  const status = document.getElementById('obSearchStatus');
+  const q = input.value.trim();
+  if (!q) { input.focus(); return; }
+
+  status.textContent = 'Recherche…';
+  try {
+    const res = await fetch(`${PROXY_URL}/deezer/artists?search=${encodeURIComponent(q)}&limit=6`);
+    if (!res.ok) throw new Error('recherche indisponible');
+    const { artists } = await res.json();
+    const found = (artists || []).filter(a => a.name);
+    if (!found.length) { status.textContent = `Aucun artiste pour « ${q} »`; return; }
+
+    // Le serveur classe du plus pertinent au moins pertinent. On insère dans un
+    // fragment puis en tête, sinon insertBefore() inverserait ce classement.
+    const grid = document.getElementById('obGrid');
+    const frag = document.createDocumentFragment();
+    let added = 0;
+    found.forEach(a => {
+      if (obVisible.has(a.name)) return;
+      obVisible.add(a.name);
+      _obPhotos[a.name] = a.picture || null;
+      frag.appendChild(obRenderArtist({ name: a.name, genre: 'custom', grad: '#5e35b1,#1a237e', img: a.picture }, added * 40));
+      added++;
+    });
+    grid.insertBefore(frag, grid.firstChild);
+    status.textContent = added
+      ? `${added} artiste${added > 1 ? 's' : ''} ajouté${added > 1 ? 's' : ''} en haut de la liste`
+      : 'Ces artistes sont déjà dans la liste';
+    input.value = '';
+  } catch (e) {
+    status.textContent = 'Recherche indisponible, réessaie';
+  }
+}
+
 function initOnboarding() {
   if (localStorage.getItem('sevenz_onboarded')) return;
   const overlay = document.getElementById('onboarding');
   overlay.classList.remove('hidden');
   const grid = document.getElementById('obGrid');
-  obInitialArtists().forEach((a, i) => grid.appendChild(obRenderArtist(a, i * 40)));
+  const artists = obInitialArtists();
+  artists.forEach((a, i) => grid.appendChild(obRenderArtist(a, i * 40)));
+  obHydratePhotos(artists.map(a => a.name));
 }
 
 // ── Filtre non-musique ────────────────────────────────────────────
@@ -9123,7 +9317,16 @@ function getOldFavorites() {
 async function startRadio(artistName) {
   showToast(`📻 Radio ${artistName}…`, 'info');
   const disliked = new Set(lsParse('sevenz_disliked', []));
-  let tracks = (await fetchSmartTracks(artistName, 12)).filter(track => !disliked.has(track.id));
+
+  // Radio Deezer en premier : c'est la seule source qui reste dans le genre de
+  // l'artiste (voir fetchDeezerRadio). Les autres ne servent qu'en repli.
+  let tracks = await fetchDeezerRadio(artistName).catch(() => []);
+  tracks = tracks.filter(track => !track.id || !disliked.has(track.id));
+
+  if (!tracks.length) {
+    tracks = (await fetchSmartTracks(artistName, 12)).filter(track => !disliked.has(track.id));
+    tracks = dedupeTracks(tracks);
+  }
   if (!tracks.length) {
     const one = await searchYouTubeOne(artistName);
     tracks = one ? [one] : [];
@@ -9151,22 +9354,29 @@ async function maybeExtendRadio() {
   if (S.currentIndex < S.queue.length - 2) return; // encore de la marge
 
   const seed = S.currentTrack;
-  if (!seed?.id) return;
+  if (!seed) return;
   _radioFetching = true;
   try {
-    const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${seed.id}&maxResults=10`);
-    if (!res.ok) return;
-    const data = await res.json();
-    const existing = new Set(S.queue.map(t => t.id));
+    const existing = new Set(S.queue.map(t => trackTitleKey(t.title)));
     const disliked = new Set(lsParse('sevenz_disliked', []));
-    const more = (data.items || [])
-      .map(item => ({
+    let more = [];
+
+    // Radio Deezer d'abord : elle reste dans le genre de l'artiste.
+    if (seed.channel) more = await fetchDeezerRadio(seed.channel, seed.title).catch(() => []);
+
+    if (!more.length && seed.id) {
+      const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${seed.id}&maxResults=10`);
+      if (!res.ok) return;
+      const data = await res.json();
+      more = dedupeTracks((data.items || []).map(item => ({
         id: item.id?.videoId,
         title: item.snippet?.title,
         channel: item.snippet?.channelTitle,
         thumb: item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url
-      }))
-      .filter(t => t.id && !existing.has(t.id) && !disliked.has(t.id));
+      })).filter(t => t.id));
+    }
+
+    more = more.filter(t => !existing.has(trackTitleKey(t.title)) && !(t.id && disliked.has(t.id)));
     // push() conserve la référence → la radio reste active
     if (more.length && S.queue === S._radioQueueRef) S.queue.push(...more);
   } catch (e) {

@@ -157,6 +157,9 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 | BUG-008 | Albums en double dans la discographie (rééditions Deezer) | `server/server.js` | ✅ `dedupeReleases()` garde l'édition de référence |
 | FEAT-006 | Pas d'import pour les utilisateurs Deezer | `index.html` + `server/server.js` | ✅ Import par lien de playlist ou par profil (lot), sans clé ni OAuth |
 | BUG-009 | Pochettes de playlist jamais affichées | `index.html` | ✅ `style="…url(\"…\")…"` → `url('…')` en 7 endroits |
+| BUG-010 | Suite de lecture hors-sujet (rap après un titre 80s) | `server/server.js` + `index.html` | ✅ Graine = label YouTube → radio Deezer par artiste |
+| BUG-011 | Même titre répété en plusieurs formats | `index.html` | ✅ `dedupeTracks()` sur titre normalisé |
+| BUG-012 | Onboarding : que du rap, et sans photos | `index.html` + `server/server.js` | ✅ 15 genres, recherche libre, photos Deezer |
 
 ---
 
@@ -226,6 +229,65 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 ---
 
 ## 9. 📝 JOURNAL
+
+### 17 septembre 2026 — Retours d'une première utilisatrice
+
+Une amie de Nina a essuyé les plâtres sur un téléphone neuf. Quatre problèmes,
+trois causes distinctes.
+
+**1. L'onboarding ne proposait que du rap**
+`ARTIST_DB` comptait 53 entrées, presque toutes rap / trap / R&B / afro, et
+`INITIAL_GENRES` n'en tirait que ces genres. Qui écoute du rock ou de la variété
+n'avait littéralement rien à cocher, et aucun moyen de chercher ailleurs.
+→ `ARTIST_DB_EXTRA` ajoute rock, années 80, chanson française, pop internationale,
+metal, jazz, latino, reggae ; `INITIAL_GENRES` couvre 15 genres.
+→ Champ de recherche pour choisir **n'importe quel** artiste (validation explicite,
+jamais pendant la frappe).
+
+**2. Les artistes n'avaient pas de visuel**
+2 entrées sur 53 portaient une image : le reste s'affichait en dégradé avec des
+initiales. → `GET /api/deezer/artists?names=a|b|c` résout les photos chez Deezer
+au rendu. 30/30 avec photo réelle.
+
+**3. Après un titre des années 80, la suite passait en rap** ← le vrai morceau de bravoure
+`relatedToVideoId` a été supprimé de l'API YouTube en août 2023. Le contournement
+en place prenait le **nom de la chaîne YouTube** comme graine de recommandation.
+Or cette chaîne est très souvent le **label**, pas l'artiste : pour
+« Smalltown Boy » de Bronski Beat, c'est `London Records`. La suite devenait donc
+le catalogue du label — interviews et clips TV compris — et du rap dès que le
+label en publie.
+→ `GET /api/deezer/radio?artist=` s'appuie sur `/artist/{id}/radio` de Deezer :
+25 titres partant de l'artiste réel, sans clé ni OAuth. YouTube ne sert plus que
+de repli. Vérifié : après Smalltown Boy viennent Pet Shop Boys, Art of Noise,
+Eurythmics, The Cure.
+
+**4. Le même titre revenait en plusieurs formats (47 Ter)**
+Même cause : YouTube renvoie « L'adresse (Clip Officiel) » *et* « L'adresse ».
+→ `dedupeTracks()` / `trackTitleKey()` normalisent le titre (accents, parenthèses,
+« Clip Officiel », « Remaster », « Radio Edit »…) avant d'empiler la file.
+
+**Bonus** : le classement nom-puis-notoriété de `resolveDeezerArtist` est extrait
+en `rankArtistMatches()` et sert aussi à la recherche libre — sans lui,
+« Indochine » remontait « Mount Indochina » et « Indorphine » avant le groupe.
+
+**Ce que permettent (et ne permettent pas) les autres services**
+| Service | Titres liés | Diffusion audio |
+|---------|-------------|-----------------|
+| **Deezer** | ✅ `/artist/{id}/radio`, sans clé ni OAuth | ❌ extraits de 30 s seulement |
+| Spotify | ❌ `/recommendations` et `related-artists` supprimés le 27/11/2024 pour toute nouvelle app (403) | ❌ SDK + abonnement de l'auditeur |
+| Tidal | ✅ via leur API | ❌ le Player SDK est le **seul** moyen autorisé, et il exige un abonnement Tidal côté auditeur |
+| Last.fm | ✅ déjà branché, sert de second repli | ❌ métadonnées uniquement |
+
+À noter : `/genre/{id}/artists` et `/chart/{genre}/artists` de Deezer renvoient le
+même top global quel que soit le genre — inutilisables pour bâtir une grille par
+genre, d'où la liste curée côté app.
+
+**Vérifié au navigateur (desktop + Pixel 7)** : 20 contrôles verts — pages artiste
+et album, import de playlist, pochettes, titres liés sans rap, déduplication,
+onboarding (30 photos, genres variés, recherche à validation explicite), aucun
+débordement horizontal, aucune erreur JS.
+
+---
 
 ### 11 septembre 2026 — Import de playlists Deezer
 

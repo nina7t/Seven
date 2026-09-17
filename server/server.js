@@ -396,8 +396,15 @@ async function resolveDeezerArtist(name) {
   const list = data.data || [];
   if (!list.length) return null;
 
+  return rankArtistMatches(list, name)[0] || null;
+}
+
+// Classe des artistes Deezer face à une saisie : justesse du nom d'abord,
+// notoriété ensuite. Sans ça, « Indochine » remonte « Mount Indochina » et
+// « Indorphine » avant le groupe cherché.
+function rankArtistMatches(list, query) {
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-  const target = norm(name);
+  const target = norm(query);
   const rank = a => {
     const n = norm(a.name);
     if (n === target) return 3;
@@ -405,12 +412,7 @@ async function resolveDeezerArtist(name) {
     if (n.includes(target)) return 1;
     return 0;
   };
-
-  return list.reduce((best, a) => {
-    const ra = rank(a), rb = rank(best);
-    if (ra !== rb) return ra > rb ? a : best;
-    return (a.nb_fan || 0) > (best.nb_fan || 0) ? a : best;
-  }, list[0]);
+  return [...list].sort((a, b) => (rank(b) - rank(a)) || ((b.nb_fan || 0) - (a.nb_fan || 0)));
 }
 
 // GET /api/artist?q=<nom>  → artiste + titres populaires + discographie + similaires
@@ -563,6 +565,107 @@ async function fetchDeezerPlaylistTracks(playlistId, total) {
   }
   return tracks;
 }
+
+// GET /api/deezer/artists  → photos d'artistes, pour l'écran d'accueil
+// ────────────────────────────────────────────────────────────────────
+// Deux modes :
+//   ?names=a|b|c   résout chaque nom (grille d'onboarding : vraies photos)
+//   ?search=nirv   recherche libre (l'utilisateur choisit un artiste absent
+//                  de la liste proposée)
+// `/genre/{id}/artists` et `/chart/{genre}/artists` renvoient le même top
+// global quel que soit le genre : on ne peut pas construire la grille par genre
+// côté Deezer, d'où la liste curée dans l'app et la simple résolution ici.
+app.get('/api/deezer/artists', rateLimit, async (req, res) => {
+  const search = String(req.query.search || '').trim();
+  const names = String(req.query.names || '').split('|').map(n => n.trim()).filter(Boolean).slice(0, 40);
+
+  if (!search && !names.length) {
+    return res.status(400).json({ error: 'Paramètre names ou search requis' });
+  }
+
+  try {
+    if (search) {
+      const limit = Math.min(parseInt(req.query.limit) || 12, 25);
+      const cacheKey = `dzsearch:${search.toLowerCase()}:${limit}`;
+      const cached = artistCache.get(cacheKey);
+      if (cached) return res.json({ ...cached, cached: true });
+
+      const data = await deezerGetRaw(`/search/artist?q=${encodeURIComponent(search)}&limit=${Math.max(limit, 20)}`);
+      const ranked = rankArtistMatches(data.data || [], search);
+      const solid = ranked.filter(a => (a.nb_fan || 0) >= 1000);
+      const kept = (solid.length >= 3 ? solid : ranked).slice(0, limit);
+      const payload = { artists: kept.map(mapDeezerArtist).filter(a => a.name) };
+      artistCache.set(cacheKey, payload);
+      return res.json(payload);
+    }
+
+    // Résolution par nom, en petits lots : Deezer n'a pas d'endpoint groupé.
+    const out = [];
+    for (let i = 0; i < names.length; i += 6) {
+      const chunk = names.slice(i, i + 6);
+      const resolved = await Promise.all(chunk.map(async name => {
+        const key = `dzname:${name.toLowerCase()}`;
+        const hit = artistCache.get(key);
+        if (hit) return hit;
+        try {
+          const found = await resolveDeezerArtist(name);
+          const entry = found ? { query: name, ...mapDeezerArtist(found) } : { query: name, picture: null };
+          artistCache.set(key, entry);
+          return entry;
+        } catch (e) {
+          return { query: name, picture: null };
+        }
+      }));
+      out.push(...resolved);
+    }
+    res.json({ artists: out });
+  } catch (error) {
+    console.error('[DEEZER ARTISTS]', error.message);
+    res.status(502).json({ error: error.message || 'Erreur lors du chargement des artistes' });
+  }
+});
+
+// GET /api/deezer/radio?artist=<nom>[&exclude=<titre>]  → titres liés, cohérents
+// ────────────────────────────────────────────────────────────────────
+// Remplace /youtube/related, dont la graine est le nom de la CHAÎNE YouTube.
+// Cette chaîne est très souvent le label (« London Records » pour Bronski Beat),
+// si bien que « la suite » devient le catalogue du label — interviews comprises,
+// et du rap dès que le label en publie. La radio Deezer part de l'artiste réel.
+app.get('/api/deezer/radio', rateLimit, async (req, res) => {
+  const artist = String(req.query.artist || '').trim().slice(0, 120);
+  if (!artist) return res.status(400).json({ error: 'Paramètre artist requis' });
+
+  const exclude = String(req.query.exclude || '').trim().toLowerCase();
+  const cacheKey = `radio:${artist.toLowerCase()}`;
+  let payload = dzPlaylistCache.get(cacheKey);
+
+  try {
+    if (!payload) {
+      const found = await resolveDeezerArtist(artist);
+      if (!found) return res.status(404).json({ error: 'Artiste introuvable', artist });
+
+      const radio = await deezerGetRaw(`/artist/${found.id}/radio`);
+      const msg = deezerErrorMessage(radio, 'radio');
+      if (msg) return res.status(502).json({ error: msg });
+
+      payload = {
+        artist: mapDeezerArtist(found),
+        tracks: (radio.data || []).map(mapDeezerTrackToResult).filter(t => t.title)
+      };
+      dzPlaylistCache.set(cacheKey, payload);
+    }
+
+    // Le titre en cours ne doit pas réapparaître en tête de sa propre radio.
+    const tracks = exclude
+      ? payload.tracks.filter(t => (t.title || '').toLowerCase() !== exclude)
+      : payload.tracks;
+
+    res.json({ ...payload, tracks, count: tracks.length });
+  } catch (error) {
+    console.error('[DEEZER RADIO]', error.message);
+    res.status(502).json({ error: error.message || 'Erreur lors du chargement de la radio' });
+  }
+});
 
 // GET /api/deezer/playlist?url=<lien ou id>  → playlist + tracklist complète
 app.get('/api/deezer/playlist', rateLimit, async (req, res) => {

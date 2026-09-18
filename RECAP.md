@@ -1,6 +1,6 @@
 # 🎵 SEVENZ — RECAPITULATIF DU PROJET
 
-**Date du récap :** 22 Juin 2026  
+**Date du récap :** 18 septembre 2026  
 **Repo :** `nina7t/Seven`  
 **Stack :** Capacitor 8 + Node.js + AndrJe oid natif + Firebase  
 **App :** Lecteur musical YouTube-style (web + Android)
@@ -166,19 +166,20 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 ## 5. ❌ CE QUI MANQUE ENCORE
 
 ### Manques critiques / importants
-- **Paroles synchronisées (Lyrics)** — Spotify-like karaoke
-- **File d'attente modifiable** — visible mais pas réordonnable par drag
-- **Mode Radio** — `openRadio()` est encore un stub "à venir"
-- **Partage de piste** — bouton présent mais non connecté à `navigator.share()`
-- **Batch download** — offline uniquement piste par piste
-- **Gestion des doublons** — bloqué mais sans message explicite
-- **Smart playlists automatiques** — "Découvertes de la semaine" etc.
+- ~~Paroles synchronisées~~ ✅ fait (karaoke LRCLib, seek au tap)
+- ~~File d'attente modifiable~~ ✅ fait (drag & drop dans le drawer)
+- ~~Mode Radio~~ ✅ fait (`openRadio()` Last.fm + radio Deezer)
+- ~~Partage de piste~~ ✅ fait (`navigator.share` + presse-papier)
+- ~~Batch download~~ ✅ fait (« Télécharger tout » par playlist)
+- ~~Gestion des doublons~~ ✅ fait (toast « Déjà dans cette playlist »)
+- ~~Smart playlists automatiques~~ ✅ fait (« ✨ Découvertes de la semaine »)
+- ~~Stats d'écoute~~ ✅ fait (vue Stats : top artistes/titres, temps d'écoute)
+- ~~Nouveautés / sorties récentes~~ ✅ fait (`/api/new-releases` + section page artiste)
 
 ### Améliorations futures
-- Égaliseur (Web Audio API)
-- Stats d'écoute personnelles (Wrapped)
-- Playlists collaboratives / partage par lien
-- Section "Nouveautés / Sorties récentes"
+- Égaliseur (Web Audio API — ⚠️ impossible côté web avec l'iframe YouTube cross-origin ; envisageable uniquement côté natif Android)
+- Drag & drop de la file sur tactile (actuellement desktop uniquement)
+- Playlists collaboratives / partage par lien (voir `PLAN-collab-playlist.md`)
 - Tests unitaires (Jest / JUnit)
 - Service Worker complet pour offline avancé
 - Sentry / Firebase Crashlytics pour le monitoring
@@ -229,6 +230,96 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 ---
 
 ## 9. 📝 JOURNAL
+
+### 18 septembre 2026 — Onboarding Spotify-style + Home « Mes artistes »
+
+**Objectif** : quand on sélectionne des artistes lors de la première connexion, la home
+ doit les montrer en bulles à la place des tendances, et proposer des radios basées
+ sur ces artistes.
+
+**Fichier principal : `www/index.html`**
+
+- **Onboarding artistes similaires** :
+  - `obRevealRelated()` utilise maintenant toute la base (`ARTIST_DB` + `ARTIST_DB_EXTRA`)
+    pour que les genres « extra » (rock, metal, jazz, chanson, pop internationale, etc.)
+    génèrent aussi des recommandations.
+  - Choix aléatoire : jusqu’à 2 artistes du **même genre** + 1 artiste d’un genre
+    proche, mélangés pour la variété.
+  - Les nouvelles bulles s’insèrent **juste après l’artiste cliqué** au lieu d’être
+    ajoutées en bas de la grille.
+  - Badge `NEW` agrandi et animé (`obNewBadgePop`).
+
+- **Section Home « Mes artistes »** :
+  - Remplacement du titre et du contenu de `#bubbleSection` : « Tendances » →
+    « Mes artistes ».
+  - Nouvelle fonction `loadMyArtists()` qui lit `sevenz_liked_artists` et affiche
+    les artistes en bulles rondes (photo / gradient / initiales).
+  - Nouvelle fonction `playMyArtistRadio(i)` : clic sur une bulle = radio infinie
+    de cet artiste.
+  - Nouveaux styles `.my-artist-card`, `.my-artist-cover`, `.my-artist-play`,
+    `.my-artist-name`.
+
+- **Radios recommandées basées sur les artistes likés** :
+  - `buildRadioStations()` donne une forte pondération (+5) aux artistes choisis
+    en onboarding, en plus de l’historique d’écoute.
+  - La section « Radios recommandées » s’affiche dès qu’il existe au moins une radio
+    (ancienne condition `history.length >= 5` supprimée).
+
+- **Rafraîchissement automatique** :
+  - `finishOnboarding()` appelle `loadMyArtists()` + `loadHomeExtras()` au lieu de
+    l’ancien `loadTrending()`.
+  - `applyView('home')` appelle `loadMyArtists()` à chaque retour sur l’accueil.
+
+**Autres ajustements du jour**
+- États `:hover` conditionnés par `@media (hover: hover)` sur les résultats de
+  recherche, la bibliothèque, les boutons ronds, la page artiste, etc. pour éviter
+  qu’un tap mobile reste figé visuellement après le clic.
+
+**Vérifié au navigateur (Playwright)** :
+- Clic sur Nirvana → apparition de `Téléphone` et `Noir Désir` (rock FR).
+- Clic sur NTM → apparition de `Tiakola`, `PLK`, `Orelsan` (hip-hop FR / proches).
+- Fin de l’onboarding avec 5 artistes → home affiche « Mes artistes » + « Radios
+  recommandées » correspondantes, sans section Tendances.
+
+---
+
+### 18 septembre 2026 — Sprint « app optimale » (6 chantiers en parallèle)
+
+Toutes les entrées de la section « Ce qui manque » soldées en une passe :
+
+- **Queue réordonnable** — drag & drop HTML5 dans le drawer (poignée `ti-grip-vertical`,
+  indicateur de drop accentué). `S.currentIndex` est réajusté dans les 3 cas de figure
+  pour que la piste en cours reste la bonne. Tactile non couvert (DnD natif
+  navigateur-dépendant).
+- **Toast doublon** — `doAddToPlaylist` affiche « Déjà dans cette playlist ».
+- **Paroles synchronisées** — `parseSyncedLyrics()` (LRC `[mm:ss.xx]`, tags
+  métadonnées filtrés), ligne active surlignée + scroll centré, timer 250 ms sur
+  `getPlayerTime()`, seek au tap via `seekPlayer()`, re-fetch au changement de piste,
+  fallback `plainLyrics` conservé.
+- **Batch download** — bouton « Télécharger tout » dans les deux vues playlist ;
+  boucle séquentielle qui réutilise `resolveVideoId()` + `saveTrackOffline()` +
+  `isTrackOffline()` ; toast de progression `n/total`, bilan « X réussis · Y déjà
+  présents · Z échecs », verrou anti-double-clic.
+- **Découvertes de la semaine** — `generateDiscoverWeekly()` : top 5 artistes des 7
+  derniers jours d'historique → radio Deezer (repli Last.fm + YouTube), filtrage des
+  titres déjà likés/écoutés via `trackTitleKey`, 30 titres max, matérialisée en
+  playlist `smart: true` persistée comme les autres + bouton « Régénérer ». Régénérée
+  au startup, après login et après sync cloud si > 7 jours.
+- **Stats d'écoute** — `S.stats` agrégé (`sevenz_stats`) : compteurs par artiste et
+  par titre + secondes d'écoute réelles (tick ~10 s, pauses exclues, sauts bornés).
+  Nouvelle vue SPA `stats` (top 5 artistes, top 10 titres, temps total, nb likes)
+  accessible depuis le menu profil et le menu mobile.
+- **Nouveautés** — `GET /api/new-releases?artist=` (Deezer `/artist/{id}/albums` trié
+  par `release_date`, 8 plus récentes, résolution d'homonymes via
+  `rankArtistMatches`, cache 1 h) + section « Nouveautés » en tête de la page
+  artiste avec badge Album/Single/EP ; dégrade silencieusement si l'endpoint 404.
+
+**Vérifié** : `node --check` sur `server.js` + les 7 blocs `<script>` de
+`index.html` (0 erreur), `git diff --check` propre.
+
+> ⚠️ **À déployer** : la route `/api/new-releases` n'existe que localement tant que
+> Render n'est pas redéployé — sans elle la section Nouveautés ne s'affiche pas,
+> sans casser le reste.
 
 ### 17 septembre 2026 — Retours d'une première utilisatrice
 
@@ -388,6 +479,94 @@ ses œuvres et ses albums.
 > Tant que Render n'est pas redéployé, les nouvelles routes répondent 404 et l'app
 > retombe sur l'ancien chemin : pages artiste sans photo, sans durées, sans singles ni
 > similaires, et clic sur un album = simple recherche au lieu de la tracklist.
+
+---
+
+### 18 septembre 2026 — Moteur de radio à partir d’un titre
+
+**Objectif** : à partir d’un titre choisi par l’utilisateur, générer une file continue,
+cohérente, avec une part de découverte ajustable.
+
+**Fichiers créés dans `server/discovery/`**
+- `seed.js` — caractérise la graine (Deezer + MusicBrainz + tags Last.fm, BPM, année,
+  IDs normalisés).
+- `candidates.js` — constitue le vivier : `track.getSimilar`, artistes proches,
+  `tag.getTopTracks` et voisins des voisins ; dédoublonnage par MBID puis clé normalisée.
+- `filters.js` — écarte reprises, live, karaokés, remasters redondants, déjà écoutés
+  et titres rejetés.
+- `scoring.js` — score combiné (match source, Jaccard tags, popularité log,
+  nouveauté artiste, proximité tempo/époque) + pondérations dans `weights.js`.
+- `sequencer.js` — ordonnancement avec contraintes : max 2 titres/artiste sur 20,
+  pas 2 consécutifs, pas 3 du même album, pas de saut brutal de tempo,
+  répartition des époques, lots de 20, curseur `adventurousness`.
+- `feedback.js` — sessions radio en mémoire, signaux skip/listen80/like/dislike,
+  poids par tag et par artiste, exclusion après 2 rejets.
+- `routes/radio.js` — `POST /api/radio/start` et `POST /api/radio/next`
+  (retournent `strategy` + `degradedSources`).
+
+**Fichiers modifiés**
+- `server/discovery/config.js` — section `radio` (timeouts, limites, pondérations).
+- `server/discovery/providers/lastfm.js` — export de `call` + ajout de
+  `track.getInfo`, `track.getTopTags`, `artist.getTopTags`, `track.getSimilar`,
+  `artist.getTopTracks`, `tag.getTopTracks`.
+- `server/discovery/providers/deezer.js` — ajout de `fetchTopTracks`.
+- `server/discovery/index.js` — montage de `routes/radio.js`.
+- `server/server.js` — montage de `/api/radio` à la racine.
+- `www/index.html` — `startRadio()` utilise `/api/radio/start` quand un titre est
+  fourni ; `maybeExtendRadio()` utilise `/api/radio/next` si `S.radioId` existe ;
+  ajout du slider Rassurant/Aventureux et des pouces haut/bas dans `#radioView`.
+
+**Tests**
+- `server/discovery/tests/seed.test.js`
+- `server/discovery/tests/candidates.test.js`
+- `server/discovery/tests/filters.test.js`
+- `server/discovery/tests/scoring.test.js`
+- `server/discovery/tests/sequencer.test.js`
+- `server/discovery/tests/feedback.test.js`
+- `server/discovery/tests/eval-radio.js` — script d’évaluation simulé sur 10 graines.
+
+**Commandes vérifiées**
+```bash
+curl -s -X POST http://localhost:3001/api/radio/start \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"One More Time","artist":"Daft Punk"}' | jq .radioId
+
+curl -s -X POST http://localhost:3001/api/radio/next \
+  -H 'Content-Type: application/json' \
+  -d '{"radioId":"<uuid>"}' | jq '.tracks | length'
+```
+
+**Exemples de requêtes sources**
+```bash
+# Deezer (public, sans clé)
+curl "https://api.deezer.com/search/track?q=Daft%20Punk%20One%20More%20Time&limit=1"
+# → {"data":[{"id":3135553,"title":"One More Time",...}]}
+
+# Last.fm (nécessite LASTFM_API_KEY)
+curl "https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=Daft+Punk&track=One+More+Time&api_key=$LASTFM_API_KEY&format=json"
+
+# TIDAL similar artists (nécessite TIDAL_CLIENT_ID/SECRET)
+# OAuth client_credentials → access_token
+# curl "https://openapi.tidal.com/v2/artists/<id>?countryCode=FR&include=similarArtists" -H "Authorization: Bearer ..."
+```
+
+> ⚠️ Les requêtes cURL vers les sources tierces (Last.fm, TIDAL, MusicBrainz) n’ont
+> pas pu être exécutées en local car les variables `LASTFM_API_KEY`,
+> `TIDAL_CLIENT_ID` et `TIDAL_CLIENT_SECRET` ne sont pas renseignées. Les endpoints
+> utilisés sont documentés officiellement ; les commandes de référence sont dans
+> `server/discovery/routes/radio.js`.
+
+**Variables d’environnement à ajouter sur Render**
+- `LASTFM_API_KEY` — obligatoire pour les tags/similarités
+- `TIDAL_CLIENT_ID` / `TIDAL_CLIENT_SECRET` — optionnel (source de similaires)
+- `YOUTUBE_API_KEY` — déjà requis par le serveur
+
+**Reste à faire / limites connues**
+- Brancher l’envoi du feedback réel (skip/listen80) depuis le lecteur en cours.
+- Valider l’endpoint `/radio/next` côté front quand on épuise le vivier de 300
+  candidats (actuellement le lot suivant pioche dans la même session).
+- Exécuter les requêtes cURL sources avec de vraies clés et ajuster les poids
+  selon les formats JSON réels.
 
 ---
 

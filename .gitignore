@@ -9,3 +9,9 @@ server/node_modules/
 
 # Firebase
 .firebase/
+
+# Exception : constantes du moteur de découverte, aucune clé dedans
+!server/discovery/config.js
+
+# État runtime du quota YouTube
+server/.quota.json

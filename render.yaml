@@ -13,3 +13,7 @@ services:
         sync: false   # à renseigner manuellement dans le dashboard Render
       - key: LASTFM_API_KEY
         sync: false   # clé Last.fm — à renseigner dans le dashboard Render
+      - key: TIDAL_CLIENT_ID
+        sync: false   # credentials TIDAL — à renseigner dans le dashboard Render
+      - key: TIDAL_CLIENT_SECRET
+        sync: false

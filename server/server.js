@@ -27,6 +27,8 @@ function getYtdl() {
 
 const { getFallbackSearch, getFallbackTrending, getFallbackVideos } = require('./fallback-data');
 const { searchInvidious, getTrendingInvidious, getVideosInvidious } = require('./invidious-client');
+const discoveryRouter = require('./discovery');
+const discoveryCache = require('./discovery/cache');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -143,6 +145,12 @@ const RATE_LIMIT_PER_MINUTE = 60; // 60 requêtes/minute par IP
 app.use(cors());
 app.use(express.json());
 
+// Module Découverte d'artistes (TIDAL / Last.fm / Deezer)
+app.use('/api/discovery', discoveryRouter);
+
+// Moteur radio à partir d'un titre
+app.use('/api/radio', require('./discovery/routes/radio'));
+
 // Middleware de rate limiting (exempté pour localhost)
 function rateLimit(req, res, next) {
   const ip = req.ip || req.connection.remoteAddress || '';
@@ -208,7 +216,8 @@ app.get('/api/health', (req, res) => {
     cacheStats: {
       search: searchCache.getStats(),
       trending: trendingCache.getStats(),
-      video: videoCache.getStats()
+      video: videoCache.getStats(),
+      discovery: discoveryCache.stats()
     }
   });
 });
@@ -321,6 +330,7 @@ app.get('/api/search', rateLimit, async (req, res) => {
 
 const artistCache = new NodeCache({ stdTTL: 86400, checkperiod: 3600 }); // 24h
 const albumCache  = new NodeCache({ stdTTL: 86400, checkperiod: 3600 });
+const newReleasesCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // 1h
 
 function deezerArtistPicture(a) {
   return a?.picture_xl || a?.picture_big || a?.picture_medium || a?.picture || null;
@@ -452,6 +462,42 @@ app.get('/api/artist', rateLimit, async (req, res) => {
   } catch (error) {
     console.error('[DEEZER ARTIST ERROR]', error.message);
     res.status(502).json({ error: "Erreur lors du chargement de l'artiste", details: error.message });
+  }
+});
+
+// GET /api/new-releases?artist=<nom>  → sorties les plus récentes d'un artiste
+app.get('/api/new-releases', rateLimit, async (req, res) => {
+  const artist = String(req.query.artist || '').trim().slice(0, 120);
+  if (!artist) return res.status(400).json({ error: 'Paramètre artist requis' });
+
+  const cacheKey = `newreleases:${artist.toLowerCase()}`;
+  const cached = newReleasesCache.get(cacheKey);
+  if (cached) return res.json({ ...cached, cached: true });
+
+  try {
+    const found = await resolveDeezerArtist(artist);
+    if (!found) return res.status(404).json({ error: 'Artiste introuvable', artist });
+
+    const albums = await deezerGet(`/artist/${found.id}/albums?limit=50`);
+    const releases = (albums.data || [])
+      .sort((a, b) => (b.release_date || '').localeCompare(a.release_date || ''))
+      .slice(0, 8)
+      .map(al => ({
+        id: String(al.id),
+        title: al.title || '',
+        cover: deezerAlbumCover(al),
+        release_date: al.release_date || '',
+        record_type: al.record_type || 'album',
+        ...(al.nb_tracks != null ? { tracks_count: al.nb_tracks } : {})
+      }))
+      .filter(al => al.title);
+
+    const payload = { artist: mapDeezerArtist(found), releases };
+    newReleasesCache.set(cacheKey, payload);
+    res.json(payload);
+  } catch (error) {
+    console.error('[DEEZER NEW RELEASES]', error.message);
+    res.status(502).json({ error: error.message || 'Erreur lors du chargement des nouveautés' });
   }
 });
 
@@ -1198,16 +1244,27 @@ app.get('/api/lastfm/top-tracks/:artist', rateLimit, async (req, res) => {
 // Utilise Invidious pour éviter le ban d'IP de Render par YouTube
 // ════════════════════════════════════════════════════════════
 
-// Instances Invidious avec fallback automatique
-// Liste mise à jour depuis https://api.invidious.io/ (juin 2026)
-const INVIDIOUS_INSTANCES = [
-  'https://inv.nadeko.net',
-  'https://invidious.nerdvpn.de',
-  'https://invidious.f5.si',
-  'https://yt.chocolatemoo53.com',
-  'https://inv.thepixora.com',
-  'https://invidious.tiekoetter.com'
-];
+// Instances Invidious avec fallback automatique.
+//
+// ETAT MESURE LE 18/09/2026 : plus aucune instance publique ne repond.
+// Les 6 instances historiquement codees ici renvoient 403/401/500/303, et la
+// liste officielle https://api.invidious.io/instances.json ne contient plus
+// qu'une seule entree https+api (invidious.f5.si) qui elle-meme renvoie 500.
+// 16 instances testees, 0 exploitable. Les garder en dur ne faisait qu'ajouter
+// plusieurs secondes de latence avant le repli yt-dlp, sans jamais aboutir.
+//
+// La liste est donc VIDE par defaut et pilotable sans redeploiement de code via
+// la variable d'environnement INVIDIOUS_INSTANCES (URLs separees par des
+// virgules). Si l'ecosysteme Invidious redevient utilisable, il suffit de
+// renseigner cette variable — le code de repli ci-dessous est intact.
+const INVIDIOUS_INSTANCES = String(process.env.INVIDIOUS_INSTANCES || '')
+  .split(',')
+  .map(u => u.trim().replace(/\/+$/, ''))
+  .filter(u => /^https:\/\//.test(u));
+
+// Timeout par instance : court, car une instance lente est de toute facon
+// inutilisable pour de la lecture audio a la demande.
+const INVIDIOUS_TIMEOUT_MS = Number(process.env.INVIDIOUS_TIMEOUT_MS || 6000);
 
 // Valide l'URL audio renvoyée par une instance Invidious tierce avant de la
 // transmettre au client (anti-SSRF) : on n'autorise que le CDN média de YouTube
@@ -1225,6 +1282,82 @@ function isAllowedAudioUrl(rawUrl, instance) {
   }
 }
 
+// ── Cookies YouTube pour yt-dlp ──────────────────────────────────────────────
+// Sans cookies, YouTube repond « Sign in to confirm you're not a bot » sur la
+// quasi-totalite des clips depuis une IP d'hebergeur (mesure du 18/09/2026 :
+// 0 piste sur 6 extraite depuis Render). C'est le seul contournement fiable
+// documente par yt-dlp. Deux facons de le fournir, sans commiter de secret :
+//   - YTDLP_COOKIES_FILE : chemin vers un cookies.txt (format Netscape)
+//   - YTDLP_COOKIES_B64  : ce meme fichier encode en base64 (pratique pour
+//                          coller un secret multi-ligne dans Render)
+let _cookiesPath = null;
+let _cookiesResolved = false;
+function getCookiesFile() {
+  if (_cookiesResolved) return _cookiesPath;
+  _cookiesResolved = true;
+
+  const direct = process.env.YTDLP_COOKIES_FILE;
+  if (direct) {
+    if (fs.existsSync(direct)) {
+      _cookiesPath = direct;
+      console.log('[YTDL] cookies charges depuis YTDLP_COOKIES_FILE');
+    } else {
+      console.warn(`[YTDL] YTDLP_COOKIES_FILE pointe sur un fichier absent: ${direct}`);
+    }
+    return _cookiesPath;
+  }
+
+  const b64 = process.env.YTDLP_COOKIES_B64;
+  if (b64) {
+    try {
+      const target = path.join(require('os').tmpdir(), 'sevenz-yt-cookies.txt');
+      fs.writeFileSync(target, Buffer.from(b64, 'base64'), { mode: 0o600 });
+      _cookiesPath = target;
+      console.log('[YTDL] cookies materialises depuis YTDLP_COOKIES_B64');
+    } catch (e) {
+      console.warn('[YTDL] YTDLP_COOKIES_B64 illisible:', e.message);
+    }
+  }
+  return _cookiesPath;
+}
+
+// Classe une erreur d'extraction pour renvoyer au client un message actionnable
+// plutot que le pave brut de yt-dlp.
+function classifyStreamError(message) {
+  const m = String(message || '');
+  if (/not a bot|Sign in to confirm/i.test(m)) {
+    return {
+      status: 503,
+      reason: 'youtube_bot_check',
+      error: "YouTube bloque l'extraction depuis ce serveur (verification anti-bot).",
+      hint: 'Fournir des cookies YouTube au serveur via YTDLP_COOKIES_B64 ou YTDLP_COOKIES_FILE.'
+    };
+  }
+  if (/yt-dlp indisponible/i.test(m)) {
+    return {
+      status: 503,
+      reason: 'extractor_unavailable',
+      error: "Aucun extracteur audio disponible sur ce serveur.",
+      hint: "Le module youtube-dl-exec n'est pas installe (dependance optionnelle)."
+    };
+  }
+  if (/Private video|unavailable|removed|age.?restrict|not available/i.test(m)) {
+    return {
+      status: 404,
+      reason: 'video_unavailable',
+      error: 'Cette video est indisponible (privee, supprimee ou restreinte).'
+    };
+  }
+  if (/Aucun format audio/i.test(m)) {
+    return {
+      status: 502,
+      reason: 'no_audio_format',
+      error: "Aucune piste audio exploitable n'a ete renvoyee pour cette video."
+    };
+  }
+  return { status: 503, reason: 'extraction_failed', error: 'Stream indisponible: ' + m };
+}
+
 // Fallback yt-dlp quand Invidious est bloqué
 async function getAudioStreamWithYtdl(videoId) {
   const ytdl = getYtdl();
@@ -1232,14 +1365,38 @@ async function getAudioStreamWithYtdl(videoId) {
 
   try {
     console.log(`[YTDL] Extraction stream pour ${videoId}`);
-    const result = await ytdl(`https://www.youtube.com/watch?v=${videoId}`, {
+    const opts = {
       dumpSingleJson: true,
       simulate: true,
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
-      formatSort: 'abr'
-    });
+      formatSort: 'abr',
+      // yt-dlp a besoin d'un runtime JS pour dechiffrer les URLs ; sans lui il
+      // previent « No supported JavaScript runtime could be found » et certains
+      // formats manquent. Seul deno est actif par defaut, or l'hebergeur fait
+      // tourner Node : on le declare explicitement (verifie le 18/09/2026).
+      jsRuntimes: process.env.YTDLP_JS_RUNTIME || 'node',
+      noUpdate: true
+    };
+
+    // visitor_data aide yt-dlp a obtenir un PO Token GVS (voir plus bas).
+    const extractorArgs = [];
+    if (process.env.YTDLP_VISITOR_DATA) {
+      extractorArgs.push(`youtube:visitor_data=${process.env.YTDLP_VISITOR_DATA}`);
+    }
+
+    const cookies = getCookiesFile();
+    if (cookies) opts.cookies = cookies;
+
+    // Permet de tester un autre client YouTube (ios, web_safari, android_vr, tv…)
+    // sans toucher au code, en cas de nouveau blocage cote YouTube.
+    if (process.env.YTDLP_PLAYER_CLIENT) {
+      extractorArgs.push(`youtube:player_client=${process.env.YTDLP_PLAYER_CLIENT}`);
+    }
+    if (extractorArgs.length) opts.extractorArgs = extractorArgs;
+
+    const result = await ytdl(`https://www.youtube.com/watch?v=${videoId}`, opts);
 
     const audioFormats = (result.formats || [])
       .filter(f => f.vcodec === 'none' && f.acodec && f.acodec !== 'none')
@@ -1264,15 +1421,29 @@ async function getAudioStreamWithYtdl(videoId) {
   }
 }
 
+// Cache des extractions reussies. Une extraction yt-dlp coute ~10 s : sans
+// cache, chaque lecture (et chaque requete Range du lecteur) relançait toute la
+// chaine. Les URLs googlevideo restent valides ~6 h, on cache 2 h par securite.
+const streamCache = new NodeCache({ stdTTL: 7200, checkperiod: 600 });
+
 // Récupère le stream audio via Invidious avec fallback entre instances, puis yt-dlp
 async function getAudioStream(videoId) {
+  const cached = streamCache.get(videoId);
+  if (cached) return cached;
+
+  const data = await resolveAudioStream(videoId);
+  streamCache.set(videoId, data);
+  return data;
+}
+
+async function resolveAudioStream(videoId) {
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
       console.log(`[INVIDIOUS] Trying ${instance}...`);
 
       // axios plutôt que fetch global : fonctionne sur toutes les versions de Node
       const response = await axios.get(`${instance}/api/v1/videos/${videoId}`, {
-        timeout: 10000,
+        timeout: INVIDIOUS_TIMEOUT_MS,
         validateStatus: () => true,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
@@ -1327,7 +1498,11 @@ async function getAudioStream(videoId) {
     }
   }
 
-  console.log('[INVIDIOUS] Toutes les instances ont échoué, tentative yt-dlp...');
+  if (INVIDIOUS_INSTANCES.length === 0) {
+    console.log('[STREAM] Aucune instance Invidious configuree, extraction via yt-dlp...');
+  } else {
+    console.log('[INVIDIOUS] Toutes les instances ont échoué, tentative yt-dlp...');
+  }
   return getAudioStreamWithYtdl(videoId);
 }
 
@@ -1335,8 +1510,107 @@ async function getAudioStream(videoId) {
 // IMPORTANT: doit être déclarée AVANT '/api/stream/:videoId', sinon Express
 // matche '/api/stream/instances' avec videoId='instances' (-> 400, route morte).
 app.get('/api/stream/instances', (req, res) => {
-  res.json({ instances: INVIDIOUS_INSTANCES });
+  // Diagnostic de la chaine d'extraction : permet de verifier depuis l'exterieur
+  // si yt-dlp est reellement installe et si les cookies sont bien pris en compte.
+  res.json({
+    instances: INVIDIOUS_INSTANCES,
+    invidiousConfigured: INVIDIOUS_INSTANCES.length > 0,
+    ytdlpAvailable: !!getYtdl(),
+    cookiesConfigured: !!getCookiesFile(),
+    playerClient: process.env.YTDLP_PLAYER_CLIENT || 'default',
+    cachedStreams: streamCache.keys().length
+  });
 });
+
+// ── Proxy audio googlevideo ──────────────────────────────────────────────────
+// googlevideo ne sert plus qu'environ 1 Mio par requete : au-dela il repond 403
+// (mesure du 18/09/2026 : Range 0-1048575 -> 206, Range 0-2097151 -> 403, GET
+// sans Range -> 403, HEAD -> 403). Il faut donc telecharger par tranches et les
+// recoller, sinon toute lecture non "rangee" par le client echoue.
+const GOOGLEVIDEO_CHUNK = 1024 * 1024;
+const GOOGLEVIDEO_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+
+function parseRangeHeader(header) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(header || '').trim());
+  if (!m) return null;
+  return {
+    start: m[1] ? parseInt(m[1], 10) : 0,
+    end: m[2] ? parseInt(m[2], 10) : null
+  };
+}
+
+function parseContentRange(header) {
+  const m = /bytes\s+(\d+)-(\d+)\/(\d+)/i.exec(String(header || ''));
+  return m ? { start: +m[1], end: +m[2], total: +m[3] } : null;
+}
+
+function fetchAudioChunk(url, start, end) {
+  return axios.get(url, {
+    responseType: 'stream',
+    timeout: 30000,
+    headers: { 'User-Agent': GOOGLEVIDEO_UA, 'Range': `bytes=${start}-${end}` },
+    validateStatus: (code) => code === 200 || code === 206
+  });
+}
+
+// Telecharge par tranches successives et pipe le tout vers le client.
+async function pipeAudioStream(req, res, streamData) {
+  const wanted = parseRangeHeader(req.headers.range);
+  const start = wanted ? wanted.start : 0;
+  const askedEnd = wanted && wanted.end != null ? wanted.end : null;
+
+  const firstEnd = askedEnd == null
+    ? start + GOOGLEVIDEO_CHUNK - 1
+    : Math.min(start + GOOGLEVIDEO_CHUNK - 1, askedEnd);
+
+  let current = await fetchAudioChunk(streamData.audioUrl, start, firstEnd);
+  const cr = parseContentRange(current.headers['content-range']);
+  const total = cr ? cr.total : null;
+
+  let finalEnd;
+  if (askedEnd != null) finalEnd = total != null ? Math.min(askedEnd, total - 1) : askedEnd;
+  else finalEnd = total != null ? total - 1 : firstEnd;
+
+  res.set({
+    'Content-Type': current.headers['content-type'] || streamData.mimeType || 'audio/webm',
+    'Accept-Ranges': 'bytes',
+    'Cross-Origin-Resource-Policy': 'cross-origin'
+  });
+  res.set('Content-Length', String(finalEnd - start + 1));
+  if (wanted && total != null) {
+    res.set('Content-Range', `bytes ${start}-${finalEnd}/${total}`);
+    res.status(206);
+  }
+
+  let aborted = false;
+  req.on('close', () => { aborted = true; try { current.data.destroy(); } catch (e) {} });
+
+  let pos = cr ? cr.end + 1 : firstEnd + 1;
+  for (;;) {
+    await new Promise((resolve, reject) => {
+      current.data.on('error', reject);
+      current.data.on('end', resolve);
+      current.data.pipe(res, { end: false });
+    });
+    if (aborted || pos > finalEnd) break;
+    const next = Math.min(pos + GOOGLEVIDEO_CHUNK - 1, finalEnd);
+    try {
+      current = await fetchAudioChunk(streamData.audioUrl, pos, next);
+    } catch (e) {
+      // Sans PO Token GVS valide, YouTube ne sert que le premier Mio de l'URL
+      // et repond 403 au-dela (mesure du 18/09/2026). On coupe proprement au
+      // lieu de laisser le client sur une erreur opaque.
+      console.error(
+        `[AUDIO PROXY] tranche ${pos}-${next} refusee (${e.message}). ` +
+        'Symptome classique d\'un PO Token GVS manquant : le flux sera tronque.'
+      );
+      break;
+    }
+    const ncr = parseContentRange(current.headers['content-range']);
+    pos = ncr ? ncr.end + 1 : next + 1;
+  }
+  res.end();
+}
 
 // Proxy audio : contourne les restrictions CORS de googlevideo en streamant
 // depuis le backend. Recommandé pour la lecture navigateur.
@@ -1348,42 +1622,14 @@ app.get('/api/audio/:videoId', rateLimit, async (req, res) => {
 
   try {
     const streamData = await getAudioStream(videoId);
-    const head = await axios.head(streamData.audioUrl, {
-      timeout: 10000,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-    });
-
-    res.set({
-      'Content-Type': head.headers['content-type'] || streamData.mimeType || 'audio/webm',
-      'Accept-Ranges': 'bytes',
-      'Cross-Origin-Resource-Policy': 'cross-origin'
-    });
-
-    const upstreamHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-    };
-    if (req.headers.range) {
-      upstreamHeaders['Range'] = req.headers.range;
-      res.set('Content-Range', head.headers['content-range']);
-      res.status(206);
-    }
-
-    const upstream = await axios.get(streamData.audioUrl, {
-      responseType: 'stream',
-      timeout: 60000,
-      headers: upstreamHeaders
-    });
-
-    upstream.data.pipe(res);
-    upstream.data.on('error', (err) => {
-      console.error('[AUDIO PROXY] stream error', err.message);
-      if (!res.headersSent) res.status(503).end();
-      else res.end();
-    });
-    upstream.data.on('end', () => res.end());
+    await pipeAudioStream(req, res, streamData);
   } catch (error) {
-    console.error('[AUDIO PROXY ERROR]', error.message);
-    res.status(503).json({ error: 'Stream indisponible: ' + error.message });
+    const { status, ...info } = classifyStreamError(error.message);
+    console.error('[AUDIO PROXY ERROR]', info.reason, '-', error.message);
+    // Une tranche peut echouer apres l'envoi des en-tetes : on ne peut
+    // plus renvoyer de JSON, on coupe proprement le flux.
+    if (res.headersSent) return res.end();
+    res.status(status).json(info);
   }
 });
 
@@ -1410,8 +1656,9 @@ app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[STREAM ERROR]', error.message);
-    res.status(503).json({ error: 'Stream indisponible: ' + error.message });
+    const { status, ...info } = classifyStreamError(error.message);
+    console.error('[STREAM ERROR]', info.reason, '-', error.message);
+    res.status(status).json(info);
   }
 });
 
@@ -1426,35 +1673,15 @@ app.get('/api/proxy/stream/:videoId', rateLimit, async (req, res) => {
 
   try {
     const streamData = await getAudioStream(videoId);
-
     console.log(`[PROXY] Stream ${videoId} via ${streamData.instance}`);
-
-    const audioResponse = await axios({
-      method: 'get',
-      url: streamData.audioUrl,
-      responseType: 'stream',
-      timeout: 30000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
-        'Accept': 'audio/webm,audio/ogg,audio/*;q=0.9,*/*;q=0.8',
-        'Referer': 'https://www.youtube.com/'
-      }
-    });
-
-    res.setHeader('Content-Type', streamData.mimeType.split(';')[0].trim());
-    res.setHeader('Accept-Ranges', 'bytes');
-    if (audioResponse.headers['content-length']) {
-      res.setHeader('Content-Length', audioResponse.headers['content-length']);
-    }
-    if (audioResponse.headers['content-range']) {
-      res.setHeader('Content-Range', audioResponse.headers['content-range']);
-      res.status(206);
-    }
-
-    audioResponse.data.pipe(res);
+    await pipeAudioStream(req, res, streamData);
   } catch (error) {
-    console.error('[PROXY ERROR]', error.message);
-    res.status(503).json({ error: 'Stream indisponible: ' + error.message });
+    const { status, ...info } = classifyStreamError(error.message);
+    console.error('[PROXY ERROR]', info.reason, '-', error.message);
+    // Une tranche peut echouer apres l'envoi des en-tetes : on ne peut
+    // plus renvoyer de JSON, on coupe proprement le flux.
+    if (res.headersSent) return res.end();
+    res.status(status).json(info);
   }
 });
 

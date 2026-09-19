@@ -1,18 +1,18 @@
 const express = require('express');
 const { resolveTrackSeed } = require('../seed');
-const { fetchCandidates } = require('../candidates');
+const CONFIG = require('../config');
+const { fetchCandidates, fetchMoreCandidates } = require('../candidates');
 const { filterCandidates } = require('../filters');
 const { rankCandidates } = require('../scoring');
 const { buildQueue } = require('../sequencer');
 const { normalizeForDedupe } = require('../normalize');
+const lastfm = require('../providers/lastfm');
 const {
   createSession,
   getSession,
   recordFeedback,
   getFeedbackWeights,
-  shouldExcludeArtist,
-  addKnownArtists,
-  getKnownArtists
+  addKnownArtists
 } = require('../feedback');
 
 const router = express.Router();
@@ -55,10 +55,19 @@ function determineStrategy(seed, tracks) {
   return 'genre';
 }
 
-function degradedSources(seed) {
+function degradedSources(seed, candidates = []) {
   const out = [];
+  const actualSources = new Set();
+  candidates.forEach(candidate => (candidate.sources || []).forEach(source => actualSources.add(source)));
+
   if (!seed.ids.deezer) out.push({ source: 'deezer', reason: 'title not resolved' });
+  else if (!actualSources.has(CONFIG.sources.DEEZER)) {
+    out.push({ source: 'deezer', reason: 'no candidates returned' });
+  }
   if (!seed.ids.mbid) out.push({ source: 'musicbrainz', reason: 'mbid not resolved' });
+  if (lastfm.isConfigured() && !actualSources.has(CONFIG.sources.LASTFM)) {
+    out.push({ source: 'lastfm', reason: 'no candidates returned' });
+  }
   return out;
 }
 
@@ -77,6 +86,7 @@ router.post('/start', async (req, res) => {
       ? parseFloat(req.body.adventurousness)
       : undefined;
     const userHistoryArtists = extractUserArtists(req.body.userHistory || []);
+    const normalizedHistoryArtists = userHistoryArtists.map(normalizeForDedupe).filter(Boolean);
     const dislikedKeys = toTrackSet(req.body.dislikedKeys || []);
     const recentKeys = toTrackSet(req.body.recentKeys || []);
 
@@ -92,10 +102,10 @@ router.post('/start', async (req, res) => {
     // Réintégrer la graine comme premier élément ? Non, le front a déjà le titre en cours.
     // On génère uniquement la suite.
 
-    const scored = rankCandidates(candidates, seed, { knownArtists: new Set(userHistoryArtists) });
+    const scored = rankCandidates(candidates, seed, { knownArtists: new Set(normalizedHistoryArtists) });
     const tracks = buildQueue(scored, { adventurousness });
 
-    const radioId = createSession(seed, userHistoryArtists, scored);
+    const radioId = createSession(seed, normalizedHistoryArtists, scored);
     addKnownArtists(radioId, tracks.map(t => t.artist));
 
     res.json({
@@ -103,7 +113,7 @@ router.post('/start', async (req, res) => {
       seed,
       tracks: tracks.map(formatTrack),
       strategy: determineStrategy(seed, tracks),
-      degradedSources: degradedSources(seed),
+      degradedSources: degradedSources(seed, candidates),
       meta: { candidatePool: candidates.length, batchSize: tracks.length }
     });
   } catch (e) {
@@ -135,9 +145,24 @@ router.post('/next', async (req, res) => {
     const rejected = new Set(weights.rejectedArtists);
     const playedKeys = toTrackSet(req.body.playedKeys || []);
 
+    const isAvailable = candidate =>
+      !playedKeys.has(candidate.normalizedKey) && !rejected.has(normalizeForDedupe(candidate.artist));
+    if (session.candidates.filter(isAvailable).length < CONFIG.radio.replenishThreshold) {
+      try {
+        const existingKeys = new Set(session.candidates.map(candidate => candidate.normalizedKey));
+        const fresh = await fetchMoreCandidates(session.seed, {
+          excludeKeys: existingKeys,
+          artists: session.candidates.map(candidate => candidate.artist)
+        });
+        session.candidates.push(...fresh);
+      } catch (error) {
+        console.warn('[radio/next] candidate replenishment failed:', error.message);
+      }
+    }
+
     // Rescorer les candidats non encore joués en appliquant les poids de feedback
     let remaining = session.candidates
-      .filter(c => !playedKeys.has(c.normalizedKey) && !rejected.has(normalizeForDedupe(c.artist)))
+      .filter(isAvailable)
       .map(c => ({ ...c }));
 
     const rescored = rankCandidates(remaining, session.seed, { knownArtists, feedbackWeights: weights });
@@ -151,7 +176,7 @@ router.post('/next', async (req, res) => {
       radioId,
       tracks: tracks.map(formatTrack),
       strategy: determineStrategy(session.seed, tracks),
-      degradedSources: degradedSources(session.seed),
+      degradedSources: degradedSources(session.seed, session.candidates),
       meta: { remainingPool: remaining.length, batchSize: tracks.length }
     });
   } catch (e) {

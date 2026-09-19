@@ -1,7 +1,6 @@
 const CONFIG = require('./config');
 const deezer = require('./providers/deezer');
 const lastfm = require('./providers/lastfm');
-const tidal = require('./providers/tidal');
 const { normalizeForDedupe } = require('./normalize');
 const { trackTitleKey } = require('./seed');
 
@@ -18,10 +17,12 @@ function withTimeout(promise, ms = TIMEOUT) {
 }
 
 function safeCall(fn) {
-  return withTimeout(fn()).catch(err => {
-    console.warn('[candidates]', err.message);
-    return [];
-  });
+  return Promise.resolve()
+    .then(() => withTimeout(fn()))
+    .catch(err => {
+      console.warn('[candidates]', err.message);
+      return [];
+    });
 }
 
 function normalizeCandidate(raw) {
@@ -122,15 +123,6 @@ async function similarArtistsTopTracks(seed) {
     })());
   }
 
-  // TIDAL similar artists (pas de top tracks fiable documenté ; on se contente des similaires si dispo)
-  if (tidal.isConfigured && tidal.isConfigured()) {
-    tasks.push((async () => {
-      const related = await safeCall(() => tidal.searchAndSimilar(seed.artist));
-      // Sans top tracks, on ne peut pas produire de candidats titres directement.
-      // On les garde comme artistes connus pour le scoring de nouveauté.
-    })());
-  }
-
   await Promise.all(tasks);
   return out;
 }
@@ -161,13 +153,40 @@ async function neighborsOfNeighbors(seed, firstDegreeArtists) {
   const out = [];
   const pick = firstDegreeArtists.slice(0, 8);
   const tasks = pick.map(a => safeCall(async () => {
-    const related = await lastfm.fetchSimilarArtists(a.name).catch(() => []);
+    const related = await lastfm.fetchSimilarArtists(a).catch(() => []);
     const topTasks = related.slice(0, 3).map(sim => safeCall(() => lastfm.getTopTracks(sim.name, 3).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.LASTFM, rank: t.rank })))));
     const tops = await Promise.all(topTasks);
     tops.forEach(group => out.push(...group));
   }));
   await Promise.all(tasks);
   return out;
+}
+
+async function fetchMoreCandidates(seed, { excludeKeys = [], artists = [] } = {}) {
+  const excluded = excludeKeys instanceof Set ? excludeKeys : new Set(excludeKeys);
+  const expandedTags = seed.tags.slice(3);
+  const tagTasks = expandedTags.map(tag => safeCall(() => lastfm.getTopTracksByTag(tag, TAG_LIMIT)));
+  const tagGroups = await Promise.all(tagTasks);
+  const tagTracks = [];
+  tagGroups.forEach((tracks, idx) => {
+    tracks.forEach(t => tagTracks.push(normalizeCandidate({
+      ...t,
+      source: t.source || CONFIG.sources.LASTFM,
+      rawScores: { tagRank: t.rank, tagIndex: idx + 3 },
+      tags: [expandedTags[idx]]
+    })));
+  });
+
+  const uniqueArtists = artists
+    .filter(Boolean)
+    .filter((artist, index, all) => all.indexOf(artist) === index)
+    .slice(-12);
+  const neighbors = await neighborsOfNeighbors(seed, uniqueArtists);
+  const fresh = dedupeCandidates([...tagTracks, ...neighbors])
+    .filter(c => c.normalizedKey !== seed.normalizedKey && !excluded.has(c.normalizedKey));
+
+  console.log(`[candidates] replenishment added ${fresh.length} candidates`);
+  return fresh.slice(0, LIMIT);
 }
 
 async function fetchCandidates(seed) {
@@ -202,6 +221,7 @@ async function fetchCandidates(seed) {
 
 module.exports = {
   fetchCandidates,
+  fetchMoreCandidates,
   normalizeCandidate,
   dedupeCandidates,
   trackTitleKey

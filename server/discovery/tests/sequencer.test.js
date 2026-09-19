@@ -62,4 +62,32 @@ describe('buildQueue', () => {
     queue.forEach(t => { counts[t.artist] = (counts[t.artist] || 0) + 1; });
     Object.values(counts).forEach(n => assert.ok(n <= 2));
   });
+
+  test('ne sélectionne jamais deux fois la même clé normalisée', () => {
+    const candidates = [
+      { title: 'Track A', artist: 'Artist A', album: 'Album A', bpm: 120, normalizedKey: 'artist a|track a' },
+      { title: 'Track B', artist: 'Artist B', album: 'Album B', bpm: 121, normalizedKey: 'artist b|track b' }
+    ];
+
+    const queue = buildQueue(candidates, { batchSize: 4, adventurousness: 0 });
+    assert.equal(queue.length, 2);
+    assert.equal(new Set(queue.map(t => t.normalizedKey)).size, queue.length);
+  });
+
+  test('applique les plafonds artiste et album au nouveau lot seulement', () => {
+    const existingQueue = [
+      { title: 'Old 1', artist: 'Repeated Artist', album: 'Repeated Album', bpm: 118 },
+      { title: 'Old 2', artist: 'Repeated Artist', album: 'Repeated Album', bpm: 119 },
+      { title: 'Tail', artist: 'Other Artist', album: 'Other Album', bpm: 120 }
+    ];
+    const candidates = [
+      { title: 'New 1', artist: 'Repeated Artist', album: 'Repeated Album', bpm: 121, score: 1 }
+    ];
+
+    const queue = buildQueue(candidates, { existingQueue, batchSize: 1, adventurousness: 0 });
+    assert.equal(queue.length, 1);
+    assert.equal(queue.filter(t => t.artist === 'Repeated Artist').length, 1);
+    assert.equal(queue.filter(t => t.album === 'Repeated Album').length, 1);
+    assert.notEqual(queue[0].artist, existingQueue[existingQueue.length - 1].artist);
+  });
 });

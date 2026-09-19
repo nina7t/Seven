@@ -5,7 +5,8 @@ const {
   recordFeedback,
   getFeedbackWeights,
   shouldExcludeArtist,
-  getKnownArtists
+  getKnownArtists,
+  getSession
 } = require('../feedback');
 
 describe('createSession', () => {
@@ -39,6 +40,12 @@ describe('recordFeedback', () => {
     const id = createSession({ artist: 'A' });
     recordFeedback(id, { artist: 'Worse', tags: [], normalizedKey: 'z' }, 'dislike');
     assert.equal(shouldExcludeArtist(id, 'Worse'), true);
+  });
+
+  test('un type inconnu est rejeté sans être ajouté à l’historique', () => {
+    const id = createSession({ artist: 'A' });
+    assert.equal(recordFeedback(id, { artist: 'B', normalizedKey: 'b|track' }, 'unknown'), false);
+    assert.deepEqual(getSession(id).history, []);
   });
 
   test('session inconnue retourne false', () => {

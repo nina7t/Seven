@@ -46,15 +46,6 @@ function recordFeedback(radioId, track, type) {
   const s = getSession(radioId);
   if (!s || !track) return false;
 
-  s.history.push({
-    trackKey: track.normalizedKey || `${track.artist}|${track.title}`,
-    type,
-    at: Date.now()
-  });
-
-  const artistNorm = normalizeForDedupe(track.artist);
-  const tags = (track.tags || []).filter(Boolean);
-
   const handlers = {
     like: { artist: W.likeBoost, tag: W.likeBoost },
     listen80: { artist: W.listen80Boost, tag: W.listen80Boost },
@@ -64,6 +55,15 @@ function recordFeedback(radioId, track, type) {
 
   const delta = handlers[type];
   if (!delta) return false;
+
+  s.history.push({
+    trackKey: track.normalizedKey || `${track.artist}|${track.title}`,
+    type,
+    at: Date.now()
+  });
+
+  const artistNorm = normalizeForDedupe(track.artist);
+  const tags = (track.tags || []).filter(Boolean);
 
   s.artistWeights[artistNorm] = (s.artistWeights[artistNorm] || 0) + delta.artist;
   tags.forEach(tag => {

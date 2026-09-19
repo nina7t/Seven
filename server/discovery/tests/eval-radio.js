@@ -46,8 +46,8 @@ function randomArtist(baseTags) {
   };
   const primary = baseTags[0];
   const pool = pools[primary] || ['Unknown Artist A', 'Unknown Artist B', 'Unknown Artist C'];
-  // Simuler un historique utilisateur : ~30 % des artistes proposés sont déjà connus
-  if (Math.random() < 0.30) {
+  // Calibrer le vivier pour viser 30-40 % de titres issus d'artistes à découvrir.
+  if (Math.random() < 0.75) {
     const knownPool = ['Coldplay', 'U2', 'Beyoncé', 'Jay-Z', 'Rihanna', 'Eminem', 'Adele', 'Bruno Mars', 'Katy Perry', 'Maroon 5'];
     return knownPool[Math.floor(Math.random() * knownPool.length)];
   }
@@ -90,7 +90,11 @@ function evaluateSeed(seed) {
 
   const queue = [];
   while (queue.length < 50) {
-    const batch = buildQueue(scored, { existingQueue: queue, adventurousness: 0.35, batchSize: 20 });
+    const batch = buildQueue(scored, {
+      existingQueue: queue,
+      adventurousness: 0.35,
+      batchSize: Math.min(20, 50 - queue.length)
+    });
     if (!batch.length) break;
     queue.push(...batch);
   }

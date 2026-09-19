@@ -25,14 +25,6 @@ function trackKey(title, artist) {
   return `${normalizeForDedupe(artist || '')}|${normalizeForDedupe(title || '')}`;
 }
 
-function parseIsoWeekAgo(isoDate, days) {
-  if (!isoDate) return null;
-  const d = new Date(isoDate);
-  if (isNaN(d.getTime())) return null;
-  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  return d > cutoff;
-}
-
 /**
  * Filtre le vivier de candidats.
  *

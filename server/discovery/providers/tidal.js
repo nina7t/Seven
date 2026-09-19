@@ -2,6 +2,7 @@ const axios = require('axios');
 const CONFIG = require('../config');
 const { getAccessToken, authHeaders } = require('./tidal-auth');
 const cache = require('../cache');
+const { withRetry } = require('../retry');
 const { createNormalizedArtist } = require('../normalize');
 
 const { TIDAL } = CONFIG.sources;
@@ -18,7 +19,7 @@ async function findArtist(name) {
   const token = await getAccessToken();
   const handle = name.toLowerCase().replace(/[^a-z0-9]/g, '');
   const url = apiUrl(`/artists?filter[handle]=${encodeURIComponent(handle)}&countryCode=${CONFIG.countryCode}`);
-  const res = await axios.get(url, { headers: authHeaders(token), timeout: CONFIG.sourceTimeoutMs });
+  const res = await withRetry(() => axios.get(url, { headers: authHeaders(token), timeout: CONFIG.sourceTimeoutMs }));
   const data = res.data?.data || [];
   if (!data.length) return null;
   return { id: data[0].id, name: data[0].attributes?.name || name };
@@ -34,7 +35,7 @@ async function fetchSimilarArtists(artistId) {
 
   const token = await getAccessToken();
   const url = apiUrl(`/artists/${encodeURIComponent(artistId)}?countryCode=${CONFIG.countryCode}&include=similarArtists`);
-  const res = await axios.get(url, { headers: authHeaders(token), timeout: CONFIG.sourceTimeoutMs });
+  const res = await withRetry(() => axios.get(url, { headers: authHeaders(token), timeout: CONFIG.sourceTimeoutMs }));
 
   const similarData = res.data?.relationships?.similarArtists?.data || [];
   const included = res.data?.included || [];

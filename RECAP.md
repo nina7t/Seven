@@ -1,6 +1,6 @@
 # 🎵 SEVENZ — RECAPITULATIF DU PROJET
 
-**Date du récap :** 18 septembre 2026  
+**Date du récap :** 19 septembre 2026  
 **Repo :** `nina7t/Seven`  
 **Stack :** Capacitor 8 + Node.js + AndrJe oid natif + Firebase  
 **App :** Lecteur musical YouTube-style (web + Android)
@@ -230,6 +230,85 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 ---
 
 ## 9. 📝 JOURNAL
+
+### 19 septembre 2026 — Radio Spotify-like, personnalisation réelle et recherche contextuelle
+
+**Objectif** : rendre la radio consultable comme une playlist Spotify, puis connecter
+réellement les réglages et les données personnelles au nouveau moteur backend.
+
+#### Vue playlist de la radio
+
+- Nouvelle vue SPA `radioView`, enregistrée dans `ALL_VIEWS` et `applyView('radio')`.
+- En-tête « Radio de [artiste] », pochette de la piste en cours, compteur de titres et
+  description indiquant que la sélection évolue pendant l’écoute.
+- Liste complète de `S.queue` avec vignette, titre, artiste cliquable, durée et
+  surlignage de la piste active.
+- Actions Lire/Reprendre, Aléatoire et File d’attente.
+- Navigation clavier des pistes et artistes (`Entrée` / `Espace`) et scroll vers la
+  piste active.
+- État explicite si l’utilisateur revient sur une ancienne vue radio après avoir lancé
+  un autre contexte de lecture.
+- Bouton contextuel « Voir la radio » dans le gestionnaire de file lorsque
+  `S.radioMode` est actif.
+- `maybeExtendRadio()` rafraîchit la vue après avoir ajouté un nouveau lot.
+- `openRadio()` délègue désormais à `startRadio(track.channel, track.title)` : la
+  radio Deezer / le moteur titre-based est utilisé au lieu de l’ancien chemin
+  Last.fm + YouTube obsolète.
+
+#### Nouveau moteur radio connecté au frontend
+
+- Le moteur `/api/radio/start`, `/api/radio/next` et `/api/radio/feedback`, initialement
+  présent uniquement dans `www/index.html`, a été reporté chirurgicalement dans
+  `index.html` sans recopier tout le fichier ni écraser les différences de la version
+  Capacitor.
+- Les réponses backend sont adaptées au player par `mapRadioTrack()` et la session
+  est conservée dans `S.radioId`.
+- Le curseur **Rassurant ↔ Aventureux** est présent dans les deux variantes et sa
+  valeur `S.radioAdventurousness` est transmise à `/radio/start` puis `/radio/next`.
+- Les boutons pouce haut / pouce bas envoient le feedback de la piste courante à la
+  session radio.
+- En cas d’échec du moteur titre-based, le fallback radio artiste Deezer reste actif.
+
+#### Personnalisation envoyée au backend
+
+- Ajout de `getRadioPersonalization()` :
+  - `userHistory` transmet les artistes des 30 dernières écoutes ;
+  - `recentKeys` transmet leurs clés normalisées afin d’éviter les répétitions ;
+  - `dislikedKeys` transmet les morceaux rejetés dans le format attendu par le backend.
+- `radioKeyPart()` / `radioTrackKey()` reproduisent côté client la normalisation
+  `artiste|titre` du moteur de découverte.
+- `dislikeCurrentTrack()` conserve désormais l’identifiant de lecture **et** la clé
+  normalisée. Les anciens dislikes sous forme d’ID sont rapprochés des métadonnées
+  encore disponibles dans l’historique, les favoris ou la file.
+
+#### Recherche récente plus discrète
+
+- « Recherches récentes » est caché au repos.
+- Le panneau apparaît uniquement lorsque l’utilisateur clique/focalise la barre de
+  recherche vide.
+- Il disparaît dès que du texte est saisi et réapparaît si le champ est vidé tout en
+  restant actif.
+- Il se referme à la perte de focus, sans empêcher le clic sur un terme récent.
+
+#### Corrections CSS
+
+- Suppression de la propriété obsolète `speak: none` sur les icônes Tabler.
+- Ajout de la propriété standard `line-clamp: 2` à côté de
+  `-webkit-line-clamp: 2` pour supprimer les avertissements de compatibilité.
+
+#### Vérifications
+
+- **41/41 tests backend passent** (`npm test` dans `server/`).
+- Les 7 blocs `<script>` de `index.html` et `www/index.html` passent l’analyse
+  JavaScript (`new Function`) sans erreur.
+- Vérification de présence des cinq intégrations dans les deux variantes :
+  `/radio/start`, `/radio/next`, `/radio/feedback`, `getRadioPersonalization` et
+  `radioAdventure`.
+- Test Playwright mobile 390 × 844 : vue visible, titre de radio correct, liste rendue,
+  piste active surlignée, lecture clavier fonctionnelle et accès « Voir la radio ».
+- `git diff --check` propre.
+
+---
 
 ### 18 septembre 2026 — Onboarding Spotify-style + Home « Mes artistes »
 
@@ -550,23 +629,69 @@ curl "https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=Daft+Pun
 # curl "https://openapi.tidal.com/v2/artists/<id>?countryCode=FR&include=similarArtists" -H "Authorization: Bearer ..."
 ```
 
-> ⚠️ Les requêtes cURL vers les sources tierces (Last.fm, TIDAL, MusicBrainz) n’ont
-> pas pu être exécutées en local car les variables `LASTFM_API_KEY`,
-> `TIDAL_CLIENT_ID` et `TIDAL_CLIENT_SECRET` ne sont pas renseignées. Les endpoints
-> utilisés sont documentés officiellement ; les commandes de référence sont dans
-> `server/discovery/routes/radio.js`.
+> ✅ Requêtes réelles exécutées le 19 septembre avec les clés fournies :
+> Last.fm (`track.getSimilar`, `track.getTopTags`, `artist.getTopTags`,
+> `tag.getTopTracks`) et Deezer OK ; OAuth TIDAL OK mais la recherche d’artiste
+> par `handle` ne retourne rien → TIDAL reste une source secondaire expérimentale.
+> MusicBrainz répond parfois 503 → traité comme source dégradée.
+> `/api/radio/start` renvoie `"track-similar-tags"` + 20 titres en local.
 
 **Variables d’environnement à ajouter sur Render**
 - `LASTFM_API_KEY` — obligatoire pour les tags/similarités
 - `TIDAL_CLIENT_ID` / `TIDAL_CLIENT_SECRET` — optionnel (source de similaires)
 - `YOUTUBE_API_KEY` — déjà requis par le serveur
 
+---
+
+### 19 septembre 2026 — Revue + passe de corrections du moteur radio
+
+Revue complète du moteur (4 agents en parallèle sur des fichiers disjoints),
+puis corrections. **42/42 tests passent**, éval : 50 titres/graine,
+découverte moyenne **35 %** (cible 30–40 %).
+
+**Backend**
+- `providers/*` + nouveau `retry.js` — gestion des 429 : respect de
+  `Retry-After` (secondes ou date HTTP) sinon backoff exponentiel
+  (~750 ms / ~1,5 s, 2 retries max, compatible avec le timeout source de 4 s).
+- `sequencer.js` — bug corrigé : les candidats choisis sont exclus via
+  `usedKeys` (plus de doublon possible dans un lot) ; les plafonds
+  artiste/album ne comptent plus que le lot courant, l’historique ne sert
+  qu’à l’adjacence et la continuité BPM/époque.
+- `candidates.js` — `neighborsOfNeighbors` passait `a.name` sur une string
+  (voisins toujours vides) ; `safeCall` capture désormais aussi les
+  exceptions synchrones ; bloc TIDAL mort retiré ; nouvelle fonction
+  `fetchMoreCandidates()` (tags 4-5 + voisins depuis les derniers artistes
+  du pool).
+- `routes/radio.js` — `/next` réapprovisionne le vivier sous 40 candidats
+  (`CONFIG.radio.replenishThreshold`) → la radio ne s’arrête plus après
+  ~15 lots ; `userHistory` normalisé avec `normalizeForDedupe` ;
+  `degradedSources` signale Deezer/Last.fm quand ils ne produisent rien ;
+  imports morts retirés.
+- `feedback.js` — `recordFeedback` valide le type avant d’écrire l’historique.
+- `filters.js` — fonction morte `parseIsoWeekAgo` supprimée.
+
+**Front (`www/index.html`)**
+- `/radio/start` et `/radio/next` envoient `adventurousness` — le slider a
+  un effet réel ; `/radio/next` envoie des `playedKeys` au format
+  `normalizedKey` (avant : clés titre-only qui ne matchaient jamais →
+  titres déjà joués pouvaient revenir).
+- Signaux automatiques : `listen80` à 80 % d’écoute (hook `updateProgress`),
+  `skip` si passage au suivant avant 20 s (avec garde fins naturelles),
+  via `sendRadioFeedback()` sans toast.
+- `radioFeedback` utilise `Capacitor.Plugins.Haptics.impact({style:'LIGHT'})`
+  avec fallback `navigator.vibrate`.
+- Le slider régénère toute la file à venir via `regenerateRadioQueue()`
+  (splice après `currentIndex` + push des nouveaux titres, référence de
+  queue conservée).
+- `getRadioPersonalization()` : `/radio/start` envoie aussi l’historique
+  (`userHistory`, `recentKeys`) et les dislikes (`dislikedKeys`) au bon
+  format clé `artiste|titre`.
+
 **Reste à faire / limites connues**
-- Brancher l’envoi du feedback réel (skip/listen80) depuis le lecteur en cours.
-- Valider l’endpoint `/radio/next` côté front quand on épuise le vivier de 300
-  candidats (actuellement le lot suivant pioche dans la même session).
-- Exécuter les requêtes cURL sources avec de vraies clés et ajuster les poids
-  selon les formats JSON réels.
+- Pas de persistance utilisateur des poids feedback (session mémoire 24 h).
+- Pas de filtre « audio disponible » côté backend (résolu à la lecture
+  via la recherche YouTube).
+- Endpoint TIDAL catalogue par `handle` peu fiable → source expérimentale.
 
 ---
 

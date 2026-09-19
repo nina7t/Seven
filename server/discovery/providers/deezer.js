@@ -1,6 +1,7 @@
 const axios = require('axios');
 const CONFIG = require('../config');
 const cache = require('../cache');
+const { withRetry } = require('../retry');
 const { createNormalizedArtist } = require('../normalize');
 
 const { DEEZER } = CONFIG.sources;
@@ -10,7 +11,7 @@ function apiUrl(path) {
 }
 
 async function deezerGet(path) {
-  const res = await axios.get(apiUrl(path), { timeout: CONFIG.sourceTimeoutMs });
+  const res = await withRetry(() => axios.get(apiUrl(path), { timeout: CONFIG.sourceTimeoutMs }));
   if (res.data?.error) throw new Error(res.data.error.message || 'Deezer API error');
   return res.data;
 }

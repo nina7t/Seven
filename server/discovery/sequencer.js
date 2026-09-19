@@ -26,16 +26,22 @@ function countDecadeRecent(queue, decade) {
   return queue.slice(-5).filter(t => getDecade(t.year) === decade).length;
 }
 
-function isValid(candidate, queue, constraints) {
+function candidateKey(candidate) {
+  return candidate.normalizedKey || `${normalizeForDedupe(candidate.artist)}|${normalizeForDedupe(candidate.title)}`;
+}
+
+function isValid(candidate, queue, constraints, context = {}) {
   if (!candidate.title || !candidate.artist) return false;
   const artistNorm = normalizeForDedupe(candidate.artist);
+  const batchQueue = context.batchQueue || queue;
 
-  // Jamais deux titres consécutifs du même artiste
+  if (context.usedKeys && context.usedKeys.has(candidateKey(candidate))) return false;
+
+  // Jamais deux titres consécutifs du même artiste (y compris à la limite du lot)
   if (lastArtist(queue) === artistNorm) return false;
-  // Max N titres par artiste dans le lot
-  if (countArtist(queue, candidate.artist) >= constraints.maxPerArtistInBatch) return false;
-  // Max N titres du même album
-  if (candidate.album && countAlbum(queue, candidate.album) >= constraints.maxSameAlbumInBatch) return false;
+  // Les plafonds artiste/album ne portent que sur le nouveau lot.
+  if (countArtist(batchQueue, candidate.artist) >= constraints.maxPerArtistInBatch) return false;
+  if (candidate.album && countAlbum(batchQueue, candidate.album) >= constraints.maxSameAlbumInBatch) return false;
 
   // Saut de tempo
   if (constraints.maxTempoDiff && queue.length) {
@@ -68,9 +74,14 @@ function sanitizeAdventurousness(v) {
 }
 
 function pickNext(candidates, queue, opts) {
-  const { adventurousness = W.adventurousnessDefault, constraints = W } = opts;
+  const {
+    adventurousness = W.adventurousnessDefault,
+    constraints = W,
+    batchQueue = queue,
+    usedKeys
+  } = opts;
   const adv = sanitizeAdventurousness(adventurousness);
-  const valid = candidates.filter(c => isValid(c, queue, constraints));
+  const valid = candidates.filter(c => isValid(c, queue, constraints, { batchQueue, usedKeys }));
   if (!valid.length) return null;
 
   // Deux bassins : valeurs sûres (haut du classement) et aventure (tout le vivier valide)
@@ -106,12 +117,19 @@ function buildQueue(candidates, opts = {}) {
 
   const queue = [...existingQueue];
   const added = [];
+  const usedKeys = new Set(existingQueue.map(candidateKey));
 
   while (added.length < batchSize) {
-    const next = pickNext(candidates, queue, { adventurousness, constraints });
+    const next = pickNext(candidates, queue, {
+      adventurousness,
+      constraints,
+      batchQueue: added,
+      usedKeys
+    });
     if (!next) break;
     queue.push(next);
     added.push(next);
+    usedKeys.add(candidateKey(next));
   }
 
   return added;

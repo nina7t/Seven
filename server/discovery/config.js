@@ -42,6 +42,7 @@ const CONFIG = {
   radio: {
     sourceTimeoutMs: 4000,
     candidateLimit: 300,
+    replenishThreshold: 40,
     batchSize: 20,
     sessionTtlMs: 24 * 60 * 60 * 1000,
     maxPerArtistInBatch: 2,

@@ -106,7 +106,7 @@
 }
 
 /* Tabler Icons via CDN */
-.ti {font-family:"tabler-icons" !important;speak:none;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+.ti {font-family:"tabler-icons" !important;font-style:normal;font-weight:normal;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 
 :root {
   --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
@@ -1161,6 +1161,24 @@ h1, h2, h3 {
 .badge-blue { background: rgba(79, 139, 245, 0.8); }
 .badge-orange { background: rgba(255, 107, 53, 0.8); }
 .badge-green { background: rgba(29, 185, 84, 0.8); }
+
+.radio-adventure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 20px;
+}
+.radio-adventure-label {
+  font-size: 12px;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+#radioAdventure {
+  flex: 1;
+  accent-color: var(--primary);
+}
 
 /* Search results */
 .search-results { display: none; border-radius: 16px; transition: background 0.6s ease; }
@@ -2905,7 +2923,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
     font-size: 23px;
   }
   .mobile-quick-cover img { width: 100%; height: 100%; object-fit: cover; }
-  .mobile-quick-label { padding: 0 9px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .mobile-quick-label { padding: 0 9px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
   .main[data-view="home"] .home-track-row,
   .main[data-view="home"] .home-card-row { gap: 14px; padding-right: 12px; }
   .main[data-view="home"] .home-track-card { width: 148px; padding: 0; background: transparent; border-radius: 5px; }
@@ -3809,6 +3827,13 @@ button.t-like { color: var(--green); opacity: 0.85; }
           <button class="play-big" onclick="playOrResumeRadio()" title="Lire ou reprendre" aria-label="Lire ou reprendre la radio"><i class="ti ti-player-play-filled"></i></button>
           <button class="ghost-btn" onclick="shuffleRadio()" title="Lecture aléatoire" aria-label="Lire la radio aléatoirement"><i class="ti ti-arrows-shuffle"></i> Aléatoire</button>
           <button class="ghost-btn" onclick="openQueueManager()" title="Ouvrir la file" aria-label="Ouvrir la file d’attente"><i class="ti ti-list"></i> File</button>
+          <button class="ghost-btn" onclick="radioFeedback('like')" title="J'aime cette direction" aria-label="J'aime cette direction"><i class="ti ti-thumb-up"></i></button>
+          <button class="ghost-btn" onclick="radioFeedback('dislike')" title="Moins comme ça" aria-label="Moins comme ça"><i class="ti ti-thumb-down"></i></button>
+        </div>
+        <div class="radio-adventure">
+          <label for="radioAdventure" class="radio-adventure-label">Rassurant</label>
+          <input id="radioAdventure" type="range" min="0" max="1" step="0.05" value="0.35" onchange="setRadioAdventurousness(this.value)" aria-label="Aventure de la radio">
+          <label for="radioAdventure" class="radio-adventure-label">Aventureux</label>
         </div>
         <section class="tracklist" id="radioTracklist"></section>
       </div>
@@ -9845,6 +9870,8 @@ function renderRadioView() {
   cover.innerHTML = coverTrack?.thumb ? `<img src="${esc(coverTrack.thumb)}" alt="">` : '<i class="ti ti-radio"></i>';
   document.getElementById('radioTitle').textContent = `Radio de ${seed}`;
   document.getElementById('radioInfo').textContent = active ? `${S.queue.length} titre${S.queue.length !== 1 ? 's' : ''}` : 'Cette radio n’est plus active';
+  const adventure = document.getElementById('radioAdventure');
+  if (adventure) adventure.value = String(S.radioAdventurousness ?? 0.35);
   const rows = active ? S.queue.map((t, i) => `
     <div class="pl-track-row${i === S.currentIndex ? ' playing' : ''}" onclick="playTrack(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playTrack(${i})}" role="button" tabindex="0">
       <div class="pl-track-num">${i + 1}</div>
@@ -9882,13 +9909,99 @@ function shuffleRadio() {
   playTrack(choices[Math.floor(Math.random() * choices.length)]);
 }
 
+function setRadioAdventurousness(value) {
+  S.radioAdventurousness = parseFloat(value);
+}
+
+function radioFeedback(type) {
+  if (navigator.vibrate) navigator.vibrate(20);
+  if (!S.radioId || !S.currentTrack) {
+    showToast('Lance d’abord une radio titre-based', 'info');
+    return;
+  }
+  fetchWithRetry(`${PROXY_URL}/radio/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      radioId: S.radioId,
+      feedback: [{
+        trackKey: S.currentTrack.normalizedKey || radioTrackKey(S.currentTrack),
+        type
+      }]
+    })
+  }).catch(() => {});
+  showToast(type === 'like' ? 'Pris en compte pour la suite 👍' : 'Moins comme ça 👎', 'success');
+}
+
+function mapRadioTrack(t) {
+  return {
+    id: null,
+    title: t.title,
+    channel: t.artist,
+    thumb: t.image,
+    duration: t.duration,
+    meta: { artist: t.artist, title: t.title, sourceId: `${t.artist}|${t.title}` },
+    tags: t.tags || [],
+    radioScore: t.score,
+    normalizedKey: t.normalizedKey
+  };
+}
+
+function radioKeyPart(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, '').replace(/\bthe\b/g, ' ').replace(/\s+/g, ' ').trim().replace(/\s/g, '');
+}
+
+function radioTrackKey(track) {
+  return track?.normalizedKey || `${radioKeyPart(track?.channel || track?.artist)}|${radioKeyPart(track?.title)}`;
+}
+
+function getRadioPersonalization() {
+  const history = lsParse('sevenz_history', []).slice(0, 30);
+  const disliked = new Set(lsParse('sevenz_disliked', []));
+  const knownTracks = [...history, ...S.favorites, ...S.queue, S.currentTrack].filter(Boolean);
+  const dislikedKeys = [...disliked].filter(value => String(value).includes('|'));
+  knownTracks.forEach(track => {
+    if (disliked.has(track.id)) dislikedKeys.push(radioTrackKey(track));
+  });
+  return {
+    userHistory: history.map(track => ({ artist: track.channel || track.artist })).filter(track => track.artist),
+    recentKeys: history.map(radioTrackKey).filter(key => key !== '|'),
+    dislikedKeys: [...new Set(dislikedKeys)]
+  };
+}
+
 async function startRadio(artistName, excludeTitle) {
   showToast(`📻 Radio ${artistName}…`, 'info');
+
+  if (excludeTitle) {
+    try {
+      const res = await fetchWithRetry(`${PROXY_URL}/radio/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: excludeTitle, artist: artistName, adventurousness: S.radioAdventurousness ?? 0.35, ...getRadioPersonalization() })
+      });
+      if (!res.ok) throw new Error('radio start failed');
+      const data = await res.json();
+      if (!data.tracks?.length) throw new Error('empty radio');
+
+      S.queue = data.tracks.map(mapRadioTrack);
+      S.currentIndex = 0;
+      S.radioMode = true;
+      S.radioSeed = { artist: artistName, title: excludeTitle };
+      S.radioId = data.radioId;
+      S._radioQueueRef = S.queue;
+      playTrack(0);
+      if (document.querySelector('.main')?.dataset.view === 'radio') applyView('radio');
+      else navigateTo('radio');
+      showToast(`📻 Radio d'après ${excludeTitle}`);
+      return;
+    } catch (e) {
+      console.warn('[radio] titre-based failed, fallback artist radio', e.message);
+    }
+  }
+
   const disliked = new Set(lsParse('sevenz_disliked', []));
   const excludedKey = excludeTitle ? trackTitleKey(excludeTitle) : '';
-
-  // Radio Deezer en premier : c'est la seule source qui reste dans le genre de
-  // l'artiste (voir fetchDeezerRadio). Les autres ne servent qu'en repli.
   let tracks = await fetchDeezerRadio(artistName).catch(() => []);
   tracks = tracks.filter(track => (!track.id || !disliked.has(track.id)) && (!excludedKey || trackTitleKey(track.title) !== excludedKey));
 
@@ -9906,7 +10019,8 @@ async function startRadio(artistName, excludeTitle) {
   S.currentIndex = 0;
   S.radioMode = true;
   S.radioSeed = { artist: artistName };
-  S._radioQueueRef = S.queue; // ancre de la queue radio
+  S.radioId = null;
+  S._radioQueueRef = S.queue;
   playTrack(0);
   if (document.querySelector('.main')?.dataset.view === 'radio') applyView('radio');
   else navigateTo('radio');
@@ -9935,8 +10049,27 @@ async function maybeExtendRadio() {
     const disliked = new Set(lsParse('sevenz_disliked', []));
     let more = [];
 
-    // Radio Deezer d'abord : elle reste dans le genre de l'artiste.
-    if (seed.channel) more = await fetchDeezerRadio(seed.channel, seed.title).catch(() => []);
+    if (S.radioId) {
+      try {
+        const res = await fetchWithRetry(`${PROXY_URL}/radio/next`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            radioId: S.radioId,
+            playedKeys: S.queue.map(t => t.normalizedKey).filter(Boolean),
+            adventurousness: S.radioAdventurousness ?? 0.35
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          more = data.tracks.map(mapRadioTrack).filter(t => !existing.has(trackTitleKey(t.title)));
+        }
+      } catch (e) {
+        console.warn('[radio] next failed', e.message);
+      }
+    }
+
+    if (!more.length && seed.channel) more = await fetchDeezerRadio(seed.channel, seed.title).catch(() => []);
 
     if (!more.length && seed.id) {
       const res = await fetchWithRetry(`${PROXY_URL}/youtube/related?videoId=${seed.id}&maxResults=10`);
@@ -11229,7 +11362,8 @@ function dislikeCurrentTrack() {
   const track = S.currentTrack;
   if (!track) return;
   const disliked = new Set(lsParse('sevenz_disliked', []));
-  disliked.add(track.id);
+  if (track.id) disliked.add(track.id);
+  disliked.add(radioTrackKey(track));
   localStorage.setItem('sevenz_disliked', JSON.stringify([...disliked]));
   showToast('Ce titre ne sera plus recommandé', 'info');
   if (S.queue.length <= 1) {

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const CONFIG = require('../config');
 const cache = require('../cache');
+const { withRetry } = require('../retry');
 const { createNormalizedArtist, normalizeForDedupe } = require('../normalize');
 
 const API_KEY = process.env.LASTFM_API_KEY;
@@ -20,7 +21,7 @@ async function call(method, params) {
   url.searchParams.set('autocorrect', '1');
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
-  const res = await axios.get(url.toString(), { timeout: CONFIG.sourceTimeoutMs });
+  const res = await withRetry(() => axios.get(url.toString(), { timeout: CONFIG.sourceTimeoutMs }));
   if (res.data?.error) {
     throw new Error(`Last.fm error ${res.data.error}: ${res.data.message}`);
   }

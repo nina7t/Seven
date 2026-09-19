@@ -733,7 +733,100 @@ découverte moyenne **35 %** (cible 30–40 %).
 - Pas de persistance utilisateur des poids feedback (session mémoire 24 h).
 - Pas de filtre « audio disponible » côté backend (résolu à la lecture
   via la recherche YouTube).
-- Endpoint TIDAL catalogue par `handle` peu fiable → source expérimentale.
+- ~~Endpoint TIDAL catalogue par `handle` peu fiable → source expérimentale.~~
+  → Résolu le 19/09/2026, voir « TIDAL devient une vraie source » plus bas.
+
+---
+
+### 19 septembre 2026 — TIDAL devient une vraie source (et n'était pas cassé)
+
+La review qualifiait TIDAL de « fragile : la recherche par handle ne retourne
+rien pour daftpunk ». Après sondage direct de l'API, le diagnostic était inversé :
+l'API va très bien, c'est notre code qui visait le mauvais endpoint.
+
+**Deux bugs empilés, aucun côté TIDAL**
+
+1. `filter[handle]` était condamné d'avance. Le `handle` n'existe que pour les
+   profils d'artistes *revendiqués* — Daft Punk a `handle: undefined`. Même
+   `jayz`, l'exemple officiel de la doc TIDAL, renvoie 0 résultat. On slugifiait
+   le nom en espérant tomber sur un handle : ça ne pouvait marcher que par hasard.
+2. Le parsing visait `res.data.relationships`. L'API est JSON:API : les relations
+   sont dans `res.data.data.relationships`. Même avec un bon ID, la fonction
+   renvoyait donc un tableau vide.
+
+Par ailleurs `/searchResults/{query}` (recherche texte) répond 400 sur les 9
+variantes d'encodage testées : elle n'est **pas ouverte** à nos credentials
+client-credentials. Ce n'est pas contournable, il faut entrer par un identifiant.
+
+**La solution : le pont ISRC**
+
+Deezer donne l'ISRC sur `/track/{id}` (pas sur la recherche), et TIDAL sait
+résoudre un ISRC. D'où la chaîne :
+
+```
+Deezer search → track.id → /track/{id}.isrc → TIDAL filter[isrc] → artistId
+```
+
+Validé 5/5 sur des titres variés (FR, AU, UK, US).
+
+**Ce que TIDAL apporte maintenant**
+
+| Capacité | Endpoint | Note |
+|---|---|---|
+| Résoudre un titre | `/tracks?filter[isrc]=…&include=artists` | seul point d'entrée fiable |
+| Artistes similaires | `/artists/{id}?include=similarArtists` | 20 artistes + popularité |
+| Top tracks | `/artists/{id}/relationships/tracks?collapseBy=NONE` | `collapseBy=NONE` obligatoire, sinon 400 |
+| Radio curatée | `/artists/{id}/relationships/radio` | playlist TIDAL — **pas encore exploitée** |
+
+La qualité est nettement supérieure à Last.fm sur les répertoires de niche :
+similaires de Daft Punk = Justice, Stardust, Cassius, Modjo, Etienne de Crécy.
+La `popularity` TIDAL (0–1) alimente directement `popularityScore()`.
+
+**Deux bugs trouvés en chemin**
+
+- `mergeCandidates` gardait les champs de la première entrée rencontrée. TIDAL
+  arrivant après Last.fm, ses durées étaient systématiquement écrasées par `null`.
+  La fusion complète désormais les trous (Last.fm n'a ni durée ni année, TIDAL a
+  la durée, Deezer le BPM).
+- Rate limit TIDAL : 8 appels parallèles → 429 → backoff → dépassement du budget
+  de 4 s. Seuil mesuré à 150 ms entre appels, requêtes sérialisées. Piège suivant :
+  `withRetry` reculait *à l'intérieur* du verrou et bloquait toute la file — les
+  deux ont été inversés.
+
+**Mesures**
+
+| Graine | Candidats | dont TIDAL | Temps |
+|---|---|---|---|
+| Daft Punk — Around the World | 237 | 19 | 3,2 s |
+| Aya Nakamura — Djadja | 231 | 18 | 3,9 s |
+| Radiohead — Creep | 243 | 24 | 2,6 s |
+| Tame Impala — The Less I Know | 201 | 24 | 2,3 s |
+| Artiste inexistant | 0 | — | 0,5 s (dégradation propre) |
+
+Avant correction : 5,3 s et 3 timeouts par appel. Après : 2,4 s, zéro timeout
+sur les artistes courants. 60 tests passent (dont 5 ajoutés sur la conversion de
+durée ISO 8601 et la fusion inter-sources).
+
+**Fichiers touchés**
+- `server/discovery/providers/tidal.js` — réécrit (ISRC, JSON:API, top tracks, sérialisation)
+- `server/discovery/providers/deezer.js` — `fetchTrackIsrc()`
+- `server/discovery/seed.js` — expose `ids.deezerTrack` (`ids.deezer` retombait
+  sur l'ID *artiste* quand le titre n'était pas résolu)
+- `server/discovery/candidates.js` — bloc TIDAL productif, fusion corrigée,
+  `safeCall` étiqueté par source (les timeouts étaient anonymes et indébuggables)
+- `server/discovery/config.js` — `tidalSimilarArtists`, `tidalCallTimeoutMs`
+- `server/discovery/tests/tidal.test.js` — nouveau
+
+**Reste à faire / limites connues**
+- La **radio TIDAL native** (playlist curatée par eux, avec ISRC sur chaque piste)
+  est identifiée et testée mais pas branchée. C'est le gain le plus évident restant.
+- Timeouts occasionnels sur des artistes obscurs (Awa Imani, Pond, GUM) : latence
+  propre de TIDAL. On perd 1 artiste sur 5, il reste 15–24 candidats. Acceptable.
+- **Le séquenceur n'exploite pas les bons scores** : les titres TIDAL sortent en
+  tête au scoring (0,675 / 0,655 / 0,618) mais la file finale démarre sur du 0,258
+  et n'en garde que 2 sur 20. Le mélange connu/découverte prend le dessus. Ce n'est
+  pas un bug, c'est un arbitrage de design — mais c'est là qu'il faut regarder si
+  les radios semblent molles, pas du côté des sources.
 
 ---
 

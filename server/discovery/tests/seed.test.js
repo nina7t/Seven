@@ -1,6 +1,6 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { trackTitleKey, normalizeSeed, topTags } = require('../seed');
+const { trackTitleKey, normalizeSeed, topTags, selectBestDeezerTrack } = require('../seed');
 
 describe('trackTitleKey', () => {
   test('normalise titre et artiste pour dédoublonnage', () => {
@@ -38,5 +38,47 @@ describe('topTags', () => {
     assert.equal(tags[0], 'electronic');
     assert.ok(tags.includes('house'));
     assert.ok(tags.includes('french'));
+  });
+});
+
+describe('selectBestDeezerTrack', () => {
+  test('retourne la correspondance exacte même si elle n\'est pas en première position', () => {
+    const seed = { title: 'One More Time', artist: 'Daft Punk' };
+    const tracks = [
+      { id: 1, title: 'One More Time (Live)', artist: { name: 'Daft Punk' }, rank: 100 },
+      { id: 2, title: 'One More Time', artist: { name: 'Daft Punk' }, rank: 999 },
+      { id: 3, title: 'Something Else', artist: { name: 'Daft Punk' }, rank: 500 }
+    ];
+    const best = selectBestDeezerTrack(tracks, seed);
+    assert.equal(best.title, 'One More Time');
+    assert.equal(best.id, 2);
+  });
+
+  test('accepte une variante d\'orthographe/normalisation', () => {
+    const seed = { title: 'One More Time', artist: 'Daft Punk' };
+    const tracks = [
+      { id: 1, title: 'One More Time!', artist: { name: 'The Daft Punk' }, rank: 100 }
+    ];
+    const best = selectBestDeezerTrack(tracks, seed);
+    assert.equal(best.title, 'One More Time!');
+  });
+
+  test('retourne null si aucun résultat ne correspond suffisamment', () => {
+    const seed = { title: 'Unknown Track', artist: 'Daft Punk' };
+    const tracks = [
+      { id: 1, title: 'Something Else', artist: { name: 'Daft Punk' }, rank: 100 }
+    ];
+    const best = selectBestDeezerTrack(tracks, seed);
+    assert.equal(best, null);
+  });
+
+  test('privilégie l\'artiste correct et retient un titre partiel seulement si l\'artiste correspond', () => {
+    const seed = { title: 'One More Time', artist: 'Daft Punk' };
+    const tracks = [
+      { id: 1, title: 'One More Time (Remix)', artist: { name: 'Britney Spears' }, rank: 900 },
+      { id: 2, title: 'One More Time', artist: { name: 'Daft Punk' }, rank: 100 }
+    ];
+    const best = selectBestDeezerTrack(tracks, seed);
+    assert.equal(best.artist.name, 'Daft Punk');
   });
 });

@@ -55,6 +55,11 @@ const CONFIG = {
     tagTopTracksLimit: 30,
     similarTracksLimit: 30,
     topTracksPerArtist: 5,
+    // TIDAL est sérialisé (rate limit) : au-delà de 5 artistes, les derniers
+    // appels épuisent leur budget de timeout avant même d'être émis.
+    tidalSimilarArtists: 5,
+    // Budget serré car les appels TIDAL sont sérialisés (cf. candidates.js).
+    tidalCallTimeoutMs: 2500,
     similarArtistsDepth: 2,
     // Pondérations du score radio (doivent sommer à ~1)
     weights: {

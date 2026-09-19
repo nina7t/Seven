@@ -30,6 +30,35 @@ async function withTimeout(promise, ms = TIMEOUT) {
   return Promise.race([promise, timeout]);
 }
 
+function rankDeezerTrackMatch(track, seed) {
+  const targetTitle = normalizeForDedupe(seed.title || '');
+  const targetArtist = normalizeForDedupe(seed.artist || '');
+  const trackTitle = normalizeForDedupe(track.title || '');
+  const trackArtist = normalizeForDedupe(track.artist?.name || '');
+
+  if (!targetTitle || !trackTitle || !trackArtist) return 0;
+
+  const titleExact = trackTitle === targetTitle;
+  const artistExact = trackArtist === targetArtist;
+  const titleIncludes = targetTitle && trackTitle.includes(targetTitle);
+  const artistIncludes = targetArtist && (trackArtist.includes(targetArtist) || targetArtist.includes(trackArtist));
+
+  if (titleExact && artistExact) return 4;
+  if (titleExact && artistIncludes) return 3;
+  if (titleIncludes && artistExact) return 2;
+  if (titleIncludes && artistIncludes) return 1;
+  return 0;
+}
+
+function selectBestDeezerTrack(tracks, seed) {
+  const ranked = tracks
+    .map(t => ({ track: t, score: rankDeezerTrackMatch(t, seed) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || (b.track.rank || 0) - (a.track.rank || 0));
+
+  return ranked.length ? ranked[0].track : null;
+}
+
 /**
  * Recherche le titre sur Deezer pour obtenir ID, BPM, année, album.
  */
@@ -47,14 +76,20 @@ async function resolveDeezerTrack(seed) {
     const tracks = (res.data?.data || []).filter(t => t.title && t.artist?.name);
     if (!tracks.length) return null;
 
-    const best = tracks[0];
+    const best = selectBestDeezerTrack(tracks, seed);
+    if (!best) return null;
+
     const result = {
       source: DEEZER,
       title: best.title,
       artist: best.artist.name,
       album: best.album?.title || null,
       year: best.album?.release_date ? parseInt(best.album.release_date.split('-')[0], 10) || null : null,
-      ids: { deezer: String(best.id), albumDeezer: best.album?.id ? String(best.album.id) : null },
+      ids: {
+        deezer: String(best.id),
+        artistDeezer: best.artist?.id ? String(best.artist.id) : null,
+        albumDeezer: best.album?.id ? String(best.album.id) : null
+      },
       bpm: best.bpm ? parseInt(best.bpm, 10) || null : null,
       duration: best.duration || null,
       rank: best.rank || null,
@@ -164,10 +199,14 @@ async function resolveTrackSeed(input) {
     image: dzTrack?.image || dzArtist?.image || null,
     ids: {
       deezer: dzTrack?.ids?.deezer || (dzArtist?.id ? String(dzArtist.id) : null),
+      // `deezer` retombe sur l'ID artiste quand le titre n'est pas résolu ;
+      // on expose donc l'ID de piste à part, seul utilisable pour l'ISRC.
+      deezerTrack: dzTrack?.ids?.deezer || null,
+      artistDeezer: dzTrack?.ids?.artistDeezer || dzArtist?.id || null,
       mbid,
       tidal: null // résolu éventuellement par candidates.js
     },
-    artistMeta: dzArtist ? { name: dzArtist.name, nbFan: dzArtist.nbFan } : null,
+    artistMeta: dzArtist ? { name: dzArtist.name, id: dzArtist.id, nbFan: dzArtist.nbFan } : null,
     tags,
     normalizedKey: trackTitleKey(seed.title, seed.artist)
   };
@@ -177,5 +216,6 @@ module.exports = {
   trackTitleKey,
   normalizeSeed,
   resolveTrackSeed,
+  selectBestDeezerTrack,
   topTags
 };

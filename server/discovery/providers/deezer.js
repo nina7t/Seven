@@ -142,4 +142,19 @@ async function fetchTopTracks(artistId, limit = 5) {
   return cache.set('search', String(artistId), 'deezer-toptracks', results);
 }
 
-module.exports = { searchArtists, findArtist, findArtistById, fetchSimilarArtistsById, fetchSimilarArtists, fetchTopTracks };
+/**
+ * Récupère l'ISRC d'un titre Deezer. La recherche ne le renvoie pas, il faut
+ * interroger /track/{id}. C'est notre seule passerelle vers TIDAL, dont la
+ * recherche texte n'est pas ouverte à notre palier d'API.
+ */
+async function fetchTrackIsrc(trackId) {
+  if (!trackId) return null;
+  const cached = cache.get('search', String(trackId), 'deezer-isrc');
+  if (cached !== undefined) return cached; // null autorisé (titre sans ISRC)
+
+  const data = await deezerGet(`/track/${trackId}`);
+  const isrc = data?.isrc ? String(data.isrc).trim().toUpperCase() : null;
+  return cache.set('search', String(trackId), 'deezer-isrc', isrc);
+}
+
+module.exports = { searchArtists, findArtist, findArtistById, fetchSimilarArtistsById, fetchSimilarArtists, fetchTopTracks, fetchTrackIsrc };

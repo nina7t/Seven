@@ -1,6 +1,7 @@
 const CONFIG = require('./config');
 const deezer = require('./providers/deezer');
 const lastfm = require('./providers/lastfm');
+const tidal = require('./providers/tidal');
 const { normalizeForDedupe } = require('./normalize');
 const { trackTitleKey } = require('./seed');
 
@@ -9,6 +10,8 @@ const LIMIT = CONFIG.radio.candidateLimit;
 const TAG_LIMIT = CONFIG.radio.tagTopTracksLimit;
 const SIMILAR_LIMIT = CONFIG.radio.similarTracksLimit;
 const TOP_LIMIT = CONFIG.radio.topTracksPerArtist;
+const TIDAL_ARTISTS = CONFIG.radio.tidalSimilarArtists;
+const TIDAL_CALL_TIMEOUT = CONFIG.radio.tidalCallTimeoutMs;
 const DEPTH = CONFIG.radio.similarArtistsDepth;
 
 function withTimeout(promise, ms = TIMEOUT) {
@@ -16,11 +19,11 @@ function withTimeout(promise, ms = TIMEOUT) {
   return Promise.race([promise, timeout]);
 }
 
-function safeCall(fn) {
+function safeCall(fn, label = '', timeoutMs = TIMEOUT) {
   return Promise.resolve()
-    .then(() => withTimeout(fn()))
+    .then(() => withTimeout(fn(), timeoutMs))
     .catch(err => {
-      console.warn('[candidates]', err.message);
+      console.warn(`[candidates]${label ? ' ' + label + ':' : ''}`, err.message);
       return [];
     });
 }
@@ -59,7 +62,14 @@ function mergeCandidates(a, b) {
     tags,
     rawScores,
     rank: rawScores.rank ?? a.rank,
-    match: rawScores.match ?? a.match
+    match: rawScores.match ?? a.match,
+    // Les sources ne renseignent pas les mêmes métadonnées : Last.fm n'a ni
+    // durée ni année, TIDAL donne la durée, Deezer le BPM. On complète les
+    // trous plutôt que de garder aveuglément ceux de la première entrée.
+    album: a.album ?? b.album,
+    year: a.year ?? b.year,
+    bpm: a.bpm ?? b.bpm,
+    duration: a.duration ?? b.duration
   };
 }
 
@@ -80,7 +90,7 @@ function dedupeCandidates(list) {
 
 async function lastfmSimilarTracks(seed) {
   if (!lastfm.isConfigured()) return [];
-  const tracks = await lastfm.getSimilarTracks(seed.artist, seed.title, SIMILAR_LIMIT);
+  const tracks = await safeCall(() => lastfm.getSimilarTracks(seed.artist, seed.title, SIMILAR_LIMIT), 'lastfm/similar-tracks');
   return tracks.map(t => normalizeCandidate({
     title: t.title,
     artist: t.artist,
@@ -97,17 +107,18 @@ async function similarArtistsTopTracks(seed) {
   const tasks = [];
 
   // Deezer related artists + top tracks
-  if (seed.ids?.deezer) {
+  const deezerArtistId = seed.artistMeta?.id || seed.ids?.artistDeezer;
+  if (deezerArtistId) {
     tasks.push((async () => {
-      const related = await safeCall(() => deezer.fetchSimilarArtistsById(seed.ids.deezer));
-      const topTasks = related.slice(0, 10).map(a => safeCall(() => deezer.fetchTopTracks(a.ids.deezer, TOP_LIMIT).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.DEEZER, rank: t.rank })))));
+      const related = await safeCall(() => deezer.fetchSimilarArtistsById(deezerArtistId), 'deezer/similar');
+      const topTasks = related.slice(0, 10).map(a => safeCall(() => deezer.fetchTopTracks(a.ids.deezer, TOP_LIMIT).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.DEEZER, rank: t.rank }))), `deezer/top:${a.name}`));
       const tops = await Promise.all(topTasks);
       tops.forEach(group => out.push(...group));
     })());
   } else {
     tasks.push((async () => {
-      const related = await safeCall(() => deezer.fetchSimilarArtists(seed.artist));
-      const topTasks = related.slice(0, 8).map(a => safeCall(() => deezer.fetchTopTracks(a.ids.deezer, TOP_LIMIT).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.DEEZER, rank: t.rank })))));
+      const related = await safeCall(() => deezer.fetchSimilarArtists(seed.artist), 'deezer/similar');
+      const topTasks = related.slice(0, 8).map(a => safeCall(() => deezer.fetchTopTracks(a.ids.deezer, TOP_LIMIT).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.DEEZER, rank: t.rank }))), `deezer/top:${a.name}`));
       const tops = await Promise.all(topTasks);
       tops.forEach(group => out.push(...group));
     })());
@@ -116,8 +127,38 @@ async function similarArtistsTopTracks(seed) {
   // Last.fm similar artists + top tracks
   if (lastfm.isConfigured()) {
     tasks.push((async () => {
-      const related = await safeCall(() => lastfm.fetchSimilarArtists(seed.artist));
-      const topTasks = related.slice(0, 8).map(a => safeCall(() => lastfm.getTopTracks(a.name, TOP_LIMIT).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.LASTFM, rank: t.rank })))));
+      const related = await safeCall(() => lastfm.fetchSimilarArtists(seed.artist), 'lastfm/similar');
+      const topTasks = related.slice(0, 8).map(a => safeCall(() => lastfm.getTopTracks(a.name, TOP_LIMIT).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.LASTFM, rank: t.rank }))), `lastfm/top:${a.name}`));
+      const tops = await Promise.all(topTasks);
+      tops.forEach(group => out.push(...group));
+    })());
+  }
+
+  // TIDAL : artistes similaires + leurs titres les plus populaires.
+  // L'entrée se fait par l'ISRC du titre de départ (cf. resolveTidalArtist).
+  if (tidal.isConfigured()) {
+    tasks.push((async () => {
+      const artist = await resolveTidalArtist(seed);
+      if (!artist) return;
+      seed.ids.tidal = artist.id;
+
+      const related = await safeCall(() => tidal.fetchSimilarArtists(artist.id), 'tidal/similar');
+      const topTasks = related.slice(0, TIDAL_ARTISTS).map(a => safeCall(() =>
+        tidal.fetchTopTracks(a.ids.tidal, TOP_LIMIT).then(tracks => tracks.map(t => normalizeCandidate({
+          title: t.title,
+          artist: a.name,
+          source: CONFIG.sources.TIDAL,
+          rank: t.rank,
+          duration: t.duration,
+          ids: t.ids,
+          // La popularité TIDAL est déjà normalisée 0–1, soit exactement le
+          // domaine attendu par popularityScore().
+          rawScores: { popularity: t.popularity, tidalPopularity: t.popularity }
+        })))
+      // Ces appels sont sérialisés : le budget de 4 s du dernier de la file
+      // serait déjà écoulé avant son émission. Un appel sain tient en ~200 ms,
+      // donc on abandonne un traînard tôt plutôt que de retarder tout le lot.
+      , `tidal/top:${a.name}`, TIDAL_CALL_TIMEOUT));
       const tops = await Promise.all(topTasks);
       tops.forEach(group => out.push(...group));
     })());
@@ -127,10 +168,29 @@ async function similarArtistsTopTracks(seed) {
   return out;
 }
 
+/**
+ * Résout l'artiste TIDAL du titre de départ.
+ * TIDAL n'ouvre pas sa recherche texte à nos credentials et `filter[handle]`
+ * ne couvre que les profils revendiqués : on passe donc par l'ISRC, que Deezer
+ * nous donne sur /track/{id}.
+ */
+async function resolveTidalArtist(seed) {
+  const trackId = seed.ids?.deezerTrack;
+  if (!trackId) return null;
+  try {
+    const isrc = await withTimeout(deezer.fetchTrackIsrc(trackId));
+    if (!isrc) return null;
+    return await withTimeout(tidal.resolveArtistByIsrc(isrc, seed.artist));
+  } catch (e) {
+    console.warn('[candidates] résolution TIDAL impossible:', e.message);
+    return null;
+  }
+}
+
 async function tagTopTracks(seed) {
   if (!lastfm.isConfigured()) return [];
   const tags = seed.tags.slice(0, 3);
-  const tasks = tags.map(tag => safeCall(() => lastfm.getTopTracksByTag(tag, TAG_LIMIT)));
+  const tasks = tags.map(tag => safeCall(() => lastfm.getTopTracksByTag(tag, TAG_LIMIT), `lastfm/tag:${tag}`));
   const groups = await Promise.all(tasks);
   const out = [];
   groups.forEach((tracks, idx) => {
@@ -154,10 +214,10 @@ async function neighborsOfNeighbors(seed, firstDegreeArtists) {
   const pick = firstDegreeArtists.slice(0, 8);
   const tasks = pick.map(a => safeCall(async () => {
     const related = await lastfm.fetchSimilarArtists(a).catch(() => []);
-    const topTasks = related.slice(0, 3).map(sim => safeCall(() => lastfm.getTopTracks(sim.name, 3).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.LASTFM, rank: t.rank })))));
+    const topTasks = related.slice(0, 3).map(sim => safeCall(() => lastfm.getTopTracks(sim.name, 3).then(tracks => tracks.map(t => normalizeCandidate({ ...t, source: CONFIG.sources.LASTFM, rank: t.rank }))), `lastfm/n2-top:${sim.name}`));
     const tops = await Promise.all(topTasks);
     tops.forEach(group => out.push(...group));
-  }));
+  }, `lastfm/n2:${a}`));
   await Promise.all(tasks);
   return out;
 }
@@ -165,7 +225,7 @@ async function neighborsOfNeighbors(seed, firstDegreeArtists) {
 async function fetchMoreCandidates(seed, { excludeKeys = [], artists = [] } = {}) {
   const excluded = excludeKeys instanceof Set ? excludeKeys : new Set(excludeKeys);
   const expandedTags = seed.tags.slice(3);
-  const tagTasks = expandedTags.map(tag => safeCall(() => lastfm.getTopTracksByTag(tag, TAG_LIMIT)));
+  const tagTasks = expandedTags.map(tag => safeCall(() => lastfm.getTopTracksByTag(tag, TAG_LIMIT), `lastfm/tag:${tag}`));
   const tagGroups = await Promise.all(tagTasks);
   const tagTracks = [];
   tagGroups.forEach((tracks, idx) => {
@@ -224,5 +284,7 @@ module.exports = {
   fetchMoreCandidates,
   normalizeCandidate,
   dedupeCandidates,
+  lastfmSimilarTracks,
+  similarArtistsTopTracks,
   trackTitleKey
 };

@@ -75,21 +75,19 @@ function sanitizeAdventurousness(v) {
 
 function pickNext(candidates, queue, opts) {
   const {
-    adventurousness = W.adventurousnessDefault,
     constraints = W,
     batchQueue = queue,
-    usedKeys
+    usedKeys,
+    wantDiscovery = false
   } = opts;
-  const adv = sanitizeAdventurousness(adventurousness);
   const valid = candidates.filter(c => isValid(c, queue, constraints, { batchQueue, usedKeys }));
   if (!valid.length) return null;
 
-  // Deux bassins : valeurs sûres (haut du classement) et aventure (tout le vivier valide)
-  const safeSize = Math.max(1, Math.ceil(valid.length * (1 - adv)));
-  const safePool = valid.slice(0, safeSize);
-  const pool = Math.random() < adv ? valid : safePool;
-
-  return weightedRandomPick(pool);
+  // Deux bassins : ce que l'auditeur connaît déjà, et ce qu'il ne connaît pas.
+  // On sert le bassin demandé ; s'il est vide, on prend l'autre plutôt que de
+  // rendre un lot trop court.
+  const wanted = valid.filter(c => Boolean(c.familiar) !== wantDiscovery);
+  return weightedRandomPick(wanted.length ? wanted : valid);
 }
 
 /**
@@ -99,7 +97,8 @@ function pickNext(candidates, queue, opts) {
  * @param {Object} opts
  * @param {number} opts.batchSize — taille du lot (défaut 20)
  * @param {Array} opts.existingQueue — file déjà en place (pour les contraintes)
- * @param {number} opts.adventurousness — 0 à 1
+ * @param {number} opts.adventurousness — part visée de découverte, 0 à 1
+ *        (0 = que du connu, 1 = que de la découverte)
  * @returns {Array} nouveau lot de taille <= batchSize
  */
 function buildQueue(candidates, opts = {}) {
@@ -115,21 +114,30 @@ function buildQueue(candidates, opts = {}) {
     maxTempoDiff: W.maxTempoDiff
   };
 
+  const adv = sanitizeAdventurousness(adventurousness);
   const queue = [...existingQueue];
   const added = [];
   const usedKeys = new Set(existingQueue.map(candidateKey));
+  let discoveries = 0;
 
   while (added.length < batchSize) {
+    // Quota entier : on demande une découverte tant qu'on n'a pas atteint le
+    // nombre visé pour la taille de lot courante, du connu sinon. Comparer des
+    // entiers plutôt que des ratios évite l'angle mort aux extrêmes (à 1.0, un
+    // ratio déjà égal à la cible faisait basculer le slot vers du connu).
+    const wantDiscovery = discoveries < Math.round(adv * (added.length + 1));
+
     const next = pickNext(candidates, queue, {
-      adventurousness,
       constraints,
       batchQueue: added,
-      usedKeys
+      usedKeys,
+      wantDiscovery
     });
     if (!next) break;
     queue.push(next);
     added.push(next);
     usedKeys.add(candidateKey(next));
+    if (!next.familiar) discoveries++;
   }
 
   return added;

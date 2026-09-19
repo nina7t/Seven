@@ -16,7 +16,7 @@ function cleanupSessions() {
   }
 }
 
-function createSession(seed, userHistoryArtists = [], candidates = []) {
+function createSession(seed, userHistoryArtists = [], candidates = [], knownTrackKeys = new Set()) {
   const radioId = generateRadioId();
   const knownArtists = new Set(userHistoryArtists.map(a => normalizeForDedupe(a)));
   if (seed?.artist) knownArtists.add(normalizeForDedupe(seed.artist));
@@ -25,6 +25,7 @@ function createSession(seed, userHistoryArtists = [], candidates = []) {
     seed,
     candidates,
     knownArtists,
+    knownTrackKeys: new Set(knownTrackKeys),
     tagWeights: {},
     artistWeights: {},
     artistRejections: {},

@@ -31,25 +31,28 @@ function trackKey(title, artist) {
  * @param {Array} candidates
  * @param {Object} opts
  * @param {string} opts.seedKey — clé du titre de départ (exclu)
- * @param {Set<string>} opts.recentKeys — titres écoutés dans les 7 derniers jours
+ * @param {Set<string>} opts.excludeKeys — titres déjà passés dans CETTE radio
  * @param {Set<string>} opts.dislikedKeys — titres explicitement rejetés
  * @param {boolean} opts.keepBadVariants — true pour désactiver le filtre variantes
  */
 function filterCandidates(candidates, opts = {}) {
   const {
     seedKey,
-    recentKeys = new Set(),
+    excludeKeys = new Set(),
     dislikedKeys = new Set(),
     keepBadVariants = false
   } = opts;
 
-  const recent = new Set(recentKeys);
+  // On n'exclut QUE ce qui a déjà été joué dans cette radio. L'historique
+  // d'écoute ne sort plus du vivier : les titres connus sont la moitié de
+  // l'intérêt d'une radio, ils sont dosés par le quota du séquenceur.
+  const excluded = new Set(excludeKeys);
   const disliked = new Set(dislikedKeys);
 
   return candidates.filter(c => {
     if (!c.title || !c.artist) return false;
     if (seedKey && c.normalizedKey === seedKey) return false;
-    if (recent.has(c.normalizedKey)) return false;
+    if (excluded.has(c.normalizedKey)) return false;
     if (disliked.has(c.normalizedKey)) return false;
     if (!keepBadVariants && isBadVariant(c.title)) return false;
     return true;

@@ -3898,7 +3898,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
         </div>
         <div class="radio-adventure">
           <label for="radioAdventure" class="radio-adventure-label">Rassurant</label>
-          <input id="radioAdventure" type="range" min="0" max="1" step="0.05" value="0.35" onchange="setRadioAdventurousness(this.value)" aria-label="Aventure de la radio">
+          <input id="radioAdventure" type="range" min="0" max="1" step="0.05" value="0.5" onchange="setRadioAdventurousness(this.value)" aria-label="Aventure de la radio">
           <label for="radioAdventure" class="radio-adventure-label">Aventureux</label>
         </div>
         <section class="tracklist" id="radioTracklist"></section>
@@ -9998,7 +9998,7 @@ function renderRadioView() {
   document.getElementById('radioTitle').textContent = `Radio de ${seed}`;
   document.getElementById('radioInfo').textContent = active ? `${S.queue.length} titre${S.queue.length !== 1 ? 's' : ''}` : 'Cette radio n’est plus active';
   const adventure = document.getElementById('radioAdventure');
-  if (adventure) adventure.value = String(S.radioAdventurousness ?? 0.35);
+  if (adventure) adventure.value = String(S.radioAdventurousness ?? 0.5);
   const rows = active ? S.queue.map((t, i) => `
     <div class="pl-track-row${i === S.currentIndex ? ' playing' : ''}" onclick="playTrack(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playTrack(${i})}" role="button" tabindex="0">
       <div class="pl-track-num">${i + 1}</div>
@@ -10055,7 +10055,7 @@ async function regenerateRadioQueue() {
       body: JSON.stringify({
         radioId: S.radioId,
         playedKeys,
-        adventurousness: S.radioAdventurousness ?? 0.35
+        adventurousness: S.radioAdventurousness ?? 0.5
       })
     });
     if (!res.ok) throw new Error('radio next failed');
@@ -10147,7 +10147,7 @@ async function startRadio(artistName, excludeTitle) {
       const res = await fetchWithRetry(`${PROXY_URL}/radio/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: excludeTitle, artist: artistName, adventurousness: S.radioAdventurousness ?? 0.35, ...getRadioPersonalization() })
+        body: JSON.stringify({ title: excludeTitle, artist: artistName, adventurousness: S.radioAdventurousness ?? 0.5, ...getRadioPersonalization() })
       });
       if (!res.ok) throw new Error('radio start failed');
       const data = await res.json();
@@ -10230,7 +10230,7 @@ async function maybeExtendRadio() {
           body: JSON.stringify({
             radioId: S.radioId,
             playedKeys: S.queue.map(t => t.normalizedKey).filter(Boolean),
-            adventurousness: S.radioAdventurousness ?? 0.35
+            adventurousness: S.radioAdventurousness ?? 0.5
           })
         });
         if (res.ok) {

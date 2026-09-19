@@ -643,6 +643,48 @@ curl "https://ws.audioscrobbler.com/2.0/?method=track.getsimilar&artist=Daft+Pun
 
 ---
 
+### 19 septembre 2026 — La radio mélange enfin le connu et la découverte
+
+Demande de Nina : « comme Spotify — j'ai des musiques que je connais et des
+musiques que je découvre ». Le moteur faisait l'inverse, par trois mécanismes
+qui poussaient tous vers l'inconnu :
+
+- `filters.js` retirait du vivier les 30 derniers titres écoutés. Les classiques
+  les plus joués ne pouvaient jamais revenir.
+- `scoring.js` / `noveltyScore` notait 0.3 un artiste connu contre 1.0 un
+  inconnu, soit −0,105 sur tout ce qui est familier.
+- `sequencer.js` faisait du curseur une profondeur de classement : « Rassurant »
+  = haut du classement, or ce classement était déjà biaisé vers l'inconnu.
+  Glisser vers « Rassurant » donnait donc *plus* d'inconnu — le curseur était à
+  l'envers de ses propres étiquettes.
+
+**Correctif** — le familier n'est plus pénalisé, il est dosé par un quota.
+
+- `filters.js` n'exclut plus que la graine, les rejets et ce qui a déjà été joué
+  dans la radio en cours (`excludeKeys`). L'historique d'écoute ne sort plus du
+  vivier.
+- `scoring.js` — `tagFamiliarity()` marque chaque candidat `familiar` : titre
+  déjà écouté, ou artiste déjà écouté. L'artiste de la graine compte comme connu.
+- `sequencer.js` — `buildQueue` remplit un quota entier
+  (`discoveries < Math.round(adv * (added.length + 1))`) : le curseur Aventure
+  pilote directement la part de découverte. Si un bassin est vide, on prend dans
+  l'autre plutôt que de rendre un lot court.
+- Défaut passé de 0.35 à **0.5** (moitié connu, moitié découverte), curseur du
+  front aligné. `formatTrack` expose `familiar` pour que le front puisse afficher
+  la distinction.
+
+**Mesuré** — 47 tests passent. Sur un lot de 20, en simulation : curseur 0 → 0
+découverte, 0.25 → 5, 0.5 → 10, 0.75 → 15, 1 → 20. En conditions réelles (graine
+Daft Punk, historique French touch, vivier 166) : 16/20 connus à 0, 10/20 à 0.5,
+0/20 à 1.
+
+**Arête connue** : `isValid` refuse un candidat si 3 des 5 derniers titres sont
+de sa décennie. Sur un vivier concentré sur une seule époque, le lot peut se
+terminer court — vu en test avec un vivier artificiel 100 % même année (3 titres
+sur 20 demandés). Non rencontré sur des viviers réels, qui sont assez étalés.
+
+---
+
 ### 19 septembre 2026 — Revue + passe de corrections du moteur radio
 
 Revue complète du moteur (4 agents en parallèle sur des fichiers disjoints),

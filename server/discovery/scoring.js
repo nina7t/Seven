@@ -93,14 +93,30 @@ function scoreCandidate(candidate, seed, opts = {}) {
   return Math.min(1, Math.max(0, Number(score.toFixed(4))));
 }
 
-function rankCandidates(candidates, seed, opts) {
+/**
+ * Un candidat est « familier » si l'auditeur a déjà écouté ce titre précis,
+ * ou s'il écoute déjà cet artiste. Le séquenceur s'en sert pour doser la
+ * part de connu et de découverte dans chaque lot.
+ */
+function tagFamiliarity(candidate, knownArtists, knownTrackKeys) {
+  if (knownTrackKeys?.has(candidate.normalizedKey)) return true;
+  return Boolean(knownArtists?.has(normalizeForDedupe(candidate.artist)));
+}
+
+function rankCandidates(candidates, seed, opts = {}) {
+  const { knownArtists = new Set(), knownTrackKeys = new Set() } = opts;
   return candidates
-    .map(c => ({ ...c, score: scoreCandidate(c, seed, opts) }))
+    .map(c => ({
+      ...c,
+      score: scoreCandidate(c, seed, opts),
+      familiar: tagFamiliarity(c, knownArtists, knownTrackKeys)
+    }))
     .sort((a, b) => b.score - a.score);
 }
 
 module.exports = {
   jaccard,
+  tagFamiliarity,
   sourceMatchScore,
   popularityScore,
   noveltyScore,

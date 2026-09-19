@@ -91,3 +91,43 @@ describe('buildQueue', () => {
     assert.notEqual(queue[0].artist, existingQueue[existingQueue.length - 1].artist);
   });
 });
+
+describe('quota connu / découverte', () => {
+  function pool() {
+    const out = [];
+    for (let i = 0; i < 60; i++) {
+      out.push({
+        title: `Connu ${i}`, artist: `ConnuArtiste ${i}`, album: `AlbumC ${i}`,
+        normalizedKey: `c|${i}`, score: 0.5, familiar: true, bpm: 120, year: 1970 + (i % 6) * 10
+      });
+      out.push({
+        title: `Neuf ${i}`, artist: `NeufArtiste ${i}`, album: `AlbumN ${i}`,
+        normalizedKey: `n|${i}`, score: 0.5, familiar: false, bpm: 120, year: 1975 + (i % 6) * 10
+      });
+    }
+    return out;
+  }
+
+  test('un curseur à 0.5 donne moitié connu moitié découverte', () => {
+    const batch = buildQueue(pool(), { batchSize: 20, adventurousness: 0.5 });
+    const discoveries = batch.filter(t => !t.familiar).length;
+    assert.equal(batch.length, 20);
+    assert.ok(Math.abs(discoveries - 10) <= 2, `attendu ~10 découvertes, obtenu ${discoveries}`);
+  });
+
+  test('un curseur à 0 ne donne que du connu', () => {
+    const batch = buildQueue(pool(), { batchSize: 20, adventurousness: 0 });
+    assert.equal(batch.filter(t => !t.familiar).length, 0);
+  });
+
+  test('un curseur à 1 ne donne que de la découverte', () => {
+    const batch = buildQueue(pool(), { batchSize: 20, adventurousness: 1 });
+    assert.equal(batch.filter(t => t.familiar).length, 0);
+  });
+
+  test('un vivier sans connu remplit quand même le lot', () => {
+    const onlyNew = pool().filter(c => !c.familiar);
+    const batch = buildQueue(onlyNew, { batchSize: 20, adventurousness: 0 });
+    assert.equal(batch.length, 20);
+  });
+});

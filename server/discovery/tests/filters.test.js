@@ -16,20 +16,30 @@ describe('isBadVariant', () => {
 });
 
 describe('filterCandidates', () => {
-  test('écarte graine, déjà écoutés et rejetés', () => {
+  test('écarte la graine, les rejetés et ce qui a déjà été joué dans cette radio', () => {
     const candidates = [
       { title: 'Seed', artist: 'A', normalizedKey: 'a|seed', tags: [] },
-      { title: 'Recent', artist: 'B', normalizedKey: 'b|recent', tags: [] },
+      { title: 'Played', artist: 'B', normalizedKey: 'b|played', tags: [] },
       { title: 'Disliked', artist: 'C', normalizedKey: 'c|disliked', tags: [] },
       { title: 'Keep', artist: 'D', normalizedKey: 'd|keep', tags: [] }
     ];
     const result = filterCandidates(candidates, {
       seedKey: 'a|seed',
-      recentKeys: new Set(['b|recent']),
+      excludeKeys: new Set(['b|played']),
       dislikedKeys: new Set(['c|disliked'])
     });
     assert.equal(result.length, 1);
     assert.equal(result[0].title, 'Keep');
+  });
+
+  test("garde les titres déjà écoutés par l'auditeur : ce sont ses classiques", () => {
+    const candidates = [
+      { title: 'Un classique', artist: 'A', normalizedKey: 'a|classique', tags: [] },
+      { title: 'Une découverte', artist: 'B', normalizedKey: 'b|decouverte', tags: [] }
+    ];
+    // L'historique d'écoute n'est plus un motif d'exclusion.
+    const result = filterCandidates(candidates, { excludeKeys: new Set() });
+    assert.equal(result.length, 2);
   });
 
   test('écarte les variantes indésirables', () => {

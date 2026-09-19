@@ -49,7 +49,9 @@ const CONFIG = {
     maxConsecutiveSameArtist: 1,
     maxSameAlbumInBatch: 2,
     maxTempoDiff: 15,
-    adventurousnessDefault: 0.35,
+    // Part de découverte visée par défaut. 0.5 = moitié de titres déjà connus
+    // de l'auditeur, moitié de découvertes — le curseur Aventure fait varier.
+    adventurousnessDefault: 0.5,
     tagTopTracksLimit: 30,
     similarTracksLimit: 30,
     topTracksPerArtist: 5,

@@ -41,6 +41,7 @@ function formatTrack(candidate, index) {
     image: candidate.image || null,
     tags: candidate.tags || [],
     score: candidate.score,
+    familiar: Boolean(candidate.familiar),
     sources: candidate.sources || [],
     normalizedKey: candidate.normalizedKey
   };
@@ -95,17 +96,24 @@ router.post('/start', async (req, res) => {
 
     candidates = filterCandidates(candidates, {
       seedKey: seed.normalizedKey,
-      recentKeys,
       dislikedKeys
     });
 
     // Réintégrer la graine comme premier élément ? Non, le front a déjà le titre en cours.
     // On génère uniquement la suite.
 
-    const scored = rankCandidates(candidates, seed, { knownArtists: new Set(normalizedHistoryArtists) });
+    // L'artiste de la graine compte comme connu : on vient de lancer une radio
+    // depuis un de ses titres, ses autres morceaux ne sont pas des découvertes.
+    const knownForTagging = new Set(normalizedHistoryArtists);
+    if (seed.artist) knownForTagging.add(normalizeForDedupe(seed.artist));
+
+    const scored = rankCandidates(candidates, seed, {
+      knownArtists: knownForTagging,
+      knownTrackKeys: recentKeys
+    });
     const tracks = buildQueue(scored, { adventurousness });
 
-    const radioId = createSession(seed, normalizedHistoryArtists, scored);
+    const radioId = createSession(seed, normalizedHistoryArtists, scored, recentKeys);
     addKnownArtists(radioId, tracks.map(t => t.artist));
 
     res.json({
@@ -165,7 +173,11 @@ router.post('/next', async (req, res) => {
       .filter(isAvailable)
       .map(c => ({ ...c }));
 
-    const rescored = rankCandidates(remaining, session.seed, { knownArtists, feedbackWeights: weights });
+    const rescored = rankCandidates(remaining, session.seed, {
+      knownArtists,
+      knownTrackKeys: session.knownTrackKeys || new Set(),
+      feedbackWeights: weights
+    });
     const nextAdventurousness = Number.isFinite(parseFloat(req.body.adventurousness))
       ? parseFloat(req.body.adventurousness)
       : undefined;

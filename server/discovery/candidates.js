@@ -12,6 +12,8 @@ const SIMILAR_LIMIT = CONFIG.radio.similarTracksLimit;
 const TOP_LIMIT = CONFIG.radio.topTracksPerArtist;
 const TIDAL_ARTISTS = CONFIG.radio.tidalSimilarArtists;
 const TIDAL_CALL_TIMEOUT = CONFIG.radio.tidalCallTimeoutMs;
+const TIDAL_RADIO_PAGES = CONFIG.radio.tidalRadioPages;
+const TIDAL_RADIO_TIMEOUT = CONFIG.radio.tidalRadioTimeoutMs;
 const DEPTH = CONFIG.radio.similarArtistsDepth;
 
 function withTimeout(promise, ms = TIMEOUT) {
@@ -141,6 +143,28 @@ async function similarArtistsTopTracks(seed) {
       const artist = await resolveTidalArtist(seed);
       if (!artist) return;
       seed.ids.tidal = artist.id;
+
+      // La radio curatée par TIDAL est préférable au fan-out « similaires ×
+      // top tracks » : elle est éditorialisée, mêle déjà l'artiste et ses
+      // voisins, et coûte moins d'appels. On ne retombe sur le fan-out que
+      // si elle est absente (tous les artistes n'en ont pas).
+      const radio = await safeCall(
+        () => tidal.fetchArtistRadio(artist.id, TIDAL_RADIO_PAGES),
+        'tidal/radio',
+        TIDAL_RADIO_TIMEOUT
+      );
+      if (radio.length) {
+        radio.forEach(t => out.push(normalizeCandidate({
+          title: t.title,
+          artist: t.artist,
+          source: CONFIG.sources.TIDAL,
+          rank: t.rank,
+          duration: t.duration,
+          ids: t.ids,
+          rawScores: { popularity: t.popularity, tidalPopularity: t.popularity, tidalRadio: 1 }
+        })));
+        return;
+      }
 
       const related = await safeCall(() => tidal.fetchSimilarArtists(artist.id), 'tidal/similar');
       const topTasks = related.slice(0, TIDAL_ARTISTS).map(a => safeCall(() =>

@@ -157,6 +157,76 @@ async function fetchTopTracks(artistId, limit = 5) {
 }
 
 /**
+ * Radio d'artiste curatée par TIDAL.
+ *
+ * C'est une playlist éditorialisée : elle mêle les titres phares de l'artiste
+ * et des voisins pertinents, donc exactement ce que le moteur cherche à
+ * fabriquer — mais faite en amont, et pour moins d'appels que le fan-out
+ * « similaires × top tracks ».
+ *
+ * @param {string} artistId
+ * @param {number} maxPages — 20 titres par page ; la radio s'arrête vers 100.
+ * @returns {Promise<Array>} titres { title, artist, popularity, duration, ids }
+ */
+async function fetchArtistRadio(artistId, maxPages = 3) {
+  if (!artistId) return [];
+  const cacheKey = `radio:${artistId}`;
+  const cached = cache.get('similar', cacheKey, TIDAL);
+  if (cached) return cached;
+
+  const rel = await tidalGet(`/artists/${encodeURIComponent(artistId)}/relationships/radio?countryCode=${CC}`);
+  const playlistId = rel?.data?.[0]?.id;
+  if (!playlistId) return cache.set('similar', cacheKey, TIDAL, []);
+
+  const out = [];
+  let path = `/playlists/${encodeURIComponent(playlistId)}/relationships/items?countryCode=${CC}&include=items.artists`;
+
+  for (let page = 0; page < maxPages && path; page++) {
+    const doc = await tidalGet(path);
+    out.push(...parseRadioItems(doc, out.length));
+    // `links.next` est un chemin relatif à la racine de l'API.
+    path = doc?.links?.next || null;
+  }
+
+  return cache.set('similar', cacheKey, TIDAL, out);
+}
+
+/**
+ * Extrait les titres d'une page de playlist TIDAL.
+ * Les artistes sont des références vers `included` : il faut les recoller.
+ *
+ * @param {Object} doc — document JSON:API d'une page
+ * @param {number} startRank — rang du premier titre (pagination)
+ */
+function parseRadioItems(doc, startRank = 0) {
+  const byId = includedIndex(doc);
+  const out = [];
+
+  (doc?.included || [])
+    .filter(item => item.type === 'tracks' && item.attributes?.title)
+    .forEach(track => {
+      // Le premier artiste crédité est l'artiste principal ; les featurings
+      // suivent. Un titre sans artiste résoluble est inutilisable.
+      const credited = (track.relationships?.artists?.data || [])
+        .map(ref => byId.get(`${ref.type}:${ref.id}`)?.attributes?.name)
+        .filter(Boolean);
+      if (!credited.length) return;
+
+      out.push({
+        title: track.attributes.title,
+        artist: credited[0],
+        rank: startRank + out.length + 1,
+        source: TIDAL,
+        popularity: track.attributes.popularity ?? null,
+        duration: isoDurationToSeconds(track.attributes.duration),
+        ids: { tidal: track.id, isrc: track.attributes.isrc || null }
+      });
+    });
+
+  return out;
+}
+
+/**
  * Convertit une durée ISO 8601 (PT5M20S) en secondes.
  */
 function isoDurationToSeconds(iso) {
@@ -171,5 +241,7 @@ module.exports = {
   resolveArtistByIsrc,
   fetchSimilarArtists,
   fetchTopTracks,
+  fetchArtistRadio,
+  parseRadioItems,
   isoDurationToSeconds
 };

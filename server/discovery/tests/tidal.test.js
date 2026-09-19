@@ -23,6 +23,67 @@ describe('isoDurationToSeconds', () => {
   });
 });
 
+describe('parseRadioItems', () => {
+  // Forme réelle d'une page de /playlists/{id}/relationships/items?include=items.artists
+  const page = {
+    data: [{ type: 'tracks', id: '1' }, { type: 'tracks', id: '2' }],
+    included: [
+      {
+        type: 'tracks', id: '1',
+        attributes: { title: 'One More Time', popularity: 0.961, duration: 'PT5M20S', isrc: 'GBDUW0000053' },
+        relationships: { artists: { data: [{ type: 'artists', id: 'a1' }] } }
+      },
+      {
+        type: 'tracks', id: '2',
+        attributes: { title: "Can't Hold Us", popularity: 0.61, duration: 'PT4M18S', isrc: 'GMM881200021' },
+        relationships: { artists: { data: [{ type: 'artists', id: 'a2' }, { type: 'artists', id: 'a3' }] } }
+      },
+      { type: 'artists', id: 'a1', attributes: { name: 'Daft Punk' } },
+      { type: 'artists', id: 'a2', attributes: { name: 'Macklemore' } },
+      { type: 'artists', id: 'a3', attributes: { name: 'Ryan Lewis' } }
+    ],
+    links: { next: '/playlists/x/relationships/items?page[cursor]=zyx' }
+  };
+
+  test('recolle les artistes référencés dans included', () => {
+    const items = tidal.parseRadioItems(page);
+    assert.equal(items.length, 2);
+    assert.equal(items[0].artist, 'Daft Punk');
+    assert.equal(items[0].title, 'One More Time');
+    assert.equal(items[0].duration, 320);
+    assert.equal(items[0].ids.isrc, 'GBDUW0000053');
+  });
+
+  test('retient le premier artiste crédité comme principal', () => {
+    const items = tidal.parseRadioItems(page);
+    assert.equal(items[1].artist, 'Macklemore');
+  });
+
+  test('numérote les rangs en tenant compte de la pagination', () => {
+    assert.deepEqual(tidal.parseRadioItems(page).map(i => i.rank), [1, 2]);
+    assert.deepEqual(tidal.parseRadioItems(page, 40).map(i => i.rank), [41, 42]);
+  });
+
+  test('ignore un titre dont aucun artiste n’est résoluble', () => {
+    const orphan = {
+      included: [
+        {
+          type: 'tracks', id: '9',
+          attributes: { title: 'Orpheline', popularity: 0.5 },
+          relationships: { artists: { data: [{ type: 'artists', id: 'absent' }] } }
+        }
+      ]
+    };
+    assert.deepEqual(tidal.parseRadioItems(orphan), []);
+  });
+
+  test('ne casse pas sur un document vide ou malformé', () => {
+    assert.deepEqual(tidal.parseRadioItems({}), []);
+    assert.deepEqual(tidal.parseRadioItems(null), []);
+    assert.deepEqual(tidal.parseRadioItems({ included: [] }), []);
+  });
+});
+
 describe('fusion des métadonnées entre sources', () => {
   // TIDAL est la seule source à fournir la durée, et il arrive après Last.fm
   // dans le vivier. Sans complétion à la fusion, la durée serait perdue.

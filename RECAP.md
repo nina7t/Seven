@@ -818,15 +818,65 @@ durée ISO 8601 et la fusion inter-sources).
 - `server/discovery/tests/tidal.test.js` — nouveau
 
 **Reste à faire / limites connues**
-- La **radio TIDAL native** (playlist curatée par eux, avec ISRC sur chaque piste)
-  est identifiée et testée mais pas branchée. C'est le gain le plus évident restant.
-- Timeouts occasionnels sur des artistes obscurs (Awa Imani, Pond, GUM) : latence
-  propre de TIDAL. On perd 1 artiste sur 5, il reste 15–24 candidats. Acceptable.
+- ~~La radio TIDAL native est identifiée mais pas branchée.~~ → faite, voir la
+  section suivante.
+- ~~Timeouts occasionnels sur des artistes obscurs.~~ → disparus avec la radio,
+  qui demande moins d'appels sérialisés.
 - **Le séquenceur n'exploite pas les bons scores** : les titres TIDAL sortent en
   tête au scoring (0,675 / 0,655 / 0,618) mais la file finale démarre sur du 0,258
   et n'en garde que 2 sur 20. Le mélange connu/découverte prend le dessus. Ce n'est
   pas un bug, c'est un arbitrage de design — mais c'est là qu'il faut regarder si
   les radios semblent molles, pas du côté des sources.
+
+---
+
+### 19 septembre 2026 — La radio curatée TIDAL devient la source principale
+
+Suite directe de la section précédente. `/artists/{id}/relationships/radio`
+renvoie une playlist éditorialisée par TIDAL : elle mêle déjà les titres phares
+de l'artiste et des voisins pertinents, soit exactement ce que le moteur
+fabriquait à la main avec « similaires × top tracks ».
+
+**Ce que ça change**
+
+Le fan-out demandait 7 appels TIDAL sérialisés (1 résolution + 1 similaires +
+5 top tracks) et les derniers de la file épuisaient leur budget de timeout. La
+radio en demande 5 (1 résolution + 1 relation + 3 pages de 20 titres) et rend
+trois fois plus de candidats.
+
+Le fan-out reste en repli si un artiste n'a pas de radio — la bascule est
+automatique et testée.
+
+| Graine | Candidats TIDAL avant → après | Total | Temps |
+|---|---|---|---|
+| Daft Punk | 19 → **57** | 270 | 2,8 s |
+| Aya Nakamura | 18 → **59** | 258 | 2,1 s |
+| Radiohead | 24 → **59** | 256 | 2,3 s |
+| Tame Impala | 24 → **59** | 272 | 2,7 s |
+
+Et surtout : **plus aucun timeout**, sur aucune graine. Les traînards
+mentionnés dans la section précédente (Awa Imani, Pond, GUM) venaient du
+fan-out ; ils disparaissent avec lui.
+
+La radio remonte aussi les titres de l'artiste de départ (Daft Punk — One More
+Time, Get Lucky), ce qui sert directement le « connu + découverte » demandé.
+100 titres et 53 artistes distincts disponibles sur 5 pages ; on en prend 3 par
+défaut (`tidalRadioPages`), réglable.
+
+**Fichiers touchés**
+- `server/discovery/providers/tidal.js` — `fetchArtistRadio()` + `parseRadioItems()`
+  (parsing extrait en fonction pure pour être testable sans réseau)
+- `server/discovery/candidates.js` — radio en voie principale, fan-out en repli
+- `server/discovery/config.js` — `tidalRadioPages`, `tidalRadioTimeoutMs`
+- `server/discovery/tests/tidal.test.js` — 5 tests de parsing (recollage des
+  artistes depuis `included`, rangs paginés, titre orphelin, document malformé)
+
+65 tests passent.
+
+**Limite inchangée** : le séquenceur continue de ne pas exploiter ces scores
+(cf. section précédente). Les titres TIDAL de la radio scorent jusqu'à 0,601
+mais la file démarre toujours sur du 0,26–0,31. C'est le prochain vrai chantier
+si les radios semblent molles.
 
 ---
 

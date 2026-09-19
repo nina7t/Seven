@@ -60,6 +60,10 @@ const CONFIG = {
     tidalSimilarArtists: 5,
     // Budget serré car les appels TIDAL sont sérialisés (cf. candidates.js).
     tidalCallTimeoutMs: 2500,
+    // Radio curatée TIDAL : 20 titres par page, la playlist s'arrête vers 100.
+    // 3 pages = 60 titres pour ~1,3 s, le bon compromis qualité/latence.
+    tidalRadioPages: 3,
+    tidalRadioTimeoutMs: 3500,
     similarArtistsDepth: 2,
     // Pondérations du score radio (doivent sommer à ~1)
     weights: {

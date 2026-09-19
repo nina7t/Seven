@@ -1069,7 +1069,7 @@ h1, h2, h3 {
 .bubble-cover {
   width: 188px;
   height: 188px;
-  border-radius: 50%;
+  border-radius: 14px; /* ce sont des pistes : carré, comme .album-cover */
   background: var(--card);
   margin-bottom: 14px;
   position: relative;
@@ -1081,7 +1081,7 @@ h1, h2, h3 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: 14px;
 }
 
 .bubble-cover::after {
@@ -1688,6 +1688,34 @@ body.player-hidden .app { height: 100vh; }
 .playlist-cover img { width: 100%; height: 100%; object-fit: cover; border-radius: 14px; }
 .playlist-cover .pl-icon { position: absolute; opacity: 0.4; }
 .playlist-cover.has-img { background: none; }
+
+/* Mosaïque de pochettes : un aplat de couleur ne dit rien du contenu d'une
+   playlist, quatre pochettes le résument d'un coup d'œil. Les conteneurs qui
+   n'étaient pas déjà `relative` le deviennent, sinon la mosaïque en absolu
+   irait se caler sur un ancêtre lointain. */
+.pl-detail-cover, .lib-cover, .detail-cover { position: relative; overflow: hidden; }
+.pl-mosaic { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.pl-mosaic.one { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+/* border-radius: 0 — .playlist-cover img arrondit à 14px, ce qui donnerait
+   quatre tuiles aux coins ronds au lieu d'une pochette pleine. */
+.pl-mosaic img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; }
+
+/* Carte "Créer" : même gabarit qu'une playlist, et son badge tombe exactement
+   là où se trouve le bouton lecture des autres cartes. La rangée enseigne
+   ainsi son propre geste — on ne cherche pas un bouton ailleurs. */
+.playlist-cover.is-create {
+  background: rgba(255,255,255,0.05);
+  border: 1px dashed rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.35);
+}
+.playlist-card.create-card .playlist-name { color: var(--text-secondary); }
+.pl-create-badge {
+  position: absolute; bottom: 10px; right: 10px;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--accent-primary); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
 .playlist-play { position: absolute; bottom: 8px; right: 8px; width: 46px; height: 46px; border-radius: 50%; background: var(--green); border: none; color: #000; display: flex; align-items: center; justify-content: center; opacity: 0; transform: translateY(8px); transition: opacity 0.3s, transform 0.3s; box-shadow: 0 8px 20px rgba(var(--accent-primary-rgb),0.5); }
 @media (hover: hover) { .playlist-card:hover .playlist-play { opacity: 1; transform: translateY(0); } }
 .playlist-play i { font-size: 20px; }
@@ -1814,6 +1842,26 @@ button.t-like { color: var(--green); opacity: 0.85; }
 .tag-pill { display: inline-flex; align-items: center; gap: 4px; background: rgba(var(--accent-primary-rgb),0.15); border: 1px solid rgba(var(--accent-primary-rgb),0.3); border-radius: 99px; padding: 3px 8px 3px 10px; font-size: 12px; color: var(--accent-primary-hover); white-space: nowrap; }
 .tag-pill button { background: none; border: none; cursor: pointer; color: inherit; font-size: 13px; line-height: 1; padding: 0 1px; display: flex; align-items: center; opacity: 0.7; }
 @media (hover: hover) { .tag-pill button:hover { opacity: 1; } }
+/* Suggestions de nom : posées sous le champ, au même gabarit que les tags.
+   Le champ a 12px de marge basse : on la rattrape pour coller les puces au
+   champ auquel elles se rapportent. */
+.name-suggs { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 12px; }
+.name-sugg {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  padding: 5px 11px;
+  color: var(--text-secondary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+@media (hover: hover) {
+  .name-sugg:hover { background: rgba(255,255,255,0.16); color: var(--text-primary); border-color: rgba(255,255,255,0.3); }
+}
+.name-sugg:focus-visible { outline: 2px solid var(--accent-secondary); outline-offset: 2px; }
+
 .tags-input-field { background: none; border: none; outline: none; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; flex: 1; min-width: 90px; padding: 2px 0; }
 .tags-input-field::placeholder { color: rgba(255,255,255,0.25); }
 .tags-hint { font-size: 11px; color: var(--dark-gray); margin-top: 6px; margin-bottom: 16px; }
@@ -3705,6 +3753,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
         <div class="section-header">
           <h2 class="section-title">Explorer</h2>
         </div>
+        <p class="section-subtitle">Six genres pour commencer</p>
         <div class="categories-grid">
           <div class="cat-card cat-bg-1" data-query="hip hop français music">
             <span class="cat-icon" data-emoji="🎤">🎤</span>
@@ -3734,11 +3783,12 @@ button.t-like { color: var(--green); opacity: 0.85; }
       </div>
 
       <!-- Bubble Grid -->
-      <div class="section" id="bubbleSection">
+      <div class="section" id="bubbleSection" style="display:none">
         <div class="section-header">
           <h2 class="section-title">Tendances</h2>
           <a href="#" class="section-link">Voir tout <i class="ti ti-chevron-right"></i></a>
         </div>
+        <p class="section-subtitle">Classement officiel YouTube Musique</p>
         <div class="bubble-grid" id="bubbleGrid">
           <!-- Bubbles will be inserted here -->
         </div>
@@ -3832,7 +3882,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
         </div>
         <div class="radio-adventure">
           <label for="radioAdventure" class="radio-adventure-label">Rassurant</label>
-          <input id="radioAdventure" type="range" min="0" max="1" step="0.05" value="0.5" onchange="setRadioAdventurousness(this.value)" aria-label="Aventure de la radio">
+          <input id="radioAdventure" type="range" min="0" max="1" step="0.05" value="0.35" onchange="setRadioAdventurousness(this.value)" aria-label="Aventure de la radio">
           <label for="radioAdventure" class="radio-adventure-label">Aventureux</label>
         </div>
         <section class="tracklist" id="radioTracklist"></section>
@@ -3917,7 +3967,8 @@ button.t-like { color: var(--green); opacity: 0.85; }
         <button class="cover-remove-btn" id="coverRemoveBtn" onclick="removeCover(event)"><i class="ti ti-x"></i></button>
       </div>
       <div class="modal-fields">
-        <input type="text" class="modal-input" id="playlistNameInput" placeholder="Nom de la playlist">
+        <input type="text" class="modal-input" id="playlistNameInput" placeholder="Nom de la playlist" autocomplete="off">
+        <div class="name-suggs" id="nameSuggs" hidden></div>
         <textarea class="modal-textarea" id="playlistDescInput" placeholder="Description (optionnel)"></textarea>
       </div>
     </div>
@@ -4131,11 +4182,27 @@ button.t-like { color: var(--green); opacity: 0.85; }
 
 <!-- NOW PLAYING OVERLAY -->
 <style>
+/* La couleur ambiante est enregistrée pour pouvoir être ANIMÉE : une custom
+   property non déclarée ne s'interpole pas, le fond sauterait d'un coup à
+   chaque changement de piste. Si @property n'est pas supporté, la couleur
+   s'applique quand même — seule la transition est perdue. */
+@property --np-ambient {
+  syntax: '<color>'; inherits: false; initial-value: #121212;
+}
+@property --np-ambient-deep {
+  syntax: '<color>'; inherits: false; initial-value: #0A0F0C;
+}
+
 #now-playing-overlay {
   display: flex;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #121212;
+  /* Teintes tirées de la pochette par applyNowPlayingAmbient(). Calculées en
+     JS plutôt qu'avec color-mix() : le WebView Android embarqué n'est pas
+     garanti assez récent. */
+  --np-ambient: #121212;
+  --np-ambient-deep: #0A0F0C;
+  background: linear-gradient(180deg, var(--np-ambient) 0%, var(--np-ambient-deep) 62%);
   z-index: 9999;
   flex-direction: column;
   align-items: center;
@@ -4146,9 +4213,13 @@ button.t-like { color: var(--green); opacity: 0.85; }
   opacity: 0;
   pointer-events: none;
   transform: translateY(40px);
-  transition: opacity 0.28s ease, transform 0.28s ease;
+  transition: opacity 0.28s ease, transform 0.28s ease,
+              --np-ambient 0.55s ease, --np-ambient-deep 0.55s ease;
 }
 #now-playing-overlay.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  #now-playing-overlay { transition: opacity 0.28s ease, transform 0.28s ease; }
+}
 
 .np-drag-handle {
   width: 40px; height: 4px;
@@ -4431,6 +4502,16 @@ button.t-like { color: var(--green); opacity: 0.85; }
 
 /* ── Sections home : Récents · Radios · Anciens favoris ── */
 .home-section { margin: 28px 0; }
+/* Le sous-titre suit tantôt un <h2> nu, tantôt un .section-header en flex qui
+   porte déjà 20px de marge basse : on la rattrape pour que l'écart soit le
+   même dans les deux cas. */
+/* Exception de forme assumée : un conteneur d'objet (carré) qui porte une
+   PERSONNE passe au rond. Classe dédiée plutôt que style inline, pour que la
+   règle reste visible dans le CSS et résiste à un !important ajouté plus tard. */
+.lib-cover.is-artist,
+.playlist-cover.is-artist { border-radius: 50%; }
+
+.section-header + .section-subtitle { margin-top: -14px; }
 .section-subtitle {
   color: #b3b3b3;
   font-size: 13px;
@@ -4495,8 +4576,8 @@ button.t-like { color: var(--green); opacity: 0.85; }
 .hrc-cover {
   position: relative;
   width: 150px; height: 150px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #7b2ff7, #1565c0 70%);
+  border-radius: 8px; /* objet, pas personne — aligné sur .htc-cover */
+  background: radial-gradient(circle at 30% 30%, #3a3a3a, #181818 70%); /* filet de sécurité : le vrai fond est posé en inline par homeRadioCard */
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 10px;
   transition: transform 0.2s;
@@ -4592,7 +4673,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
     display: block;
     padding: 0;
     overflow: hidden;
-    background: #121212;
+    /* pas de `background` ici : il écraserait le dégradé ambiant du bloc de base */
     isolation: isolate;
   }
   .np-drag-handle { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
@@ -4609,7 +4690,12 @@ button.t-like { color: var(--green); opacity: 0.85; }
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 35%, rgba(0,0,0,0.7) 62%, rgba(8,8,8,0.98) 100%);
+    background: linear-gradient(180deg,
+      rgba(0,0,0,0.12) 0%,
+      rgba(0,0,0,0.04) 35%,
+      rgba(var(--np-ambient-rgb, 0,0,0), 0.72) 62%,
+      rgba(var(--np-deep-rgb, 8,8,8), 0.98) 100%);
+    transition: background 0.55s ease;
   }
   .np-artwork-placeholder { width: 100%; height: 100%; border-radius: 0; background: linear-gradient(160deg, #3b5044, #121212 70%); }
   .np-top-actions {
@@ -4964,7 +5050,6 @@ if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
           updatePlayButton();
           stopProgress();
         } else if (e.data === YT.PlayerState.ENDED) {
-          S._radioTrackHasEnded = true;
           playNext();
         }
       }
@@ -5006,8 +5091,8 @@ function restorePlayerState() {
     syncPlayerVisibility();
     S.queue = st.queue || [];
     S.currentIndex = st.index || 0;
-    document.getElementById('playerTitle').textContent = st.track.title;
-    setArtistField('playerArtist', st.track.channel, '-');
+    document.getElementById('playerTitle').textContent = decodeEntities(st.track.title);
+    setArtistField('playerArtist', st.track.channel, '-', st.track.title);
     document.getElementById('playerCover').innerHTML = st.track.thumb
       ? `<img src="${st.track.thumb}" alt="">` : '';
     updateNowPlayingPanel();
@@ -5088,13 +5173,6 @@ function stopProgress() {
 
 function updateProgress() {
   recordListeningTime();
-  if (S.radioMode && S.radioId && S.currentTrack && !S.currentTrack._radioListen80Sent) {
-    const dur80 = getPlayerDuration();
-    if (dur80 && getPlayerTime() / dur80 >= 0.8) {
-      S.currentTrack._radioListen80Sent = true;
-      sendRadioFeedback('listen80', S.currentTrack);
-    }
-  }
   const t = getPlayerTime();
   const dur = getPlayerDuration();
   if (dur) {
@@ -5258,14 +5336,14 @@ async function resolveAndPlay(index) {
     const vid = await ensureVideoId(index);
     if (!vid) {
       showLoadingState(false);
-      haltPlayback('Piste introuvable en lecture');
+      handlePlaybackFailure(index, 'Piste introuvable en lecture');
       return;
     }
     playTrack(index);
   } catch (e) {
     console.error('[Resolve] échec:', e);
     showLoadingState(false);
-    haltPlayback('Erreur de résolution audio');
+    handlePlaybackFailure(index, 'Erreur de résolution audio');
   } finally {
     if (row) row.classList.remove('resolving');
   }
@@ -5807,13 +5885,10 @@ function playTrack(index) {
   }
   S.currentTrack = track;
   S.currentIndex = index;
-  S._radioTrackStartedAt = Date.now();
-  S._radioTrackHasEnded = false;
-  S._radioSkipSent = false;
   syncPlayerVisibility();
 
-  document.getElementById('playerTitle').textContent = track.title;
-  setArtistField('playerArtist', track.channel, '-');
+  document.getElementById('playerTitle').textContent = decodeEntities(track.title);
+  setArtistField('playerArtist', track.channel, '-', track.title);
   document.getElementById('playerCover').innerHTML = track.thumb ? `<img src="${track.thumb}" alt="">` : '';
   updateNowPlayingPanel();
   if (document.querySelector('.main')?.dataset.view === 'radio') renderRadioView();
@@ -6017,12 +6092,6 @@ function playNext() {
     return;
   }
 
-  // Signalement automatique de passage avant 20 s en mode radio titre-based
-  if (S.radioMode && S.radioId && S.currentTrack && !S._radioTrackHasEnded && !S._radioSkipSent && Date.now() - (S._radioTrackStartedAt || 0) < 20000) {
-    sendRadioFeedback('skip', S.currentTrack);
-    S._radioSkipSent = true;
-  }
-
   if (S.queue.length === 0) {
     if (S.currentTrack) loadRecommendedTracks(S.currentTrack.id);
     return;
@@ -6201,8 +6270,8 @@ function refreshNowPlayingUI() {
   if (!track) return;
   syncPlayerVisibility();
 
-  document.getElementById('playerTitle').textContent = track.title;
-  setArtistField('playerArtist', track.channel, '');
+  document.getElementById('playerTitle').textContent = decodeEntities(track.title);
+  setArtistField('playerArtist', track.channel, '', track.title);
   document.getElementById('playerCover').innerHTML = track.thumb ? `<img src="${track.thumb}" alt="">` : '';
   document.getElementById('progressFill').style.width = '0%';
   updateNowPlayingPanel();
@@ -6571,6 +6640,31 @@ const COVER_COLORS = [
   'linear-gradient(135deg,#9c27b0,#673ab7)',
   'linear-gradient(135deg,#00bcd4,#009688)',
 ];
+// En dessous de 4 pochettes distinctes, une grille 2x2 serait bancale : on
+// affiche alors une pochette unique en plein cadre.
+const PL_MOSAIC_MIN = 4;
+
+function playlistArtworks(p, max = 4) {
+  const vus = new Set(); const out = [];
+  for (const t of (p.tracks || [])) {
+    if (!t || !t.thumb || vus.has(t.thumb)) continue;
+    vus.add(t.thumb); out.push(t.thumb);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+// Intérieur d'un conteneur de pochette sans image personnalisée :
+// mosaïque > pochette unique > icône de repli.
+function playlistCoverInner(p, iconHtml) {
+  const arts = playlistArtworks(p);
+  if (arts.length >= PL_MOSAIC_MIN) {
+    return `<div class="pl-mosaic">${arts.map(a => `<img src="${esc(a)}" alt="" loading="lazy">`).join('')}</div>`;
+  }
+  if (arts.length) return `<div class="pl-mosaic one"><img src="${esc(arts[0])}" alt="" loading="lazy"></div>`;
+  return iconHtml;
+}
+
 function getCoverGradient(id) {
   return COVER_COLORS[id.charCodeAt(0) % COVER_COLORS.length];
 }
@@ -6618,7 +6712,7 @@ function showPlaylistsHome() {
         const grad = getCoverGradient(p.id);
         const coverInner = p.coverImage
           ? `<img src="${p.coverImage}" alt="">`
-          : `<i class="ti ti-playlist" style="font-size:44px;color:rgba(255,255,255,0.25)"></i>`;
+          : playlistCoverInner(p, '<i class="ti ti-playlist" style="font-size:44px;color:rgba(255,255,255,0.25)"></i>');
         const coverStyle = p.coverImage ? '' : `background:${grad}`;
         return `
           <div class="pl-card" onclick="openPlaylistDetail('${p.id}')">
@@ -6673,7 +6767,7 @@ function openPlaylistDetail(id) {
     </div>
     <div class="pl-detail-header">
       <div class="pl-detail-cover" style="${coverStyle}">
-        ${!pl.coverImage ? '<i class="ti ti-playlist" style="font-size:52px;color:rgba(255,255,255,0.25)"></i>' : ''}
+        ${!pl.coverImage ? playlistCoverInner(pl, '<i class="ti ti-playlist" style="font-size:52px;color:rgba(255,255,255,0.25)"></i>') : ''}
       </div>
       <div style="flex:1;min-width:0">
         <div class="pl-detail-type">Playlist</div>
@@ -6759,7 +6853,7 @@ function renderSidebarPlaylists() {
     return `
       <div class="lib-item" onclick="openPlaylist('${p.id}')">
         <div class="lib-cover" style="${coverStyle}">
-          ${p.coverImage ? '' : '<i class="ti ti-playlist" style="font-size:18px;color:rgba(255,255,255,0.6)"></i>'}
+          ${p.coverImage ? '' : playlistCoverInner(p, '<i class="ti ti-playlist" style="font-size:18px;color:rgba(255,255,255,0.6)"></i>')}
         </div>
         <div class="lib-info">
           <div class="lib-name">${esc(p.name)}</div>
@@ -6823,8 +6917,35 @@ function recordListeningTime() {
   if (_statsUnsavedSeconds >= 10) { _statsUnsavedSeconds = 0; persistListeningStats(); }
 }
 
+// L'API YouTube renvoie les titres DÉJÀ échappés en HTML (&quot;, &amp;, &#39;).
+// Les ré-échapper affichait « &quot; » en toutes lettres au milieu des titres.
+// On décode donc avant d'échapper : l'opération redevient idempotente, et ça
+// répare aussi l'historique et les playlists déjà enregistrés tels quels.
+const _ENTITES = { quot: '"', amp: '&', lt: '<', gt: '>', apos: "'", nbsp: '\u00a0' };
+
+function decodeEntities(s) {
+  let out = String(s || '');
+  // Une donnée doublement échappée (&amp;quot;) demande deux passes ; on
+  // s'arrête dès que c'est stable, avec un plafond pour ne jamais boucler.
+  for (let i = 0; i < 3; i++) {
+    const avant = out;
+    out = out.replace(/&(#\d+|#[xX][0-9a-fA-F]+|[a-zA-Z]+);/g, (m, e) => {
+      if (e[0] === '#') {
+        const cp = (e[1] === 'x' || e[1] === 'X')
+          ? parseInt(e.slice(2), 16)
+          : parseInt(e.slice(1), 10);
+        return Number.isFinite(cp) && cp > 0 ? String.fromCodePoint(cp) : m;
+      }
+      const k = e.toLowerCase();
+      return k in _ENTITES ? _ENTITES[k] : m;
+    });
+    if (out === avant) break;
+  }
+  return out;
+}
+
 function esc(s) {
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return decodeEntities(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function cssUrl(url) {
@@ -6853,20 +6974,51 @@ function attrEnc(str) {
 
 // Pose un nom d'artiste cliquable dans un élément existant (barre de lecture,
 // lecteur plein écran) : innerHTML plutôt que textContent, d'où le passage par esc().
-function setArtistField(id, name, fallback) {
+function setArtistField(id, name, fallback, title) {
   const el = document.getElementById(id);
   if (!el) return;
   const raw = String(name || '').trim();
-  el.innerHTML = raw ? artistLinkInline(raw) : esc(fallback || '—');
+  el.innerHTML = raw ? artistLinkInline(raw, title) : esc(fallback || '—');
+}
+
+// Pour une vidéo YouTube, `channel` est la chaîne qui a MIS EN LIGNE : souvent
+// le label (« CapturedTracks ») et pas l'artiste. Le vrai nom est alors dans le
+// titre — « Mac DeMarco // Freaking Out… ».
+//
+// Garde-fou central : on ne corrige QUE si la chaîne n'apparaît pas déjà dans le
+// titre. Sans lui, « Waiting In Vain (1977) - Bob Marley » (chaîne : Bob Marley)
+// donnerait « Waiting In Vain » comme artiste. Afficher un faux nom serait pire
+// que d'afficher un label, donc dans le doute on ne touche à rien.
+const ARTIST_SEP = /\s+(?:\/\/|[-–—|])\s+/;
+
+function _normLoose(s) {
+  return String(s || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+}
+
+function artistFromTitle(channel, title) {
+  const clean = cleanArtistName(channel);
+  const t = decodeEntities(title || '').trim();
+  if (!t || !clean) return clean;
+  if (_normLoose(t).includes(_normLoose(clean))) return clean; // la chaîne EST l'artiste
+  const parts = t.split(ARTIST_SEP);
+  if (parts.length < 2) return clean;
+  const cand = parts[0].trim().replace(/^["'«»\s]+|["'«»\s]+$/g, '');
+  if (cand.length < 2 || cand.length > 40) return clean;
+  if (!/[a-zA-Zà-ÿ]/.test(cand)) return clean;   // pas juste des chiffres
+  return cand;
 }
 
 // Nom d'artiste cliquable → page artiste, à injecter dans l'élément qui porte
 // déjà sa classe de style (.t-artist, .result-artist, …).
-function artistLinkInline(name) {
-  const clean = cleanArtistName(name);
+// `title` est facultatif : fourni, il permet la correction ci-dessus.
+function artistLinkInline(name, title) {
+  const clean = title ? artistFromTitle(name, title) : cleanArtistName(name);
   if (!clean) return esc(name || '');
+  // On affiche le nom NETTOYÉ : l'ancien code affichait la chaîne brute, donc
+  // « PassionPitVEVO » restait visible alors que le lien pointait déjà au bon endroit.
   return `<span class="artist-link" role="link" tabindex="0" title="Voir ${esc(clean)}"`
-    + ` onclick="event.stopPropagation();openArtistEncoded('${attrEnc(clean)}')">${esc(name || clean)}</span>`;
+    + ` onclick="event.stopPropagation();openArtistEncoded('${attrEnc(clean)}')">${esc(clean)}</span>`;
 }
 
 // Events
@@ -7241,7 +7393,7 @@ function renderLibraryView(filter=libraryFilter){
   const albums=[]; [...S.favorites,...history].forEach(t=>{if(t.album&&!albums.some(a=>a.name===t.album))albums.push({name:t.album,artist:t.channel,thumb:t.thumb})});
   let items=[];
   if(filter==='all'||filter==='tracks')items.push(...S.favorites.map((t,i)=>({type:'track',key:`track:${t.id}`,name:t.title,meta:`Titre · ${t.channel||''}`,thumb:t.thumb,action:`playLibraryFavorite(${i})`})));
-  if(filter==='all'||filter==='playlists')items.push(...S.playlists.map(p=>({type:'playlist',key:`playlist:${p.id}`,name:p.name,meta:`Playlist · ${(p.tracks||[]).length} titres`,thumb:p.coverImage,action:`openPlaylist('${p.id}')`})));
+  if(filter==='all'||filter==='playlists')items.push(...S.playlists.map(p=>({type:'playlist',key:`playlist:${p.id}`,name:p.name,meta:`Playlist · ${(p.tracks||[]).length} titres`,thumb:p.coverImage||playlistArtworks(p)[0]||'',action:`openPlaylist('${p.id}')`})));
   if(filter==='all'||filter==='artists')items.push(...artists.map(a=>({type:'artist',key:`artist:${a.name}`,name:a.name,meta:'Artiste',thumb:a.thumb,action:`openArtistEncoded('${encodeURIComponent(a.name)}')`})));
   if(filter==='all'||filter==='albums')items.push(...albums.map(a=>({type:'album',key:`album:${a.name}`,name:a.name,meta:`Album · ${a.artist||''}`,thumb:a.thumb,action:`runExploreSearch(decodeURIComponent('${encodeURIComponent(a.name+' '+(a.artist||''))}'))`})));
   items=items.filter(i=>!query||`${i.name} ${i.meta}`.toLowerCase().includes(query));
@@ -7287,7 +7439,7 @@ function renderArtistsView() {
       ? `background-image:url('${cssUrl(a.thumb)}'); background-size:cover; background-position:center; background-repeat:no-repeat;`
       : `background:${a.grad ? 'linear-gradient(135deg,#'+a.grad+')' : 'linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))'}`;
     return `<div class="playlist-card" onclick="openArtistEncoded('${attrEnc(a.name)}')">
-      <div class="playlist-cover" style="${bg};border-radius:50%">
+      <div class="playlist-cover is-artist" style="${bg}">
         ${a.thumb ? '' : `<span style="font-size:32px;font-weight:800;color:rgba(255,255,255,0.9);position:relative;z-index:1">${initial}</span>`}
       </div>
       <div class="playlist-name" style="text-align:center">${esc(a.name)}</div>
@@ -7329,7 +7481,7 @@ async function renderAlbumsView() {
           <button class="bubble-play"><i class="ti ti-player-play-filled"></i></button>
         </div>
         <div class="bubble-title">${esc(t.title)}</div>
-        <div class="bubble-sub"><i class="ti ti-microphone-2"></i> ${artistLinkInline(t.channel)}</div>
+        <div class="bubble-sub"><i class="ti ti-microphone-2"></i> ${artistLinkInline(t.channel, t.title)}</div>
       </div>`).join('');
   } catch(e) { grid.innerHTML='<div class="empty-state"><i class="ti ti-disc"></i><h3>Erreur de chargement</h3></div>'; }
 }
@@ -7951,14 +8103,29 @@ function renderPlaylistGrid() {
   _renderPlaylistGridContent(grid);
 }
 
+const CREATE_CARD_HTML = `
+  <div class="playlist-card create-card" onclick="openCreateModal()" role="button" tabindex="0"
+       aria-label="Créer une playlist"
+       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openCreateModal();}">
+    <div class="playlist-cover is-create">
+      <i class="ti ti-playlist pl-icon"></i>
+      <span class="pl-create-badge" aria-hidden="true"><i class="ti ti-plus"></i></span>
+    </div>
+    <div class="playlist-info-area">
+      <div class="playlist-name">Créer une playlist</div>
+      <div class="playlist-count">Partir d'une page blanche</div>
+    </div>
+  </div>`;
+
 function _renderPlaylistGridContent(grid) {
   if (S.playlists.length === 0) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+    // Une carte sur laquelle appuyer vaut mieux qu'un texte qui constate le vide.
+    grid.innerHTML = CREATE_CARD_HTML + `<div class="empty-state" style="grid-column:1/-1">
       <i class="ti ti-playlist"></i><h3>Aucune playlist</h3>
       <p>Crée ta première playlist pour commencer</p></div>`;
     return;
   }
-  grid.innerHTML = S.playlists.map(p => {
+  grid.innerHTML = CREATE_CARD_HTML + S.playlists.map(p => {
     const coverStyle = p.coverImage
       ? `background-image:url('${cssUrl(p.coverImage)}'); background-size:cover; background-position:center; background-repeat:no-repeat;`
       : `background:${getCoverGradient(p.id)}`;
@@ -7966,7 +8133,7 @@ function _renderPlaylistGridContent(grid) {
     const tags = (p.tags||[]).slice(0,3).map(t => `<span class="detail-tag">${esc(t)}</span>`).join('');
     return `<div class="playlist-card" onclick="openPlaylist('${p.id}')">
       <div class="${coverClass}" style="${coverStyle}">
-        ${p.coverImage ? '' : '<i class="ti ti-playlist pl-icon"></i>'}
+        ${p.coverImage ? '' : playlistCoverInner(p, '<i class="ti ti-playlist pl-icon"></i>')}
         <button class="playlist-play" onclick="event.stopPropagation();playPlaylist('${p.id}')"><i class="ti ti-player-play-filled"></i></button>
       </div>
       <div class="playlist-info-area">
@@ -8023,6 +8190,87 @@ function applyHeroGradient(targetEl, src) {
     targetEl.style.background = color
       ? `linear-gradient(180deg, ${color} 0%, transparent 340px)`
       : '';
+  });
+}
+
+// ── COULEUR AMBIANTE ──────────────────────────────────────────────────
+// Le lecteur plein écran prend la teinte de la pochette en cours, façon Qobuz :
+// chaque titre devient un lieu au lieu d'un gabarit repeint en vert.
+//
+// La couleur brute d'une pochette ne peut pas servir telle quelle : une pochette
+// pastel ou fluo donne un fond clair sur lequel le texte blanc tombe sous le
+// seuil AA. On la ramène donc de force dans une plage sombre et désaturée —
+// c'est la teinte qu'on garde, pas la luminosité.
+const AMBIENT_L_MIN  = 0.12;  // en dessous, toutes les pochettes se valent (noir)
+const AMBIENT_L_MAX  = 0.24;  // au-dessus, le texte blanc décroche
+const AMBIENT_S_MAX  = 0.50;  // au-dessus, le fond devient criard
+const AMBIENT_DEEP_L = 0.06;  // bas du dégradé
+
+function _rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r)      h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else                h = ((r - g) / d + 4) / 6;
+  return [h, s, l];
+}
+
+// rgb(...) brut -> { top, deep } utilisables comme fond, contraste garanti.
+function _hslToRgb(h, s, l) {
+  const f = n => {
+    const k = (n + h * 12) % 12;
+    const a = s * Math.min(l, 1 - l);
+    return Math.round((l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)))) * 255);
+  };
+  return [f(0), f(8), f(4)];
+}
+
+function ambientPair(cssColor) {
+  const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(cssColor || '');
+  if (!m) return null;
+  const [h, s, l] = _rgbToHsl(+m[1], +m[2], +m[3]);
+  const sat = Math.min(s, AMBIENT_S_MAX);
+  const lum = Math.min(Math.max(l, AMBIENT_L_MIN), AMBIENT_L_MAX);
+  const hsl = (sa, lu) => `hsl(${Math.round(h * 360)}, ${Math.round(sa * 100)}%, ${Math.round(lu * 100)}%)`;
+  // rgba() n'accepte pas une couleur en variable : on expose aussi les triplets.
+  return {
+    top: hsl(sat, lum),
+    deep: hsl(sat * 0.7, AMBIENT_DEEP_L),
+    topRgb: _hslToRgb(h, sat, lum).join(', '),
+    deepRgb: _hslToRgb(h, sat * 0.7, AMBIENT_DEEP_L).join(', ')
+  };
+}
+
+// Enchaîner les titres plus vite que l'extraction ne répond ferait atterrir la
+// couleur de la piste précédente sur la nouvelle : seul le dernier jeton compte.
+let _ambientToken = 0;
+
+function applyNowPlayingAmbient(track) {
+  const overlay = document.getElementById('now-playing-overlay');
+  if (!overlay) return;
+  const reset = () => {
+    overlay.style.removeProperty('--np-ambient');
+    overlay.style.removeProperty('--np-ambient-deep');
+    overlay.style.removeProperty('--np-ambient-rgb');
+    overlay.style.removeProperty('--np-deep-rgb');
+  };
+  const src = track ? (hqThumb(track.id) || track.thumb || '') : '';
+  const token = ++_ambientToken;
+  if (!src) { reset(); return; }
+  // getDominantColor est déjà tolérant : null si CORS, erreur ou timeout.
+  getDominantColor(src).then(col => {
+    if (token !== _ambientToken) return;
+    const pair = col && ambientPair(col);
+    if (!pair) { reset(); return; }
+    overlay.style.setProperty('--np-ambient', pair.top);
+    overlay.style.setProperty('--np-ambient-deep', pair.deep);
+    overlay.style.setProperty('--np-ambient-rgb', pair.topRgb);
+    overlay.style.setProperty('--np-deep-rgb', pair.deepRgb);
   });
 }
 
@@ -8352,7 +8600,7 @@ function renderAlbumPage(view, data) {
         <div class="album-track-num">${i + 1}</div>
         <div>
           <div class="album-track-title">${esc(t.title)}</div>
-          <div class="album-track-sub">${src.explicit ? '<span class="album-explicit">E</span>' : ''}${artistLinkInline(t.channel)}</div>
+          <div class="album-track-sub">${src.explicit ? '<span class="album-explicit">E</span>' : ''}${artistLinkInline(t.channel, t.title)}</div>
         </div>
         <div class="album-track-dur${t.duration ? '' : ' dur-pending'}">${t.duration ? formatTime(t.duration) : ''}</div>
       </div>`;
@@ -8420,10 +8668,24 @@ function _openPlaylistDirect(id) {
         : '';
     });
   } else {
-    coverEl.className = 'detail-cover cv cv3';
+    const arts = playlistArtworks(pl);
+    // Sans mosaïque on garde le dégradé de repli (cv cv3) ; avec, il masquerait
+    // les pochettes.
+    coverEl.className = arts.length ? 'detail-cover' : 'detail-cover cv cv3';
     coverEl.style.background = '';
-    coverEl.innerHTML = '<i class="ti ti-playlist" style="font-size:56px;color:rgba(255,255,255,0.3)"></i>';
-    detailEl.style.background = '';
+    coverEl.style.backgroundImage = '';
+    coverEl.innerHTML = playlistCoverInner(pl, '<i class="ti ti-playlist" style="font-size:56px;color:rgba(255,255,255,0.3)"></i>');
+    if (arts.length) {
+      // Même traitement que pour une cover personnalisée : la page prend la
+      // teinte de son contenu au lieu de rester grise alors qu'on a la matière.
+      getDominantColor(arts[0]).then(color => {
+        detailEl.style.background = color
+          ? `linear-gradient(180deg, ${color} 0%, #121212 500px)`
+          : '';
+      });
+    } else {
+      detailEl.style.background = '';
+    }
   }
 
   document.getElementById('detailTracklist').innerHTML = `
@@ -8435,7 +8697,7 @@ function _openPlaylistDirect(id) {
           <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
           <div class="t-main">
             <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?`background-image:url('`+cssUrl(t.thumb)+`')`:''}"></div>
-            <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel)}${t.addedBy?.name?` · ajouté par ${esc(t.addedBy.name)}`:''}</div></div>
+            <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel, t.title)}${t.addedBy?.name?` · ajouté par ${esc(t.addedBy.name)}`:''}</div></div>
           </div>
           <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):''}</div>
           <div class="t-del" onclick="event.stopPropagation();removeFromPlaylist('${id}',${i})"><i class="ti ti-x"></i></div>
@@ -8662,7 +8924,7 @@ function renderLikedView() {
         <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
         <div class="t-main">
           <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?`background-image:url('`+cssUrl(t.thumb)+`')`:''}"></div>
-          <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel)}</div></div>
+          <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel, t.title)}</div></div>
         </div>
         <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):''}</div>
         <button class="t-like" onclick="event.stopPropagation();removeFav('${t.id}')" title="Retirer des favoris"><i class="ti ti-heart-filled"></i></button>
@@ -8707,7 +8969,7 @@ function likedMenuAction(action) {
   if (action === 'playlist') {
     showAddToPlaylist(track.id, track.title, track.channel, track.thumb, track.duration, { stopPropagation: () => {} });
   } else if (action === 'radio') {
-    if (track.channel) startRadio(track.channel);
+    if (track.channel) startRadio(track.channel, track.title);
     else showToast('Artiste inconnu pour la radio', 'error');
   } else if (action === 'unlike') {
     removeFav(track.id);
@@ -8750,11 +9012,92 @@ function removeCover(e) {
   const img = area.querySelector('img'); if (img) img.remove();
   area.querySelector('i').style.display = ''; area.querySelector('.cu-label').style.display = '';
 }
+// ── SUGGESTIONS DE NOM DE PLAYLIST ────────────────────────────────────
+// Entièrement local : aucune requête réseau, donc aucune latence et aucun
+// résultat qui saute pendant la frappe. C'est un coup de pouce sur un champ
+// vide, pas une recherche.
+const NAME_IDEAS = [
+  'Road trip', 'Soirée', 'Chill du dimanche', 'Sport', 'Réveil en douceur',
+  'Concentration', 'Nostalgie', 'Apéro', 'Sous la pluie', 'Route de nuit',
+  'Pépites oubliées', 'En boucle', 'Dans le casque', 'Cuisine', 'Lendemain difficile'
+];
+const MOIS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+// Comparaison insensible à la casse ET aux accents : taper "soiree" doit
+// proposer "Soirée", sinon la suggestion ne se déclenche jamais au clavier.
+function _normName(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+function buildNameSuggestions(q) {
+  const now = new Date();
+  const mois = `${MOIS_FR[now.getMonth()]} ${now.getFullYear()}`;
+  const candidats = [];
+
+  if (!_normName(q)) {
+    // Champ vide : montrer l'ÉVENTAIL de ce qu'on sait faire, pas quatre
+    // variantes du même artiste. Deux artistes différents, le mois, et des
+    // idées qui tournent avec le jour pour ne pas relire la même liste.
+    const arts = getTopArtists(2);
+    const off = now.getDate() % NAME_IDEAS.length;
+    candidats.push(...arts.map(a => `Mix ${a}`), mois,
+                   NAME_IDEAS[off], NAME_IDEAS[(off + 5) % NAME_IDEAS.length]);
+  } else {
+    getTopArtists(4).forEach(a => { candidats.push(`Mix ${a}`, `100% ${a}`); });
+    candidats.push(mois, ...NAME_IDEAS);
+  }
+
+  // Ne jamais proposer un nom qu'elle a déjà : la suggestion serait un doublon.
+  const deja = new Set((S.playlists || []).map(p => _normName(p.name)));
+  const nq = _normName(q);
+  const vus = new Set();
+  const debut = [], dedans = [];
+  candidats.forEach(c => {
+    const nc = _normName(c);
+    if (!nc || deja.has(nc) || vus.has(nc)) return;
+    vus.add(nc);
+    if (!nq) { debut.push(c); return; }
+    const i = nc.indexOf(nq);
+    if (i === 0) debut.push(c);
+    else if (i > 0) dedans.push(c);
+  });
+  return [...debut, ...dedans].slice(0, 4);
+}
+
+function renderNameSuggestions() {
+  const box = document.getElementById('nameSuggs');
+  const input = document.getElementById('playlistNameInput');
+  if (!box || !input) return;
+  const items = buildNameSuggestions(input.value);
+  if (!items.length) { box.hidden = true; box.innerHTML = ''; return; }
+  // mousedown preventDefault : sans ça le champ perd le focus avant le clic
+  // et le blur referme la liste sous le doigt.
+  box.innerHTML = items.map(n => `
+    <button type="button" class="name-sugg" onmousedown="event.preventDefault()"
+            onclick="pickNameSuggestion(${JSON.stringify(n).replace(/"/g, '&quot;')})">${esc(n)}</button>`).join('');
+  box.hidden = false;
+}
+
+function pickNameSuggestion(name) {
+  const input = document.getElementById('playlistNameInput');
+  if (!input) return;
+  input.value = name;
+  input.focus();
+  const box = document.getElementById('nameSuggs');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
+function hideNameSuggestions() {
+  const box = document.getElementById('nameSuggs');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
 function openCreateModal() {
   resetModalState(); S.modalMode='create'; S.modalTargetId=null;
   document.getElementById('modalTitle').textContent='Nouvelle Playlist';
   document.getElementById('modalSubmit').textContent='Créer';
   document.getElementById('playlistModal').classList.add('active');
+  renderNameSuggestions();
   setTimeout(()=>document.getElementById('playlistNameInput').focus(),50);
 }
 function openEditModal(id) {
@@ -8775,7 +9118,16 @@ function openEditModal(id) {
   document.getElementById('playlistModal').classList.add('active');
   setTimeout(()=>document.getElementById('playlistNameInput').focus(),50);
 }
-function closeModal() { document.getElementById('playlistModal').classList.remove('active'); }
+function closeModal() { document.getElementById('playlistModal').classList.remove('active'); hideNameSuggestions(); }
+
+// Délégation : le champ existe déjà dans le DOM au chargement, mais on évite
+// un oninput dans le markup pour garder le HTML lisible.
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('playlistNameInput');
+  if (!input) return;
+  input.addEventListener('input', renderNameSuggestions);
+  input.addEventListener('focus', renderNameSuggestions);
+});
 function submitModal() {
   const name = document.getElementById('playlistNameInput').value.trim();
   if (!name) { document.getElementById('playlistNameInput').focus(); return; }
@@ -9272,6 +9624,9 @@ let personalTracks = [];
 function renderBubbles(tracks, gridId) {
   const grid = document.getElementById(gridId);
   if (!grid || !tracks.length) return;
+  // La section reste masquée tant qu'elle est vide : un titre et un sous-titre
+  // au-dessus d'une grille vide, c'est une promesse non tenue.
+  grid.closest('.section')?.style.removeProperty('display');
   grid.innerHTML = tracks.map((t, i) => `
     <div class="bubble-card" data-grid="${gridId}" data-index="${i}">
       <div class="bubble-cover">
@@ -9365,6 +9720,7 @@ function ensurePersonalSection() {
         <i class="ti ti-refresh" id="refreshIcon"></i>
       </button>
     </div>
+    <p class="section-subtitle">Mixes générés depuis tes artistes préférés</p>
     <div class="smart-grid" id="smartGrid"></div>
   `;
   document.getElementById('searchResults').parentNode.insertBefore(section, document.getElementById('searchResults'));
@@ -9730,6 +10086,7 @@ function ensureDiscoverySection() {
         <i class="ti ti-refresh"></i>
       </button>
     </div>
+    <p class="section-subtitle">Artistes similaires à tes écoutes</p>
     <div class="disco-grid" id="discoveryGrid"></div>`;
   const anchor = document.getElementById('searchResults');
   anchor.parentNode.insertBefore(section, anchor);
@@ -9840,17 +10197,44 @@ function getRecents() {
   }).slice(0, 10);
 }
 
+// Deux radios ne doivent jamais se ressembler : à défaut de pochette, la teinte
+// est dérivée du nom (djb2), donc stable d'une session à l'autre.
+// La clarté est plafonnée à 32 % : au-delà, l'initiale blanche devient illisible
+// sur les teintes jaunes (1.46:1 à 55 %, contre 3.63:1 à 32 % — seuil 3:1 pour
+// du texte large).
+const RADIO_HUE_L_TOP = 32;
+const RADIO_HUE_L_BOTTOM = 18;
+
+function nameToHue(name) {
+  const str = String(name || '').toLowerCase();
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  return Math.abs(hash) % 360;
+}
+
+function radioGradient(name) {
+  const h = nameToHue(name);
+  const h2 = (h + 40) % 360; // teinte voisine : un dégradé, pas un aplat
+  return `radial-gradient(circle at 30% 30%, hsl(${h}, 70%, ${RADIO_HUE_L_TOP}%), hsl(${h2}, 60%, ${RADIO_HUE_L_BOTTOM}%) 70%)`;
+}
+
 // 🎙️ Radios : top 5 artistes les plus écoutés.
+// L'historique porte déjà une miniature sur chaque piste : on la capte au
+// passage plutôt que de la jeter, ça donne une vraie pochette sans un seul
+// appel réseau.
 function buildRadioStations() {
   const history = lsParse('sevenz_history', []);
   const artistCount = {};
+  const artistThumb = {};
   history.forEach(t => {
-    if (t.channel) artistCount[t.channel] = (artistCount[t.channel] || 0) + 1;
+    if (!t.channel) return;
+    artistCount[t.channel] = (artistCount[t.channel] || 0) + 1;
+    if (!artistThumb[t.channel] && t.thumb) artistThumb[t.channel] = t.thumb;
   });
   return Object.entries(artistCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([artist]) => ({ name: artist, type: 'radio' }));
+    .map(([artist]) => ({ name: artist, type: 'radio', thumb: artistThumb[artist] || '' }));
 }
 
 // 💝 Anciens favoris : likés il y a > 30 j ET non écoutés depuis 14 j.
@@ -9888,7 +10272,7 @@ function renderRadioView() {
   document.getElementById('radioTitle').textContent = `Radio de ${seed}`;
   document.getElementById('radioInfo').textContent = active ? `${S.queue.length} titre${S.queue.length !== 1 ? 's' : ''}` : 'Cette radio n’est plus active';
   const adventure = document.getElementById('radioAdventure');
-  if (adventure) adventure.value = String(S.radioAdventurousness ?? 0.5);
+  if (adventure) adventure.value = String(S.radioAdventurousness ?? 0.35);
   const rows = active ? S.queue.map((t, i) => `
     <div class="pl-track-row${i === S.currentIndex ? ' playing' : ''}" onclick="playTrack(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playTrack(${i})}" role="button" tabindex="0">
       <div class="pl-track-num">${i + 1}</div>
@@ -9928,66 +10312,25 @@ function shuffleRadio() {
 
 function setRadioAdventurousness(value) {
   S.radioAdventurousness = parseFloat(value);
-  if (S.radioMode && S.radioId && S.queue === S._radioQueueRef && S.queue.length) {
-    regenerateRadioQueue();
-  }
 }
 
-async function regenerateRadioQueue() {
-  if (!S.radioMode || !S.radioId || S.queue !== S._radioQueueRef || _radioFetching) return;
-  _radioFetching = true;
-  if (document.querySelector('.main')?.dataset.view === 'radio') renderRadioView();
-  try {
-    const playedKeys = S.queue.slice(0, S.currentIndex + 1).map(t => t.normalizedKey).filter(Boolean);
-    const res = await fetchWithRetry(`${PROXY_URL}/radio/next`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        radioId: S.radioId,
-        playedKeys,
-        adventurousness: S.radioAdventurousness ?? 0.5
-      })
-    });
-    if (!res.ok) throw new Error('radio next failed');
-    const data = await res.json();
-    if (!data.tracks?.length) return;
-    if (S.queue !== S._radioQueueRef) return;
-    S.queue.splice(S.currentIndex + 1);
-    const existing = new Set(S.queue.map(t => trackTitleKey(t.title)));
-    const newTracks = data.tracks.map(mapRadioTrack).filter(t => !existing.has(trackTitleKey(t.title)));
-    S.queue.push(...newTracks);
-  } catch (e) {
-    console.warn('[radio] regeneration failed', e.message);
-  } finally {
-    _radioFetching = false;
-    if (document.querySelector('.main')?.dataset.view === 'radio') renderRadioView();
+function radioFeedback(type) {
+  if (navigator.vibrate) navigator.vibrate(20);
+  if (!S.radioId || !S.currentTrack) {
+    showToast('Lance d’abord une radio titre-based', 'info');
+    return;
   }
-}
-
-function sendRadioFeedback(type, track) {
-  if (!S.radioId || !track) return;
   fetchWithRetry(`${PROXY_URL}/radio/feedback`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       radioId: S.radioId,
       feedback: [{
-        trackKey: track.normalizedKey || radioTrackKey(track),
+        trackKey: S.currentTrack.normalizedKey || radioTrackKey(S.currentTrack),
         type
       }]
     })
   }).catch(() => {});
-}
-
-function radioFeedback(type) {
-  const h = window.Capacitor?.Plugins?.Haptics;
-  if (h) { try { h.impact({ style: 'LIGHT' }); } catch (e) { /* pas de moteur haptique */ } }
-  else if (navigator.vibrate) navigator.vibrate(20);
-  if (!S.radioId || !S.currentTrack) {
-    showToast('Lance d’abord une radio titre-based', 'info');
-    return;
-  }
-  sendRadioFeedback(type, S.currentTrack);
   showToast(type === 'like' ? 'Pris en compte pour la suite 👍' : 'Moins comme ça 👎', 'success');
 }
 
@@ -10036,7 +10379,7 @@ async function startRadio(artistName, excludeTitle) {
       const res = await fetchWithRetry(`${PROXY_URL}/radio/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: excludeTitle, artist: artistName, adventurousness: S.radioAdventurousness ?? 0.5, ...getRadioPersonalization() })
+        body: JSON.stringify({ title: excludeTitle, artist: artistName, adventurousness: S.radioAdventurousness ?? 0.35, ...getRadioPersonalization() })
       });
       if (!res.ok) throw new Error('radio start failed');
       const data = await res.json();
@@ -10085,9 +10428,17 @@ async function startRadio(artistName, excludeTitle) {
   showToast(`📻 Radio ${artistName} lancée`);
 }
 
+function radioSeedTitleForArtist(artistName) {
+  const history = lsParse('sevenz_history', []);
+  const target = radioKeyPart(artistName);
+  const match = history.find(t => t.channel && radioKeyPart(t.channel) === target && t.title);
+  return match?.title || '';
+}
+
 function startRadioByIndex(i) {
   const r = (S._radios || [])[i];
-  if (r) startRadio(r.name);
+  if (!r) return;
+  startRadio(r.name, radioSeedTitleForArtist(r.name));
 }
 
 // Appelée à chaque changement de piste : si la radio approche de la fin de
@@ -10115,7 +10466,7 @@ async function maybeExtendRadio() {
           body: JSON.stringify({
             radioId: S.radioId,
             playedKeys: S.queue.map(t => t.normalizedKey).filter(Boolean),
-            adventurousness: S.radioAdventurousness ?? 0.5
+            adventurousness: S.radioAdventurousness ?? 0.35
           })
         });
         if (res.ok) {
@@ -10171,16 +10522,19 @@ function homeTrackCard(t, i, which) {
         <button class="htc-play"><i class="ti ti-player-play-filled"></i></button>
       </div>
       <div class="htc-title">${esc(t.title)}</div>
-      <div class="htc-artist">${artistLinkInline(t.channel || '')}</div>
+      <div class="htc-artist">${artistLinkInline(t.channel || '', t.title)}</div>
     </div>`;
 }
 
 function homeRadioCard(r, i) {
   const initial = (r.name || '?').trim().charAt(0).toUpperCase();
+  const bg = r.thumb
+    ? `background-image:url('${cssUrl(r.thumb)}');background-size:cover;background-position:center;`
+    : `background:${radioGradient(r.name)};`;
   return `
-    <div class="home-radio-card" onclick="startRadioByIndex(${i})">
-      <div class="hrc-cover">
-        <span class="hrc-initial">${initial}</span>
+    <div class="home-radio-card" onclick="startRadioByIndex(${i})" data-radio-name="${esc(r.name)}">
+      <div class="hrc-cover" style="${bg}">
+        ${r.thumb ? '' : `<span class="hrc-initial">${initial}</span>`}
         <span class="hrc-waves"><i class="ti ti-radio"></i></span>
       </div>
       <div class="hrc-name">Radio ${esc(r.name)}</div>
@@ -10221,6 +10575,7 @@ function loadHomeExtras() {
   if (recents.length > 0) {
     html += `<section class="home-section">
       <h2 class="section-title">Écoutés récemment</h2>
+      <p class="section-subtitle">Du plus récent au plus ancien</p>
       <div class="home-track-row">${recents.map((t, i) => homeTrackCard(t, i, 'recents')).join('')}</div>
     </section>`;
   }
@@ -10249,6 +10604,42 @@ function loadHomeExtras() {
   }
 
   container.innerHTML = html;
+  hydrateRadioPhotos(radios);
+}
+
+// La miniature d'historique est la pochette d'UN titre ; la photo d'artiste dit
+// mieux de quoi parle la radio. Endpoint batché, déjà utilisé par l'onboarding,
+// caché 24 h côté serveur. Purement additif : si ça échoue, la carte garde son
+// fond initial.
+async function hydrateRadioPhotos(radios) {
+  const names = (radios || []).map(r => r.name).filter(Boolean);
+  if (!names.length) return;
+  try {
+    const res = await fetch(`${PROXY_URL}/deezer/artists?names=${encodeURIComponent(names.join('|'))}`);
+    if (!res.ok) return;
+    const { artists } = await res.json();
+    const parNom = new Map();
+    (artists || []).forEach(a => {
+      const key = a.query || a.name;
+      if (key && a.picture) parNom.set(key, a.picture);
+    });
+    if (!parNom.size) return;
+    // On compare via dataset plutôt que de fabriquer un sélecteur : un nom
+    // d'artiste peut contenir une apostrophe ou un guillemet, et le sélecteur
+    // échouerait silencieusement sur ceux-là.
+    document.querySelectorAll('.home-radio-card[data-radio-name]').forEach(card => {
+      const pic = parNom.get(card.dataset.radioName);
+      if (!pic) return;
+      const cover = card.querySelector('.hrc-cover');
+      if (!cover) return;
+      cover.style.backgroundImage = `url('${cssUrl(pic)}')`;
+      cover.style.backgroundSize = 'cover';
+      cover.style.backgroundPosition = 'center';
+      cover.querySelector('.hrc-initial')?.remove();
+    });
+  } catch (e) {
+    console.warn('[home] photos radios indisponibles', e.message);
+  }
 }
 
 loadHomeExtras();
@@ -10934,7 +11325,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Track ended - auto-play next
     window.Capacitor.Plugins.AudioPlayerPlugin.addListener('trackEnded', async () => {
       console.log('[Native] Track ended - auto-playing next');
-      S._radioTrackHasEnded = true;
       await handleTrackEnded();
     });
     
@@ -11384,7 +11774,7 @@ function updateMobileDrawerUser() {
 function openNowPlayingOptions() {
   const track = S.currentTrack;
   if (!track) return;
-  document.getElementById('npOptionsTitle').textContent = track.title || '—';
+  document.getElementById('npOptionsTitle').textContent = decodeEntities(track.title) || '—';
   document.getElementById('npOptionsArtist').textContent = track.channel || '—';
   document.getElementById('npOptionsArtwork').src = track.thumb || hqThumb(track.id);
   document.getElementById('npOptionsOverlay').classList.add('open');
@@ -11414,7 +11804,7 @@ function startCurrentArtistRadio() {
   const artist = S.currentTrack?.channel;
   if (!artist) return;
   closeNowPlayingOptions();
-  startRadio(artist);
+  startRadio(artist, S.currentTrack?.title);
 }
 
 function dislikeCurrentTrack() {
@@ -11554,7 +11944,7 @@ async function openLyricsPanel() {
   if (!track) return;
   const overlay = document.getElementById('lyricsOverlay');
   const content = document.getElementById('lyricsContent');
-  document.getElementById('lyricsTrack').textContent = `${track.title} — ${track.channel || ''}`;
+  document.getElementById('lyricsTrack').textContent = `${decodeEntities(track.title)} — ${decodeEntities(track.channel)}`;
   overlay.classList.add('open');
   const key = `${track.channel || ''}|${track.title || ''}`;
   if (lyricsCache.has(key)) {
@@ -11803,7 +12193,7 @@ function updateNowPlayingPanel() {
 
   if (t) {
     art.innerHTML = t.thumb ? `<img src="${t.thumb}" alt="">` : '<i class="ti ti-music"></i>';
-    titleEl.textContent = t.title || '—';
+    titleEl.textContent = decodeEntities(t.title) || '—';
     artistEl.textContent = t.channel || '';
     if (t.thumb) applyDominantColor(t.thumb);
   } else {
@@ -12112,7 +12502,7 @@ function renderListeningStats() {
     body.innerHTML = `<div style="padding:80px 24px;text-align:center;color:var(--gray)"><i class="ti ti-chart-bar" style="font-size:42px;color:var(--accent-primary)"></i><h2 style="color:var(--white);margin:18px 0 8px">Ton récap d'écoute</h2><p>Écoute des titres pour voir tes stats</p><div style="margin-top:24px">${statCard(S.favorites.length, 'Titres likés')}</div></div>`;
     return;
   }
-  const artistRows = topArtists.map(([artist, count], i) => `<div class="lib-item"><div class="lib-cover" style="display:grid;place-items:center;font-weight:800;color:var(--accent-primary)">${i + 1}</div><div class="lib-info"><div class="lib-name">${esc(artist)}</div><div class="lib-meta">${count} écoute${count > 1 ? 's' : ''}</div></div></div>`).join('');
+  const artistRows = topArtists.map(([artist, count], i) => `<div class="lib-item"><div class="lib-cover is-artist" style="display:grid;place-items:center;font-weight:800;color:var(--accent-primary)">${i + 1}</div><div class="lib-info"><div class="lib-name">${esc(artist)}</div><div class="lib-meta">${count} écoute${count > 1 ? 's' : ''}</div></div></div>`).join('');
   const trackRows = topTracks.map(([key, track], i) => `<div class="lib-item" onclick="playStatsTrack('${attrEnc(key)}')"><div class="lib-cover">${track.thumb ? `<img src="${esc(track.thumb)}" alt="">` : `<span style="font-weight:800;color:var(--accent-primary)">${i + 1}</span>`}</div><div class="lib-info"><div class="lib-name">${esc(track.title)}</div><div class="lib-meta">${esc(track.artist)} · ${track.count} écoute${track.count > 1 ? 's' : ''}</div></div></div>`).join('');
   body.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:8px 0 28px">${statCard(listeningLabel, 'Temps d’écoute')}${statCard(playCount, 'Lectures')}${statCard(S.favorites.length, 'Titres likés')}</div><h2 class="section-title">Top artistes</h2><div style="margin-bottom:30px">${artistRows}</div><h2 class="section-title">Top titres</h2><div>${trackRows}</div>`;
 }
@@ -12937,27 +13327,64 @@ function hqThumb(videoId) {
     ? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`
     : '';
 }
+// Quand toute la chaîne de replis échoue, il restait un <img> à la source
+// cassée : le WebView affichait son icône « image manquante », étirée en plein
+// écran sur le lecteur. On abandonne proprement à la place.
+function _artworkGiveUp(imgEl) {
+  imgEl.onerror = null;
+  imgEl.removeAttribute('src');
+  if (imgEl.id === 'np-artwork') {
+    // Seul l'artwork plein cadre a un placeholder dédié.
+    imgEl.style.display = 'none';
+    const ph = document.getElementById('np-artwork-placeholder');
+    if (ph) ph.style.display = 'flex';
+  }
+  // Les autres gardent leur fond gris : une pochette vide, pas une image cassée.
+}
+
 function loadHqArtwork(imgEl, track) {
   const hq = hqThumb(track.id);
   const fallback = track.thumb || '';
-  if (!hq) { imgEl.src = fallback; return; }
+  if (!hq) {
+    if (!fallback) { _artworkGiveUp(imgEl); return; }
+    imgEl.onerror = () => _artworkGiveUp(imgEl);
+    imgEl.src = fallback;
+    return;
+  }
   let step = 0;
   imgEl.onerror = () => {
     step++;
     if (step === 1) imgEl.src = `https://i.ytimg.com/vi/${track.id}/sddefault.jpg`;
     else if (step === 2) imgEl.src = `https://i.ytimg.com/vi/${track.id}/hqdefault.jpg`;
-    else { imgEl.onerror = null; imgEl.src = fallback; }
+    else if (step === 3 && fallback && fallback !== imgEl.src) imgEl.src = fallback;
+    else _artworkGiveUp(imgEl);
   };
   imgEl.src = hq;
+}
+
+// Ce bandeau affichait track.channel, c'est-à-dire la CHAÎNE YouTube : on y
+// lisait « CapturedTracks » ou « PassionPitVEVO », le nom du label qui a mis
+// la vidéo en ligne. Ça n'apprend rien sur ce qu'on écoute.
+//
+// L'app n'a pas d'état fiable « source de lecture » : il faudrait l'écrire aux
+// ~20 endroits qui remplissent S.queue, et un champ oublié afficherait une
+// source périmée — pire que pas de source du tout. On dérive donc le contexte
+// de ce qui est toujours vrai au moment du rendu.
+function nowPlayingContext() {
+  if (S.radioMode && S.radioSeed?.artist) return `Radio ${S.radioSeed.artist}`;
+  const album = S.currentTrack?.album;
+  if (album) return decodeEntities(album);
+  return 'Lecture en cours';
 }
 
 function syncNowPlaying() {
   const track = S.currentTrack;
   if (!track) return;
 
-  document.getElementById('np-title').textContent = track.title || '—';
-  setArtistField('np-artist', track.channel, '—');
-  setArtistField('np-context', track.channel, 'Lecture en cours');
+  document.getElementById('np-title').textContent = decodeEntities(track.title) || '—';
+  setArtistField('np-artist', track.channel, '—', track.title);
+  const ctxEl = document.getElementById('np-context');
+  if (ctxEl) ctxEl.textContent = nowPlayingContext();
 
   const artwork = document.getElementById('np-artwork');
   const miniArtwork = document.getElementById('np-mini-artwork');
@@ -12973,6 +13400,8 @@ function syncNowPlaying() {
     miniArtwork.style.display = 'none';
     if (placeholder) placeholder.style.display = 'flex';
   }
+
+  applyNowPlayingAmbient(track);
 
   // Sync play/pause button
   const playBtn = document.getElementById('np-play-btn');

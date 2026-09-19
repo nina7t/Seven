@@ -114,30 +114,34 @@
   --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
   /* ══ PALETTE — source unique de vérité ══════════════════════
-     Vert forêt dominant + bleu royal en accent secondaire.
+     Bleu néon dominant + violet en accent secondaire.
      Contrastes vérifiés WCAG AA (texte comme éléments graphiques).
      Modifier UNIQUEMENT ces 9 valeurs (+ 3 RGB dérivées) pour recolorer toute l'app. */
 
   /* Fonds */
-  --bg-primary:           #0A0F0C;  /* base générale */
-  --bg-primary-rgb:       10,15,12;   /* garder synchro avec --bg-primary */
-  --bg-secondary:         #161E19;  /* cards, sidebar, sections */
-  --bg-secondary-rgb:     22,30,25;   /* garder synchro avec --bg-secondary */
-  --bg-elevated:          #232F27;  /* hover, éléments surélevés */
+  /* Les fonds sont teintés vers l'accent, pas neutres : verdis du temps du vert,
+     bleutés maintenant. Sans ça le bleu néon se bat avec un fond resté verdâtre. */
+  --bg-primary:           #080C12;  /* base générale */
+  --bg-primary-rgb:       8,12,18;    /* garder synchro avec --bg-primary */
+  --bg-secondary:         #131A24;  /* cards, sidebar, sections */
+  --bg-secondary-rgb:     19,26,36;   /* garder synchro avec --bg-secondary */
+  --bg-elevated:          #1F2836;  /* hover, éléments surélevés */
 
   /* Accents */
-  --accent-primary:       #2EA36A;  /* vert forêt vif — CTA, lecture en cours */
-  --accent-primary-hover: #3ABF7D;  /* survol du CTA */
-  --accent-primary-rgb:   46,163,106; /* = --accent-primary, pour les rgba(). À garder synchro. */
-  --accent-secondary:     #5B8DEF;  /* bleu royal — liens, focus, badges */
+  --accent-primary:       #16B9FF;  /* bleu néon — CTA, lecture en cours */
+  --accent-primary-hover: #4FCBFF;  /* survol du CTA */
+  --accent-primary-rgb:   22,185,255; /* = --accent-primary, pour les rgba(). À garder synchro. */
+  /* Violet et non plus bleu royal : à côté d'un primaire bleu néon, un
+     secondaire bleu serait indistinguable. Écart mesuré 156 (contre 142 avant). */
+  --accent-secondary:     #A57BFF;  /* violet — liens, focus, badges */
 
   /* Texte & bordures */
-  --text-primary:         #F2F4F2;  /* blanc cassé */
-  --text-secondary:       #A0ACA4;  /* gris moyen légèrement verdi */
+  --text-primary:         #F1F3F7;  /* blanc cassé */
+  --text-secondary:       #A2ABBA;  /* gris moyen légèrement bleuté */
   --border:               rgba(255,255,255,0.07);
 
-  /* Texte posé SUR --accent-primary : le noir passe AA (6.56:1),
-     le blanc échoue (3.20:1). Ne pas inverser. */
+  /* Texte posé SUR --accent-primary : le noir passe AA (9.42:1),
+     le blanc échoue (2.23:1). Ne pas inverser. */
   --on-accent:            #000;
 
   /* ══ Alias de compatibilité ═════════════════════════════════
@@ -151,7 +155,7 @@
   --accent:     var(--accent-secondary);
   --white:      var(--text-primary);
   --gray:       var(--text-secondary);
-  --dark-gray:  #6E7A72;
+  --dark-gray:  #6F7A8A;
   --purple:     var(--accent-primary);
   --pink:       var(--accent-primary);
   --orange:     var(--accent-primary);
@@ -4190,7 +4194,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
   syntax: '<color>'; inherits: false; initial-value: #121212;
 }
 @property --np-ambient-deep {
-  syntax: '<color>'; inherits: false; initial-value: #0A0F0C;
+  syntax: '<color>'; inherits: false; initial-value: #080C12;
 }
 
 #now-playing-overlay {
@@ -4201,7 +4205,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
      JS plutôt qu'avec color-mix() : le WebView Android embarqué n'est pas
      garanti assez récent. */
   --np-ambient: #121212;
-  --np-ambient-deep: #0A0F0C;
+  --np-ambient-deep: #080C12;
   background: linear-gradient(180deg, var(--np-ambient) 0%, var(--np-ambient-deep) 62%);
   z-index: 9999;
   flex-direction: column;
@@ -4511,7 +4515,12 @@ button.t-like { color: var(--green); opacity: 0.85; }
 .lib-cover.is-artist,
 .playlist-cover.is-artist { border-radius: 50%; }
 
+/* Le sous-titre suit tantôt un <h2> nu, tantôt un .section-header en flex qui
+   porte déjà 20px de marge basse : on la rattrape. #catsSection en porte 32,
+   d'où son rattrapage propre — sinon « Explorer » creuse un trou deux fois
+   plus grand que les autres sections. */
 .section-header + .section-subtitle { margin-top: -14px; }
+#catsSection .section-header + .section-subtitle { margin-top: -26px; }
 .section-subtitle {
   color: #b3b3b3;
   font-size: 13px;
@@ -4697,7 +4706,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
       rgba(var(--np-deep-rgb, 8,8,8), 0.98) 100%);
     transition: background 0.55s ease;
   }
-  .np-artwork-placeholder { width: 100%; height: 100%; border-radius: 0; background: linear-gradient(160deg, #3b5044, #121212 70%); }
+  .np-artwork-placeholder { width: 100%; height: 100%; border-radius: 0; background: linear-gradient(160deg, #2A3A50, #121212 70%); }
   .np-top-actions {
     position: absolute;
     top: var(--safe-top);
@@ -7000,10 +7009,21 @@ function artistFromTitle(channel, title) {
   const clean = cleanArtistName(channel);
   const t = decodeEntities(title || '').trim();
   if (!t || !clean) return clean;
-  if (_normLoose(t).includes(_normLoose(clean))) return clean; // la chaîne EST l'artiste
   const parts = t.split(ARTIST_SEP);
-  if (parts.length < 2) return clean;
-  const cand = parts[0].trim().replace(/^["'«»\s]+|["'«»\s]+$/g, '');
+  const cand = parts.length > 1
+    ? parts[0].trim().replace(/^["'«»\s]+|["'«»\s]+$/g, '')
+    : '';
+  if (_normLoose(t).includes(_normLoose(clean))) {
+    // La chaîne EST l'artiste. On ne préfère la version du titre que si elle
+    // apporte vraiment mieux : des espaces là où la chaîne n'en a pas
+    // (« tameimpala » -> « Tame Impala »). Pas si elle est en capitales —
+    // « BRENT FAIYAZ » n'est pas un progrès sur « Brent Faiyaz ».
+    const gagne = cand && _normLoose(cand) === _normLoose(clean)
+      && !/\s/.test(clean) && /\s/.test(cand)
+      && cand !== cand.toUpperCase();
+    return gagne ? cand : clean;
+  }
+  if (!cand) return clean;
   if (cand.length < 2 || cand.length > 40) return clean;
   if (!/[a-zA-Zà-ÿ]/.test(cand)) return clean;   // pas juste des chiffres
   return cand;

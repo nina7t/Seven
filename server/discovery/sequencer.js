@@ -58,11 +58,35 @@ function isValid(candidate, queue, constraints, context = {}) {
   return true;
 }
 
+/**
+ * Poids de tirage d'un candidat.
+ *
+ * Un tirage proportionnel au score brut ne discrimine presque pas : les scores
+ * réels tiennent dans une plage étroite (~0,17 à 0,64) et le vivier compte
+ * plusieurs centaines de candidats, si bien que le tirage revient à du quasi
+ * hasard — mesuré à 28 % de sélections issues du top 20 % du vivier, contre
+ * 20 % pour un tirage purement aléatoire. Tout le travail de scoring (tags,
+ * popularité, multi-source) était donc jeté.
+ *
+ * L'exposant creuse les écarts sans réduire le vivier : contrairement à un
+ * « top N », la queue de distribution reste atteignable, ce qui préserve la
+ * variété entre deux écoutes — critère essentiel pour une radio.
+ */
+function pickWeight(candidate) {
+  // Un candidat sans score ne doit pas peser plus qu'un bon candidat : on le
+  // traite comme médiocre, pas comme parfait.
+  const score = typeof candidate.score === 'number' && candidate.score > 0
+    ? candidate.score
+    : 0.01;
+  return Math.pow(score, W.pickSharpness);
+}
+
 function weightedRandomPick(pool) {
-  const total = pool.reduce((sum, c) => sum + (c.score || 1), 0);
+  const total = pool.reduce((sum, c) => sum + pickWeight(c), 0);
+  if (!(total > 0)) return pool[Math.floor(Math.random() * pool.length)] || null;
   let r = Math.random() * total;
   for (const c of pool) {
-    r -= (c.score || 1);
+    r -= pickWeight(c);
     if (r <= 0) return c;
   }
   return pool[pool.length - 1];

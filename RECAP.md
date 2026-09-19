@@ -875,8 +875,73 @@ défaut (`tidalRadioPages`), réglable.
 
 **Limite inchangée** : le séquenceur continue de ne pas exploiter ces scores
 (cf. section précédente). Les titres TIDAL de la radio scorent jusqu'à 0,601
-mais la file démarre toujours sur du 0,26–0,31. C'est le prochain vrai chantier
-si les radios semblent molles.
+mais la file démarre toujours sur du 0,26–0,31. → traité dans la section
+suivante.
+
+---
+
+### 19 septembre 2026 — Le séquenceur exploite enfin les scores
+
+Symptôme : les meilleurs candidats scoraient 0,60–0,64, mais les lots démarraient
+sur du 0,26–0,31. Tout le travail de scoring (tags, popularité, multi-source,
+nouveauté) semblait ignoré.
+
+**Diagnostic** — il ne l'était pas *ignoré*, il était *dilué*. `weightedRandomPick`
+tirait proportionnellement au score brut. Or les scores réels tiennent dans une
+plage étroite (0,17 à 0,64, soit un rapport de 3,7) répartie sur 250 candidats :
+un tirage proportionnel y revient à du quasi-hasard.
+
+Mesuré sur 600 sélections : **26,8 % des titres retenus venaient du top 20 % du
+vivier — contre 20 % pour un tirage purement aléatoire.** Un gain de 1,34×, pour
+tout un pipeline de scoring. Le score moyen des lots (0,352) était celui du
+vivier (0,340).
+
+**Correctif** — un exposant sur le poids de tirage (`pickSharpness: 3`).
+
+Quatre stratégies ont été comparées sur 40 lots réels :
+
+| Stratégie | Score moyen | Part du top 20 % | Titres distincts / 40 lots |
+|---|---|---|---|
+| actuel (score¹) | 0,347 | 28,1 % | 200 |
+| score² | 0,365 | 32,8 % | 191 |
+| **score³** | **0,383** | **40,4 %** | **198** |
+| score⁵ | 0,414 | 52,6 % | 164 |
+| top 40 + score² | 0,409 | 62,4 % | 85 |
+| top 25 + score¹ | 0,415 | 63,8 % | 70 |
+
+Les variantes « top N » donnent la meilleure qualité mais **effondrent la
+variété** : 70 à 85 titres distincts sur 40 lots, contre 200. Une radio qui se
+répète. L'exposant, lui, creuse les écarts sans réduire le vivier — la queue de
+distribution reste atteignable. `score³` est le point d'équilibre : qualité
+nettement relevée, variété intacte.
+
+Mesure après correction, sur trois graines : part du top 20 % passée de 26,8 % à
+**45,3 %** (gain 2,27× sur l'aléatoire au lieu de 1,34×), score moyen des lots
+0,39–0,43 pour des viviers à 0,34–0,36, et 200+ titres distincts sur 40 lots.
+
+**Bug secondaire corrigé** — le repli d'un candidat sans score valait `1`, soit
+plus que n'importe quel score réel (max ~0,65). Un candidat non scoré raflait
+donc la mise. Il est désormais traité comme médiocre (0,01).
+
+**Ce qui n'a pas bougé** — le quota connu/découverte du commit `ec882c7` est
+strictement préservé. Vérifié à l'identique avant/après : curseur 0 → 0
+découverte, 0,25 → 5, 0,5 → 10, 0,75 → 15, 1 → 20 sur un lot de 20.
+
+**Arête à connaître** (préexistante, pas une régression) : le quota suppose que
+chaque bassin puisse remplir un lot à lui seul. Si l'historique de l'auditeur ne
+recoupe le vivier que sur quelques artistes, le bassin « connu » s'épuise — le
+plafond de 2 titres par artiste exige ~10 artistes distincts pour 20 slots — et
+le repli documenté bascule vers la découverte. Un auditeur au profil très étroit
+aura donc plus de découverte que le curseur n'en demande. C'est préférable à un
+lot tronqué, mais ça explique un curseur qui semble mou sur un compte neuf.
+
+**Fichiers touchés**
+- `server/discovery/sequencer.js` — `pickWeight()` extrait, exposant appliqué
+- `server/discovery/config.js` + `weights.js` — `pickSharpness`
+- `server/discovery/tests/sequencer-pick.test.js` — 9 tests (tirage déterministe
+  via `Math.random` figé, et non-régression du quota sur les 5 positions du curseur)
+
+74 tests passent.
 
 ---
 

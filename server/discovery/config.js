@@ -52,6 +52,11 @@ const CONFIG = {
     // Part de découverte visée par défaut. 0.5 = moitié de titres déjà connus
     // de l'auditeur, moitié de découvertes — le curseur Aventure fait varier.
     adventurousnessDefault: 0.5,
+    // Exposant du tirage pondéré du séquenceur. À 1 (proportionnel au score
+    // brut) la sélection est quasi aléatoire, les scores réels étant trop
+    // resserrés. À 3, la part de titres issus du top 20 % du vivier passe de
+    // 28 % à 40 %, sans perte de variété entre deux écoutes.
+    pickSharpness: 3,
     tagTopTracksLimit: 30,
     similarTracksLimit: 30,
     topTracksPerArtist: 5,

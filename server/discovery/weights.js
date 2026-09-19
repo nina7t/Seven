@@ -28,6 +28,7 @@ module.exports = {
   maxSameAlbumInBatch: CONFIG.radio.maxSameAlbumInBatch,
   maxTempoDiff: CONFIG.radio.maxTempoDiff,
   adventurousnessDefault: CONFIG.radio.adventurousnessDefault,
+  pickSharpness: CONFIG.radio.pickSharpness,
 
   // Feedback
   likeBoost: F.likeBoost,

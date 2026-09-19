@@ -1162,72 +1162,6 @@ h1, h2, h3 {
 .badge-orange { background: rgba(255, 107, 53, 0.8); }
 .badge-green { background: rgba(29, 185, 84, 0.8); }
 
-/* Mes artistes (home) */
-.my-artist-card {
-  width: 148px;
-  cursor: pointer;
-  text-align: center;
-  transition: transform 0.25s;
-}
-@media (hover: hover) { .my-artist-card:hover { transform: scale(1.04); } }
-
-.my-artist-cover {
-  width: 148px;
-  height: 148px;
-  border-radius: 50%;
-  margin: 0 auto 12px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.my-artist-cover::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,0.22);
-  pointer-events: none;
-}
-.my-artist-initials {
-  font-size: 32px;
-  font-weight: 800;
-  color: rgba(255,255,255,0.92);
-  position: relative; z-index: 1;
-}
-.my-artist-play {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--green);
-  border: none;
-  color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(0.8);
-  transition: opacity 0.25s, transform 0.25s;
-  box-shadow: 0 6px 18px rgba(29, 185, 84, 0.45);
-  z-index: 2;
-}
-@media (hover: hover) { .my-artist-card:hover .my-artist-play { opacity: 1; transform: scale(1); } }
-.my-artist-play i { font-size: 18px; }
-.my-artist-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--white);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Radio view adventure slider */
 .radio-adventure {
   display: flex;
   align-items: center;
@@ -3799,14 +3733,14 @@ button.t-like { color: var(--green); opacity: 0.85; }
         </div>
       </div>
 
-      <!-- Mes artistes (remplace l'ancienne section Tendances) -->
+      <!-- Bubble Grid -->
       <div class="section" id="bubbleSection">
         <div class="section-header">
-          <h2 class="section-title">Mes artistes</h2>
-          <a href="#" class="section-link" onclick="navigateTo('artists');return false;">Voir tout <i class="ti ti-chevron-right"></i></a>
+          <h2 class="section-title">Tendances</h2>
+          <a href="#" class="section-link">Voir tout <i class="ti ti-chevron-right"></i></a>
         </div>
-        <div class="bubble-grid my-artists-grid" id="bubbleGrid">
-          <!-- Artistes likés en onboarding -->
+        <div class="bubble-grid" id="bubbleGrid">
+          <!-- Bubbles will be inserted here -->
         </div>
       </div>
 
@@ -7014,7 +6948,6 @@ function applyView(view, params={}) {
     case 'home':
       showHomeSections();
       // Défensif : une erreur dans ces rendus ne doit jamais casser la navigation.
-      try { loadMyArtists(); } catch (e) { console.error('loadMyArtists', e); }
       try { loadHomeExtras(); } catch (e) { console.error('loadHomeExtras', e); }
       try { loadDiscovery(); } catch (e) { console.error('loadDiscovery', e); }
       break;
@@ -9197,9 +9130,8 @@ function finishOnboarding() {
   const overlay = document.getElementById('onboarding');
   overlay.classList.add('closing');
   setTimeout(() => overlay.classList.add('hidden'), 400);
-  // Rafraîchit la home : nouvelle section Mes artistes + radios/propositions
-  loadMyArtists();
-  loadHomeExtras();
+  // Reload trending with new artist prefs
+  loadTrending();
 }
 
 function skipOnboarding() {
@@ -9359,45 +9291,7 @@ function renderBubbles(tracks, gridId) {
   });
 }
 
-// ── Mes artistes (section home) ────────────────────────────────────
-function loadMyArtists() {
-  const artists = lsParse('sevenz_liked_artists', []);
-  const grid = document.getElementById('bubbleGrid');
-  const section = document.getElementById('bubbleSection');
-  if (!grid || !section) return;
-  if (!artists.length) {
-    section.style.display = 'none';
-    return;
-  }
-  section.style.display = '';
-  document.querySelector('#bubbleSection .section-title').textContent = 'Mes artistes';
-  grid.innerHTML = artists.map((a, i) => {
-    const initials = a.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    const bg = a.img
-      ? `background-image:url('${cssUrl(a.img)}')`
-      : (a.grad ? `background:linear-gradient(135deg,#${a.grad})` : 'background:var(--card)');
-    return `
-      <div class="bubble-card my-artist-card" data-index="${i}" onclick="playMyArtistRadio(${i})">
-        <div class="my-artist-cover" style="${bg}">
-          ${a.img ? '' : `<span class="my-artist-initials">${initials}</span>`}
-          <button class="my-artist-play" onclick="event.stopPropagation();playMyArtistRadio(${i})" aria-label="Radio ${esc(a.name)}">
-            <i class="ti ti-player-play-filled"></i>
-          </button>
-        </div>
-        <div class="my-artist-name">${esc(a.name)}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function playMyArtistRadio(i) {
-  const artists = lsParse('sevenz_liked_artists', []);
-  const artist = artists[i];
-  if (!artist) return;
-  startRadio(artist.name);
-}
-
-// ── Tendances YouTube France (désactivées par défaut pour économiser le quota) ──
+// ── Tendances YouTube France (chart officiel) ──────────────────────
 async function loadTrending() {
   if (!API_KEY) return;
   try {
@@ -9946,20 +9840,16 @@ function getRecents() {
   }).slice(0, 10);
 }
 
-// 🎙️ Radios : artistes likés + les plus écoutés.
+// 🎙️ Radios : top 5 artistes les plus écoutés.
 function buildRadioStations() {
   const history = lsParse('sevenz_history', []);
-  const likedArtists = lsParse('sevenz_liked_artists', []);
   const artistCount = {};
-  // Artistes choisis en onboarding : prioritaires
-  likedArtists.forEach(a => { if (a.name) artistCount[a.name] = (artistCount[a.name] || 0) + 5; });
-  // Historique d'écoute
   history.forEach(t => {
     if (t.channel) artistCount[t.channel] = (artistCount[t.channel] || 0) + 1;
   });
   return Object.entries(artistCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
+    .slice(0, 5)
     .map(([artist]) => ({ name: artist, type: 'radio' }));
 }
 
@@ -10141,7 +10031,6 @@ function getRadioPersonalization() {
 async function startRadio(artistName, excludeTitle) {
   showToast(`📻 Radio ${artistName}…`, 'info');
 
-  // Si on part d'un titre précis, utiliser le nouveau moteur radio du backend.
   if (excludeTitle) {
     try {
       const res = await fetchWithRetry(`${PROXY_URL}/radio/start`, {
@@ -10171,9 +10060,6 @@ async function startRadio(artistName, excludeTitle) {
 
   const disliked = new Set(lsParse('sevenz_disliked', []));
   const excludedKey = excludeTitle ? trackTitleKey(excludeTitle) : '';
-
-  // Radio Deezer en premier : c'est la seule source qui reste dans le genre de
-  // l'artiste (voir fetchDeezerRadio). Les autres ne servent qu'en repli.
   let tracks = await fetchDeezerRadio(artistName).catch(() => []);
   tracks = tracks.filter(track => (!track.id || !disliked.has(track.id)) && (!excludedKey || trackTitleKey(track.title) !== excludedKey));
 
@@ -10192,7 +10078,7 @@ async function startRadio(artistName, excludeTitle) {
   S.radioMode = true;
   S.radioSeed = { artist: artistName };
   S.radioId = null;
-  S._radioQueueRef = S.queue; // ancre de la queue radio
+  S._radioQueueRef = S.queue;
   playTrack(0);
   if (document.querySelector('.main')?.dataset.view === 'radio') applyView('radio');
   else navigateTo('radio');
@@ -10221,7 +10107,6 @@ async function maybeExtendRadio() {
     const disliked = new Set(lsParse('sevenz_disliked', []));
     let more = [];
 
-    // 1) Moteur radio titre-based du backend si on a un radioId
     if (S.radioId) {
       try {
         const res = await fetchWithRetry(`${PROXY_URL}/radio/next`, {
@@ -10242,7 +10127,6 @@ async function maybeExtendRadio() {
       }
     }
 
-    // 2) Radio Deezer d'abord : elle reste dans le genre de l'artiste.
     if (!more.length && seed.channel) more = await fetchDeezerRadio(seed.channel, seed.title).catch(() => []);
 
     if (!more.length && seed.id) {
@@ -10341,10 +10225,10 @@ function loadHomeExtras() {
     </section>`;
   }
 
-  if (radios.length) {
+  if (history.length >= 5 && radios.length) {
     html += `<section class="home-section">
       <h2 class="section-title">Radios recommandées</h2>
-      <p class="section-subtitle">Sans interruption, inspiré de tes artistes préférés</p>
+      <p class="section-subtitle">Sans interruption, inspiré de vos titres et artistes préférés</p>
       <div class="home-card-row">${radios.map((r, i) => homeRadioCard(r, i)).join('')}</div>
     </section>`;
   }

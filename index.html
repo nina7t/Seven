@@ -4144,7 +4144,7 @@ button.t-like { color: var(--green); opacity: 0.85; }
       <div class="player-artist" id="playerArtist">-</div>
       <span id="offlineBadge" style="display:none;margin-left:8px;font-size:10px;background:#4CAF50;color:#fff;padding:2px 6px;border-radius:4px"><i class="ti ti-wifi-off"></i> Offline</span>
     </div>
-    <button class="player-like" id="playerLike"><i class="ti ti-heart"></i></button>
+    <button class="player-like" id="playerLike" onclick="event.stopPropagation()"><i class="ti ti-heart"></i></button>
   </div>
 
   <div class="player-center">
@@ -5048,8 +5048,14 @@ if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
     },
     events: {
       onReady() { restorePlayerState(); },
+      onError(e) {
+        if (typeof S.currentIndex === 'number') {
+          handlePlaybackFailure(S.currentIndex, 'YT error ' + e.data);
+        }
+      },
       onStateChange(e) {
         if (e.data === YT.PlayerState.PLAYING) {
+          _skipStreak = 0;
           S.isPlaying = true;
           updatePlayButton();
           startProgress();
@@ -5333,26 +5339,49 @@ async function ensureVideoId(index) {
 
 // Point de jonction métadonnées → lecture : résout le videoId puis délègue au
 // player existant (playTrack), qui reste inchangé.
+// Verrou anti double-clic, partagé par resolveAndPlay et playTrack. Déclaré
+// ICI et non 550 lignes plus bas : un `let` reste dans sa zone morte jusqu'à
+// son exécution, donc tout appel qui précéderait cette ligne lèverait une
+// ReferenceError au lieu de jouer.
+let _playRequestId = 0;
+
 async function resolveAndPlay(index) {
   const track = S.queue[index];
   if (!track) return;
   if (track.id) { playTrack(index); return; }
 
+  const reqId = ++_playRequestId; // abandonne si un autre clic lance une lecture
   const row = document.querySelector(`.result-item[data-index="${index}"]`);
   if (row) row.classList.add('resolving');
   showLoadingState(true);
+  const originalTrack = track;
   try {
     const vid = await ensureVideoId(index);
+    if (reqId !== _playRequestId) {
+      showLoadingState(false);
+      console.warn('[Resolve] lecture annulée, un autre choix est passé entre-temps');
+      return;
+    }
     if (!vid) {
       showLoadingState(false);
       handlePlaybackFailure(index, 'Piste introuvable en lecture');
       return;
     }
-    playTrack(index);
+    // La file peut avoir changé pendant la résolution : jouer l'index actuel
+    // de la piste initiale, ou abandonner si elle a disparu.
+    const currentIndex = S.queue.findIndex(t => t === originalTrack || (vid && t.id === vid));
+    if (currentIndex === -1) {
+      showLoadingState(false);
+      console.warn('[Resolve] piste déplacée ou supprimée pendant la résolution');
+      return;
+    }
+    playTrack(currentIndex);
   } catch (e) {
     console.error('[Resolve] échec:', e);
-    showLoadingState(false);
-    handlePlaybackFailure(index, 'Erreur de résolution audio');
+    if (reqId === _playRequestId) {
+      showLoadingState(false);
+      handlePlaybackFailure(index, 'Erreur de résolution audio');
+    }
   } finally {
     if (row) row.classList.remove('resolving');
   }
@@ -5877,6 +5906,7 @@ document.querySelectorAll('.cat-card').forEach(card => {
 
 // Playback
 function playTrack(index) {
+  const reqId = ++_playRequestId;
   if (navigator.vibrate) navigator.vibrate(10);
   const track = S.queue[index];
   if (!track) { haltPlayback('Plus aucun titre à lire'); return; }
@@ -5904,6 +5934,7 @@ function playTrack(index) {
 
   // Check and show offline badge
   isTrackOffline(track.id).then(isOffline => {
+    if (reqId !== _playRequestId) return;
     const badge = document.getElementById('offlineBadge');
     if (badge) badge.style.display = isOffline ? 'inline-block' : 'none';
   });
@@ -5914,8 +5945,11 @@ function playTrack(index) {
 
   if (!isNative && S.player?.loadVideoById) {
     // Web fallback - YouTube IFrame
+    if (reqId !== _playRequestId) return;
     S.player.loadVideoById(track.id);
+    if (reqId !== _playRequestId) return;
     S.isPlaying = true;
+    showLoadingState(false);
     updatePlayButton();
     document.getElementById('progressFill').style.width = '0%';
     updateMediaSession(track);
@@ -5925,6 +5959,7 @@ function playTrack(index) {
       try { S.player.stopVideo(); } catch(e) {}
     }
     // Show loading state
+    if (reqId !== _playRequestId) return;
     showLoadingState(true);
     window.Capacitor.Plugins.AudioPlayerPlugin.playVideo({
       videoId: track.id,
@@ -5932,11 +5967,13 @@ function playTrack(index) {
       artist: track.channel,
       thumb: track.thumb || ''
     }).then(() => {
+      if (reqId !== _playRequestId) return;
       showLoadingState(false);
       S.isPlaying = true;
       updatePlayButton();
       showToast(`▶️ ${track.title.substring(0, 30)}${track.title.length > 30 ? '...' : ''}`);
     }).catch(err => {
+      if (reqId !== _playRequestId) return;
       console.error("PLUGIN ERROR: " + err);
       showLoadingState(false);
       // Avant : toast puis silence définitif. C'était la seule impasse où la
@@ -5970,6 +6007,7 @@ function showLoadingState(show) {
   const playBtn = document.getElementById('playBtn');
   if (!playBtn) return;
   if (show) {
+    delete playBtn.dataset.playState;
     playBtn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>';
     playBtn.disabled = true;
   } else {
@@ -6028,6 +6066,7 @@ function updatePlayButton() {
 // de la bascule optimiste de togglePlay(), qui doit pouvoir devancer le natif.
 function haltPlayback(message, kind) {
   S.isPlaying = false;
+  showLoadingState(false);
   updatePlayButton();
   if (message) showToast(message, kind || 'error');
 }
@@ -6129,7 +6168,15 @@ function playNext() {
 
 function playPrev() {
   if (S.queue.length === 0) return;
-  const prev = (S.currentIndex - 1 + S.queue.length) % S.queue.length;
+  if (S.shuffle) {
+    const prev = prevLiveIndex(S.currentIndex);
+    if (prev !== null) { playTrack(prev); return; }
+    const live = S.queue.map((t, i) => (t && !t.dead) ? i : -1).filter(i => i >= 0);
+    if (live.length) playTrack(live[Math.floor(Math.random() * live.length)]);
+    return;
+  }
+  const prev = prevLiveIndex(S.currentIndex);
+  if (prev === null) return;
   playTrack(prev);
 }
 
@@ -6330,6 +6377,17 @@ function markTrackDead(track, reason) {
 // ne peut pas boucler, renvoie null si plus rien de jouable derrière.
 function nextLiveIndex(from) {
   for (let i = from + 1; i < S.queue.length; i++) {
+    if (S.queue[i] && !S.queue[i].dead) return i;
+  }
+  return null;
+}
+
+// Dernier index jouable STRICTEMENT avant `from`. Boucle par la fin si besoin :
+// renvoie null si toute la file est morte.
+function prevLiveIndex(from) {
+  if (from == null || S.queue.length === 0) return null;
+  for (let k = 1; k < S.queue.length; k++) {
+    const i = (from - k + S.queue.length) % S.queue.length;
     if (S.queue[i] && !S.queue[i].dead) return i;
   }
   return null;
@@ -6612,7 +6670,8 @@ function toggleRepeat() {
 function toggleLike() {
   if (navigator.vibrate) navigator.vibrate(10);
   if (!S.currentTrack) return;
-  const idx = S.favorites.findIndex(f => f.id === S.currentTrack.id);
+  const key = radioTrackKey(S.currentTrack);
+  const idx = S.favorites.findIndex(f => radioTrackKey(f) === key);
   if (idx >= 0) S.favorites.splice(idx, 1);
   else S.favorites.push({ ...S.currentTrack, likedAt: Date.now() });
   localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
@@ -6623,7 +6682,8 @@ function toggleLike() {
 
 function updateLikeButton() {
   if (!S.currentTrack) return;
-  const liked = S.favorites.some(f => f.id === S.currentTrack.id);
+  const key = radioTrackKey(S.currentTrack);
+  const liked = S.favorites.some(f => radioTrackKey(f) === key);
   const btn = document.getElementById('playerLike');
   btn.innerHTML = liked ? '<i class="ti ti-heart-filled"></i>' : '<i class="ti ti-heart"></i>';
   btn.classList.toggle('liked', liked);
@@ -6754,7 +6814,7 @@ function openPlaylistDetail(id) {
         Playlist vide — <a href="#" onclick="showPlaylistsView();return false" style="color:var(--accent)">ajouter des titres</a>
        </div>`
     : pl.tracks.map((t, i) => `
-      <div class="pl-track-row${S.currentTrack?.id === t.id ? ' playing' : ''}" onclick="playPlaylistTrack('${id}', ${i})">
+      <div class="pl-track-row${S.currentTrack?.id === t.id ? ' playing' : ''}" onclick="if(this.classList.contains('swiped')){event.stopPropagation();this.classList.remove('swiped');return;}playPlaylistTrack('${id}', ${i})">
         <div class="pl-track-num">${i + 1}</div>
         <div class="pl-track-thumb" data-thumb-id="${t.id || ''}">
           <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
@@ -7259,7 +7319,7 @@ function runExploreSearch(query){
 }
 function renderSearchExplore(){
   const recent=getRecentSearches();
-  document.getElementById('searchRecentChips').innerHTML=recent.map(q=>`<button class="search-chip" onclick="runExploreSearch(decodeURIComponent('${encodeURIComponent(q)}'))">${esc(q)}</button>`).join('');
+  document.getElementById('searchRecentChips').innerHTML=recent.map(q=>`<button class="search-chip" onclick="runExploreSearch(decodeURIComponent('${attrEnc(q)}'))">${esc(q)}</button>`).join('');
   updateRecentSearchesVisibility();
   document.getElementById('searchGenreGrid').innerHTML=SEARCH_GENRES.map(([name,query,color])=>`<button class="explore-genre-card" style="background:${color}" onclick="runExploreSearch(decodeURIComponent('${encodeURIComponent(query)}'))"><span>${esc(name)}</span></button>`).join('');
 }
@@ -7414,11 +7474,11 @@ function renderLibraryView(filter=libraryFilter){
   let items=[];
   if(filter==='all'||filter==='tracks')items.push(...S.favorites.map((t,i)=>({type:'track',key:`track:${t.id}`,name:t.title,meta:`Titre · ${t.channel||''}`,thumb:t.thumb,action:`playLibraryFavorite(${i})`})));
   if(filter==='all'||filter==='playlists')items.push(...S.playlists.map(p=>({type:'playlist',key:`playlist:${p.id}`,name:p.name,meta:`Playlist · ${(p.tracks||[]).length} titres`,thumb:p.coverImage||playlistArtworks(p)[0]||'',action:`openPlaylist('${p.id}')`})));
-  if(filter==='all'||filter==='artists')items.push(...artists.map(a=>({type:'artist',key:`artist:${a.name}`,name:a.name,meta:'Artiste',thumb:a.thumb,action:`openArtistEncoded('${encodeURIComponent(a.name)}')`})));
-  if(filter==='all'||filter==='albums')items.push(...albums.map(a=>({type:'album',key:`album:${a.name}`,name:a.name,meta:`Album · ${a.artist||''}`,thumb:a.thumb,action:`runExploreSearch(decodeURIComponent('${encodeURIComponent(a.name+' '+(a.artist||''))}'))`})));
+  if(filter==='all'||filter==='artists')items.push(...artists.map(a=>({type:'artist',key:`artist:${a.name}`,name:a.name,meta:'Artiste',thumb:a.thumb,action:`openArtistEncoded('${attrEnc(a.name)}')`})));
+  if(filter==='all'||filter==='albums')items.push(...albums.map(a=>({type:'album',key:`album:${a.name}`,name:a.name,meta:`Album · ${a.artist||''}`,thumb:a.thumb,action:`runExploreSearch(decodeURIComponent('${attrEnc(a.name+' '+(a.artist||''))}'))`})));
   items=items.filter(i=>!query||`${i.name} ${i.meta}`.toLowerCase().includes(query));
   if(librarySort==='name')items.sort((a,b)=>a.name.localeCompare(b.name)); else items.sort((a,b)=>(pins.has(b.key)?1:0)-(pins.has(a.key)?1:0));
-  document.getElementById('libraryBody').innerHTML=items.length?items.map(item=>`<div class="mobile-library-item" onclick="${item.action}"><div class="mobile-library-cover ${item.type==='artist'?'artist':''}" style="${item.thumb?`background-image:url('${cssUrl(item.thumb)}')`:''}">${item.thumb?'':`<i class="ti ti-${item.type==='artist'?'user':item.type==='playlist'?'playlist':'music'}"></i>`}</div><div class="mobile-library-copy"><strong>${esc(item.name)}</strong><span>${esc(item.meta)}</span></div><button class="library-pin ${pins.has(item.key)?'active':''}" onclick="event.stopPropagation();toggleLibraryPin(decodeURIComponent('${encodeURIComponent(item.key)}'))" aria-label="Épingler"><i class="ti ti-pin"></i></button></div>`).join(''):'<div class="empty-state">Aucun contenu dans cette catégorie</div>';
+  document.getElementById('libraryBody').innerHTML=items.length?items.map(item=>`<div class="mobile-library-item" onclick="${item.action}"><div class="mobile-library-cover ${item.type==='artist'?'artist':''}" style="${item.thumb?`background-image:url('${cssUrl(item.thumb)}')`:''}">${item.thumb?'':`<i class="ti ti-${item.type==='artist'?'user':item.type==='playlist'?'playlist':'music'}"></i>`}</div><div class="mobile-library-copy"><strong>${esc(item.name)}</strong><span>${esc(item.meta)}</span></div><button class="library-pin ${pins.has(item.key)?'active':''}" onclick="event.stopPropagation();toggleLibraryPin(decodeURIComponent('${attrEnc(item.key)}'))" aria-label="Épingler"><i class="ti ti-pin"></i></button></div>`).join(''):'<div class="empty-state">Aucun contenu dans cette catégorie</div>';
 }
 function playLibraryFavorite(index){ S.queue=S.favorites.map(t=>({...t})); S.currentIndex=index; playTrack(index); }
 function openArtistEncoded(name){ openArtistPage(cleanArtistName(decodeURIComponent(name))); }
@@ -8713,7 +8773,7 @@ function _openPlaylistDirect(id) {
     ${pl.tracks.length === 0
       ? `<div class="empty-state" style="padding:40px"><i class="ti ti-music"></i><h3>Playlist vide</h3><p>Ajoute des musiques depuis la recherche</p></div>`
       : pl.tracks.map((t,i) => `
-        <div class="track${S.currentTrack?.id===t.id?' playing':''}" onclick="playFromPlaylist('${id}',${i})">
+        <div class="track${S.currentTrack?.id===t.id?' playing':''}" onclick="if(this.classList.contains('swiped')){event.stopPropagation();this.classList.remove('swiped');return;}playFromPlaylist('${id}',${i})">
           <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
           <div class="t-main">
             <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?`background-image:url('`+cssUrl(t.thumb)+`')`:''}"></div>
@@ -8937,17 +8997,16 @@ function renderLikedView() {
     return;
   }
 
-  S.queue = [...favs];
   tl.innerHTML = `<div class="list-head liked-head"><span>#</span><span>Titre</span><span class="r">Durée</span><span></span><span></span></div>`
     + favs.map((t,i) => `
-      <div class="track liked-track${S.currentTrack?.id===t.id?' playing':''}" onclick="playTrack(${i})">
+      <div class="track liked-track${S.currentTrack?.id===t.id?' playing':''}" onclick="if(this.classList.contains('swiped')){event.stopPropagation();this.classList.remove('swiped');return;}playLibraryFavorite(${i})">
         <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
         <div class="t-main">
           <div class="t-thumb" data-thumb-id="${t.id||''}" style="${t.thumb?`background-image:url('`+cssUrl(t.thumb)+`')`:''}"></div>
           <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel, t.title)}</div></div>
         </div>
         <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):''}</div>
-        <button class="t-like" onclick="event.stopPropagation();removeFav('${t.id}')" title="Retirer des favoris"><i class="ti ti-heart-filled"></i></button>
+        <button class="t-like" onclick="event.stopPropagation();removeFav(decodeURIComponent('${attrEnc(t.id || radioTrackKey(t))}'))" title="Retirer des favoris"><i class="ti ti-heart-filled"></i></button>
         <button class="t-more" onclick="event.stopPropagation();showLikedTrackMenu(${i}, this)" title="Plus d'options"><i class="ti ti-dots-vertical"></i></button>
       </div>`).join('');
 
@@ -8992,11 +9051,12 @@ function likedMenuAction(action) {
     if (track.channel) startRadio(track.channel, track.title);
     else showToast('Artiste inconnu pour la radio', 'error');
   } else if (action === 'unlike') {
-    removeFav(track.id);
+    removeFav(track.id || radioTrackKey(track));
   }
 }
 function removeFav(id) {
-  S.favorites = S.favorites.filter(f => f.id !== id);
+  // Accepte aussi une clé radioTrackKey (pour les pistes sans id, ex. Deezer non résolu).
+  S.favorites = S.favorites.filter(f => f.id !== id && radioTrackKey(f) !== id);
   localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
   syncToCloud();
   updateLikedCount();
@@ -10694,7 +10754,11 @@ function playFromList(which, i) {
         navigateTo('home');
       } else if (page === 'search') {
         navigateTo('search');
-        searchInput.focus();
+        const mobileSearch = document.getElementById('exploreSearchInput');
+        const desktopSearch = document.getElementById('searchInput');
+        (mobileSearch || desktopSearch)?.focus();
+      } else if (page === 'library') {
+        navigateTo('library');
       }
     });
   });
@@ -11200,27 +11264,37 @@ function bindSwipeActions(tracklist) {
   // Click sur le bouton delete du swipe
   tracklist.addEventListener('click', (e) => {
     const deleteBtn = e.target.closest('.swipe-delete-btn');
-    if (!deleteBtn) {
-      // Fermer les swipes si on click ailleurs
-      tracklist.querySelectorAll('.swiped').forEach(t => t.classList.remove('swiped'));
+    if (deleteBtn) {
+      e.stopPropagation();
+      const track = deleteBtn.closest('.track, .pl-track-row');
+      if (track) {
+        // -1 pour ignorer le header `.list-head` qui est le 1er enfant
+        const index = Array.from(track.parentNode.children).indexOf(track) - 1;
+        if (index < 0) return;
+        if (isLiked) {
+          const fav = S.favorites[index];
+          if (fav) removeFav(fav.id || radioTrackKey(fav));
+        } else if (S.currentPlaylistId) {
+          removeFromPlaylist(S.currentPlaylistId, index);
+        }
+        track.style.height = track.offsetHeight + 'px';
+        track.style.opacity = '0';
+        setTimeout(() => track.remove(), 200);
+      }
       return;
     }
-    
-    const track = deleteBtn.closest('.track, .pl-track-row');
-    if (track) {
-      // -1 pour ignorer le header `.list-head` qui est le 1er enfant
-      const index = Array.from(track.parentNode.children).indexOf(track) - 1;
-      if (index < 0) return;
-      if (isLiked) {
-        const fav = S.favorites[index];
-        if (fav) removeFav(fav.id);
-      } else if (S.currentPlaylistId) {
-        removeFromPlaylist(S.currentPlaylistId, index);
-      }
-      track.style.height = track.offsetHeight + 'px';
-      track.style.opacity = '0';
-      setTimeout(() => track.remove(), 200);
+
+    // Si on clique sur une ligne déjà swipée (hors bouton), on la referme sans
+    // laisser le play inline se déclencher.
+    const swiped = e.target.closest('.swiped');
+    if (swiped) {
+      e.stopPropagation();
+      swiped.classList.remove('swiped');
+      return;
     }
+
+    // Fermer les swipes si on clique ailleurs
+    tracklist.querySelectorAll('.swiped').forEach(t => t.classList.remove('swiped'));
   });
 }
 
@@ -11404,11 +11478,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load saved crossfade setting
     const savedCrossfade = localStorage.getItem('crossfadeDuration');
     if (savedCrossfade) {
-      const seconds = parseInt(savedCrossfade);
-      document.getElementById('crossfadeSlider').value = seconds;
-      document.getElementById('crossfadeValue').textContent = seconds + 's';
-      window.Capacitor.Plugins.AudioPlayerPlugin.setCrossfade({ 
-        durationMs: seconds * 1000 
+      const seconds = parseInt(savedCrossfade, 10) || 0;
+      const slider = document.getElementById('crossfadeSlider');
+      const val = document.getElementById('crossfadeValue');
+      if (slider) slider.value = seconds;
+      if (val) val.textContent = seconds + 's';
+      window.Capacitor.Plugins.AudioPlayerPlugin.setCrossfade({
+        durationMs: seconds * 1000
       }).catch(err => console.error('Failed to set crossfade:', err));
     }
   }
@@ -11498,15 +11574,15 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
-  <div class="mbn-item active" data-page="home" onclick="navigateTo('home')">
+  <div class="mbn-item active" data-page="home">
     <i class="ti ti-home"></i>
     <span>Accueil</span>
   </div>
-  <div class="mbn-item" data-page="search" onclick="navigateTo('search'); setTimeout(()=>document.getElementById('exploreSearchInput').focus(),0);">
+  <div class="mbn-item" data-page="search">
     <i class="ti ti-search"></i>
     <span>Recherche</span>
   </div>
-  <div class="mbn-item" data-page="library" onclick="navigateTo('library')">
+  <div class="mbn-item" data-page="library">
     <i class="ti ti-library"></i>
     <span>Bibliothèque</span>
   </div>
@@ -12418,8 +12494,16 @@ function applyTransition(seconds) {
   // Appliquer au lecteur natif (ExoPlayer)
   if (window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins.AudioPlayerPlugin?.setCrossfade) {
     // Le plugin attend `durationMs` en millisecondes
-    window.Capacitor.Plugins.AudioPlayerPlugin.setCrossfade({ durationMs: seconds * 1000 }).catch(() => {});
-    if (typeof _XFADE_DEBUG !== 'undefined' && _XFADE_DEBUG) showToast('⚙️ Transition réglée: ' + seconds + 's (natif)', 'info');
+    window.Capacitor.Plugins.AudioPlayerPlugin.setCrossfade({ durationMs: seconds * 1000 })
+      .then(() => {
+        if (typeof _XFADE_DEBUG !== 'undefined' && _XFADE_DEBUG) {
+          showToast('⚙️ Transition réglée: ' + seconds + 's (natif)', 'info');
+        }
+      })
+      .catch(err => {
+        console.error('[Crossfade] setCrossfade failed:', err);
+        showToast('Erreur transition : ' + (err?.message || 'inconnue'), 'error');
+      });
   }
   renderTransitionsBody();
 }

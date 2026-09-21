@@ -31,6 +31,10 @@ const discoveryRouter = require('./discovery');
 const discoveryCache = require('./discovery/cache');
 
 const app = express();
+// Faire confiance au premier proxy (Render, Netlify, Nginx) pour que req.ip
+// reflète l'IP client réelle (X-Forwarded-For) et que le rate limiting
+// soit appliqué par utilisateur et non par IP de proxy partagée.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 
 // Support multi-clé API YouTube (rotation quota) — nombre illimité de clés
@@ -1576,10 +1580,16 @@ async function pipeAudioStream(req, res, streamData) {
     'Accept-Ranges': 'bytes',
     'Cross-Origin-Resource-Policy': 'cross-origin'
   });
-  res.set('Content-Length', String(finalEnd - start + 1));
-  if (wanted && total != null) {
-    res.set('Content-Range', `bytes ${start}-${finalEnd}/${total}`);
-    res.status(206);
+  // N'envoyer Content-Length que si la taille totale est connue (Content-Range
+  // amont parsable). Si total == null, on laisse le transfert en chunked :
+  // annoncer une longueur partielle ferait croire au lecteur que le flux est
+  // complet, et une reponse 206 sans Content-Range serait invalide.
+  if (total != null) {
+    res.set('Content-Length', String(finalEnd - start + 1));
+    if (wanted) {
+      res.set('Content-Range', `bytes ${start}-${finalEnd}/${total}`);
+      res.status(206);
+    }
   }
 
   let aborted = false;
@@ -1598,13 +1608,32 @@ async function pipeAudioStream(req, res, streamData) {
       current = await fetchAudioChunk(streamData.audioUrl, pos, next);
     } catch (e) {
       // Sans PO Token GVS valide, YouTube ne sert que le premier Mio de l'URL
-      // et repond 403 au-dela (mesure du 18/09/2026). On coupe proprement au
-      // lieu de laisser le client sur une erreur opaque.
+      // et repond 403/429/5xx au-dela (mesure du 18/09/2026). Un res.end()
+      // "propre" tromperait le lecteur : il croirait le flux complet et
+      // stopperait la lecture sans erreur. On detruit donc la connexion.
       console.error(
         `[AUDIO PROXY] tranche ${pos}-${next} refusee (${e.message}). ` +
-        'Symptome classique d\'un PO Token GVS manquant : le flux sera tronque.'
+        'Symptome classique d\'un PO Token GVS manquant : connexion detruite ' +
+        'pour signaler l\'echec au client.'
       );
-      break;
+      // `current` porte encore la tranche PRÉCÉDENTE — déjà entièrement
+      // consommée par le pipe ci-dessus. La détruire ne libère donc rien, et
+      // surtout pas la requête qui vient d'échouer : c'est à fetchAudioChunk
+      // de refermer la sienne sur rejet.
+      try { current && current.data && current.data.destroy(); } catch (_) {}
+      if (res.headersSent) {
+        // Des octets ont deja ete envoyes : impossible de renvoyer un statut
+        // d'erreur, on detruit le socket pour que le client detecte l'echec.
+        try { res.destroy ? res.destroy() : req.socket.destroy(); } catch (_) {}
+        try { req.socket && req.socket.destroy(); } catch (_) {}
+      } else {
+        // Aucun octet envoye : on peut encore repondre un statut explicite.
+        res.status(502).json({
+          error: 'Flux amont refuse',
+          reason: 'upstream_chunk_refused'
+        });
+      }
+      return;
     }
     const ncr = parseContentRange(current.headers['content-range']);
     pos = ncr ? ncr.end + 1 : next + 1;
@@ -1627,8 +1656,12 @@ app.get('/api/audio/:videoId', rateLimit, async (req, res) => {
     const { status, ...info } = classifyStreamError(error.message);
     console.error('[AUDIO PROXY ERROR]', info.reason, '-', error.message);
     // Une tranche peut echouer apres l'envoi des en-tetes : on ne peut
-    // plus renvoyer de JSON, on coupe proprement le flux.
-    if (res.headersSent) return res.end();
+    // plus renvoyer de JSON. On detruit la connexion (et non un res.end()
+    // "propre") pour que le client detecte un flux tronque.
+    if (res.headersSent) {
+      try { req.socket && req.socket.destroy(); } catch (_) {}
+      return;
+    }
     res.status(status).json(info);
   }
 });
@@ -1679,8 +1712,12 @@ app.get('/api/proxy/stream/:videoId', rateLimit, async (req, res) => {
     const { status, ...info } = classifyStreamError(error.message);
     console.error('[PROXY ERROR]', info.reason, '-', error.message);
     // Une tranche peut echouer apres l'envoi des en-tetes : on ne peut
-    // plus renvoyer de JSON, on coupe proprement le flux.
-    if (res.headersSent) return res.end();
+    // plus renvoyer de JSON. On detruit la connexion (et non un res.end()
+    // "propre") pour que le client detecte un flux tronque.
+    if (res.headersSent) {
+      try { req.socket && req.socket.destroy(); } catch (_) {}
+      return;
+    }
     res.status(status).json(info);
   }
 });

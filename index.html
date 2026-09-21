@@ -4623,8 +4623,9 @@ button.t-like { color: var(--green); opacity: 0.85; }
   transform: translateY(100%);
   transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
   overflow-y: auto;
+  pointer-events: none;
 }
-.tr-overlay.open { transform: translateY(0); }
+.tr-overlay.open { transform: translateY(0); pointer-events: auto; }
 .tr-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px;
@@ -4800,7 +4801,9 @@ button.t-like { color: var(--green); opacity: 0.85; }
     </div>
 
     <div class="np-progress-wrap">
-      <input type="range" id="np-progress" class="np-progress" min="0" max="1000" value="0" oninput="npSeek(this.value)">
+      <input type="range" id="np-progress" class="np-progress" min="0" max="1000" value="0"
+             oninput="npScrub(this.value)" onchange="npSeek(this.value)"
+             onpointerdown="_npScrubbing = true" onpointercancel="_npScrubbing = false">
       <div class="np-time-row">
         <span id="np-current-time">0:00</span>
         <span id="np-total-time">0:00</span>
@@ -7250,6 +7253,14 @@ function applyView(view, params={}) {
 
 function navigateTo(view, params={}) {
   if (spaNavigating) return;
+  // Fermer les overlays qui bloqueraient les interactions derrière eux.
+  // Boucle BORNÉE : closeTopLayer() renvoie true même quand la fermeture est
+  // refusée — c'est le cas de la porte de connexion obligatoire du premier
+  // lancement, dont le callback ne fait rien tant que _authForced est vrai.
+  // Un while() y tournerait à l'infini et figerait l'app. On ne peut pas non
+  // plus corriger le retour de closeTopLayer : le bouton retour Android s'en
+  // sert pour savoir qu'il doit consommer l'appui et garder la porte fermée.
+  for (let i = 0; i < 12 && closeTopLayer(); i++) {}
   spaStack.splice(spaIdx + 1);
   spaStack.push({ view, params });
   spaIdx = spaStack.length - 1;
@@ -10737,39 +10748,42 @@ function playFromList(which, i) {
 // Les tendances seront chargées uniquement sur demande utilisateur
 
 // ── MOBILE BOTTOM NAV ────────────────────────────────────────────────
+// Event delegation : ce script est parsé AVANT le <nav id="mobileBottomNav">
+// dans le HTML. querySelectorAll ici retournait une liste vide et aucun
+// listener n'était attaché → les boutons ne répondaient pas.
 (function() {
-  const mbnItems = document.querySelectorAll('#mobileBottomNav .mbn-item[data-page]');
-  mbnItems.forEach(function(item) {
-    item.addEventListener('click', function() {
-      const page = this.getAttribute('data-page');
-      // Sync active state on mobile bottom nav
-      document.querySelectorAll('#mobileBottomNav .mbn-item').forEach(n => n.classList.remove('active'));
-      this.classList.add('active');
-      // Sync active state on sidebar nav items
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      const sidebarItem = document.querySelector('.nav-item[data-page="' + page + '"]');
-      if (sidebarItem) sidebarItem.classList.add('active');
-      // Trigger the same action as the sidebar nav item
-      if (page === 'home') {
-        navigateTo('home');
-      } else if (page === 'search') {
-        navigateTo('search');
-        const mobileSearch = document.getElementById('exploreSearchInput');
-        const desktopSearch = document.getElementById('searchInput');
-        (mobileSearch || desktopSearch)?.focus();
-      } else if (page === 'library') {
-        navigateTo('library');
-      }
-    });
+  document.addEventListener('click', function(e) {
+    const item = e.target.closest('#mobileBottomNav .mbn-item[data-page]');
+    if (!item) return;
+    const page = item.getAttribute('data-page');
+    // Sync active state on mobile bottom nav
+    document.querySelectorAll('#mobileBottomNav .mbn-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    // Sync active state on sidebar nav items
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const sidebarItem = document.querySelector('.nav-item[data-page="' + page + '"]');
+    if (sidebarItem) sidebarItem.classList.add('active');
+    // Trigger the same action as the sidebar nav item
+    if (page === 'home') {
+      navigateTo('home');
+    } else if (page === 'search') {
+      navigateTo('search');
+      const mobileSearch = document.getElementById('exploreSearchInput');
+      const desktopSearch = document.getElementById('searchInput');
+      (mobileSearch || desktopSearch)?.focus();
+    } else if (page === 'library') {
+      navigateTo('library');
+    }
   });
+
   // Keep bottom nav in sync when sidebar nav is clicked
-  document.querySelectorAll('.nav-item[data-page]').forEach(function(item) {
-    item.addEventListener('click', function() {
-      const page = this.getAttribute('data-page');
-      document.querySelectorAll('#mobileBottomNav .mbn-item').forEach(n => n.classList.remove('active'));
-      const mbnItem = document.querySelector('#mobileBottomNav .mbn-item[data-page="' + page + '"]');
-      if (mbnItem) mbnItem.classList.add('active');
-    });
+  document.addEventListener('click', function(e) {
+    const item = e.target.closest('.nav-item[data-page]');
+    if (!item) return;
+    const page = item.getAttribute('data-page');
+    document.querySelectorAll('#mobileBottomNav .mbn-item').forEach(n => n.classList.remove('active'));
+    const mbnItem = document.querySelector('#mobileBottomNav .mbn-item[data-page="' + page + '"]');
+    if (mbnItem) mbnItem.classList.add('active');
   });
 })();
 
@@ -13527,7 +13541,25 @@ function syncNowPlaying() {
   if (track.channel) showSimilarArtists(track.channel);
 }
 
+// Vrai/faux du glissé en cours. Tant qu'il est vrai, la boucle périodique ne
+// réécrit PAS la position du curseur : sinon le lecteur et le doigt se
+// disputent la poignée, chaque aller-retour relançant un seek.
+let _npScrubbing = false;
+
+// Pendant le glissé : on n'affiche que l'heure visée, on ne touche pas au
+// lecteur. Chaque micro-mouvement envoyait un SEEK au service natif, qui vide
+// le tampon audio et le redémarre — d'où un son haché.
+function npScrub(value) {
+  _npScrubbing = true;
+  if (!S.currentTrack) return;
+  const duration = getPlayerDuration();
+  if (!duration) return;
+  document.getElementById('np-current-time').textContent = formatTime((value / 1000) * duration);
+}
+
+// Au relâchement seulement : un seul seek.
 function npSeek(value) {
+  _npScrubbing = false;
   if (!S.currentTrack) return;
   const duration = getPlayerDuration();
   if (!duration) return;
@@ -13546,6 +13578,9 @@ setInterval(async () => {
   const current = getPlayerTime();
   const duration = getPlayerDuration();
   if (!duration) return;
+
+  // Ne rien réécrire sous le doigt de l'utilisateur.
+  if (_npScrubbing) { document.getElementById('np-total-time').textContent = formatTime(duration); return; }
 
   const pct = (current / duration) * 1000;
   const progressEl = document.getElementById('np-progress');

@@ -5974,6 +5974,9 @@ function playTrack(index) {
       showLoadingState(false);
       S.isPlaying = true;
       updatePlayButton();
+      // Tant que le JS tourne, on réapprovisionne le natif : c'est ce qui lui
+      // permettra d'enchaîner seul si l'écran se verrouille ensuite.
+      pushUpcomingToNative();
       showToast(`▶️ ${track.title.substring(0, 30)}${track.title.length > 30 ? '...' : ''}`);
     }).catch(err => {
       if (reqId !== _playRequestId) return;
@@ -6440,6 +6443,95 @@ function handlePlaybackFailure(index, reason) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// FILE D'AVANCE NATIVE
+// ══════════════════════════════════════════════════════════════
+// Écran verrouillé, Android met la WebView en retrait : le JS ne répond plus
+// à `trackEnded`, et la lecture s'arrêtait à la fin de chaque morceau. On
+// pousse donc les prochaines pistes au natif TANT QU'ON EST VIVANT, et c'est
+// lui qui enchaîne ensuite tout seul.
+//
+// On ne pousse QUE des pistes déjà résolues (videoId connu) : le natif sait
+// extraire un flux depuis un videoId, pas faire une recherche YouTube.
+const NATIVE_UPCOMING_COUNT = 5;
+
+// Une piste de radio arrive SANS videoId : il est résolu par un appel réseau
+// au moment de la lecture. Écran verrouillé, cet appel ne partirait pas — et
+// une file native ne contenant que des pistes déjà résolues serait vide,
+// exactement dans le cas qu'on cherche à réparer. On les résout donc ici,
+// pendant que le JS est encore vivant.
+const NATIVE_PRERESOLVE_MAX = 3;   // au-delà, trop de requêtes pour un gain nul
+
+async function preresolveUpcoming(indices) {
+  let faits = 0;
+  for (const i of indices) {
+    if (faits >= NATIVE_PRERESOLVE_MAX) break;
+    const t = S.queue[i];
+    if (!t || t.id || t.dead || !t.meta) continue;
+    try {
+      await ensureVideoId(i);       // écrit track.id si la résolution aboutit
+      faits++;
+    } catch (e) {
+      console.warn('[Native] pré-résolution échouée pour', t.title, e?.message || e);
+    }
+  }
+  return faits;
+}
+
+async function pushUpcomingToNative() {
+  const plugin = window.Capacitor?.Plugins?.AudioPlayerPlugin;
+  if (!plugin?.setUpcoming) return;   // web, ou APK plus ancien que ce code
+
+  let tracks = [];
+  if (S._sleepAfterTrack) {
+    // Minuterie d'arrêt armée : la file reste vide, sinon le natif
+    // enchaînerait par-dessus l'arrêt programmé.
+  } else if (S.repeat === 2) {
+    // Répéter ce titre : c'est le natif qui le reboucle.
+    if (S.currentTrack?.id) tracks = [S.currentTrack];
+  } else {
+    const vus = new Set([S.currentIndex]);
+    const parcourus = [];
+    let idx = S.currentIndex;
+    for (let n = 0; n < NATIVE_UPCOMING_COUNT; n++) {
+      let next;
+      if (S.shuffle) {
+        const libres = S.queue
+          .map((t, i) => (t && !t.dead && t.id && !vus.has(i)) ? i : -1)
+          .filter(i => i >= 0);
+        if (!libres.length) break;
+        next = libres[Math.floor(Math.random() * libres.length)];
+      } else {
+        next = nextLiveIndex(idx);
+        if (next === null && S.repeat === 1) next = S.queue.findIndex(t => t && !t.dead);
+      }
+      if (next === null || next < 0 || vus.has(next)) break;
+      vus.add(next); idx = next;
+      parcourus.push(next);
+      const t = S.queue[next];
+      if (t && t.id && !t.dead) tracks.push(t);
+    }
+
+    // Trop peu de pistes résolues d'avance : on en résout quelques-unes
+    // maintenant, puis on reconstitue la liste.
+    if (tracks.length < 2 && parcourus.length) {
+      const gagnees = await preresolveUpcoming(parcourus);
+      if (gagnees) {
+        tracks = parcourus.map(i => S.queue[i]).filter(t => t && t.id && !t.dead);
+      }
+    }
+  }
+
+  plugin.setUpcoming({
+    tracks: tracks.map(t => ({
+      videoId: t.id,
+      title: t.title || '',
+      artist: t.channel || '',
+      thumb: t.thumb || ''
+    }))
+  }).catch(e => console.warn('[Native] file d\'avance refusée :', e?.message || e));
+}
+
 function computeAutoNextIndex() {
   if (S._sleepAfterTrack) return null;   // arrêt programmé : le fondu l'écraserait
   if (S.repeat === 2) return null;       // repeat one : playNext rejoue la même
@@ -6548,6 +6640,26 @@ async function preloadNextForCrossfade(depth = 0) {
 // s'en sert pour la retrouver, au lieu de faire confiance à un index posé ~20s
 // plus tôt. Deviner (ancien `currentIndex + 1`) faisait jouer une piste et en
 // afficher une autre dès que la file avait bougé entre-temps.
+// Aligne l'état JS sur la piste que le natif joue RÉELLEMENT.
+// Ne touche jamais à la lecture : le son tourne déjà, on rattrape l'affichage.
+function syncToNativeTrack(videoId) {
+  if (!videoId) return;
+  const idx = S.queue.findIndex(t => t && t.id === videoId);
+  if (idx < 0) {
+    console.warn('[Native] avance vers une piste absente de la file :', videoId);
+    return;
+  }
+  if (S.currentIndex === idx && S.currentTrack?.id === videoId) return;  // déjà à jour
+
+  console.log('[Native] resynchronisation sur la piste avancée sans JS :', videoId);
+  S.currentIndex = idx;
+  S.currentTrack = S.queue[idx];
+  S._autoNextIndex = null;
+  refreshNowPlayingUI();              // titre, artiste, pochette, favori, MediaSession, historique
+  if (document.getElementById('now-playing-overlay')?.classList.contains('open')) syncNowPlaying();
+  pushUpcomingToNative();             // réapprovisionner pour la suite
+}
+
 function commitCrossfadeAdvance(videoId) {
   const snap = S._crossfadePendingTrack;
   const pending = S._crossfadePendingIndex;
@@ -6555,10 +6667,14 @@ function commitCrossfadeAdvance(videoId) {
   S._crossfadePendingIndex = null;
   S._autoNextIndex = null;
 
-  // Aucun fondu armé côté JS : l'utilisateur a repris la main entre-temps
-  // (cancelNativeCrossfade). Le natif va basculer sur SON choix — ne touchons à rien.
+  // Aucun fondu armé côté JS. Deux cas très différents :
+  //  - le natif a enchaîné seul depuis sa file d'avance pendant que la WebView
+  //    dormait (écran verrouillé) : il faut se caler sur SON choix, sinon l'UI
+  //    et l'index restent une piste en arrière au réveil ;
+  //  - l'utilisateur a repris la main (cancelNativeCrossfade) : la piste n'est
+  //    alors pas dans la file à cet identifiant, et syncToNativeTrack renonce.
   if (!snap) {
-    console.warn('[Crossfade] trackChanged sans fondu armé -> ignoré');
+    syncToNativeTrack(videoId);
     return;
   }
   // Le natif a promu autre chose que ce qu'on avait armé : on ne devine pas.

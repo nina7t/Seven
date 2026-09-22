@@ -35,6 +35,55 @@ public class AudioPlayerPlugin extends Plugin {
     
     // Static instance for AudioService callbacks
     private static volatile AudioPlayerPlugin instance;
+
+    // ══════════════════════════════════════════════════════════════
+    // FILE D'ATTENTE NATIVE
+    // ══════════════════════════════════════════════════════════════
+    // Écran verrouillé, Android met la WebView en retrait : l'événement
+    // `trackEnded` part bien du service, mais le JS qui devait répondre en
+    // appelant playVideo() ne s'exécute plus. La musique s'arrêtait donc à la
+    // fin de chaque morceau, et il fallait rouvrir l'app.
+    //
+    // Le JS pousse désormais à l'avance les prochaines pistes DÉJÀ RÉSOLUES
+    // (videoId connu). En fin de piste, le natif se sert lui-même dans cette
+    // file : plus aucun aller-retour JavaScript sur le chemin critique.
+    static final class Upcoming {
+        final String videoId, title, artist, thumb;
+        Upcoming(String v, String t, String a, String th) {
+            videoId = v; title = t; artist = a; thumb = th;
+        }
+    }
+
+    private static final java.util.ArrayDeque<Upcoming> upcoming = new java.util.ArrayDeque<>();
+
+    /** Remplace la file native. Appelé par le JS tant qu'il est vivant. */
+    @PluginMethod
+    public void setUpcoming(PluginCall call) {
+        com.getcapacitor.JSArray arr = call.getArray("tracks");
+        synchronized (upcoming) {
+            upcoming.clear();
+            if (arr != null) {
+                try {
+                    java.util.List<Object> items = arr.toList();
+                    for (Object o : items) {
+                        if (!(o instanceof org.json.JSONObject)) continue;
+                        org.json.JSONObject j = (org.json.JSONObject) o;
+                        String id = j.optString("videoId", "");
+                        if (id.isEmpty()) continue;   // non résolue : inutile ici
+                        upcoming.add(new Upcoming(
+                            id,
+                            j.optString("title", "Unknown"),
+                            j.optString("artist", "Unknown Artist"),
+                            j.optString("thumb", "")));
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "setUpcoming: file illisible", e);
+                }
+            }
+            Log.d(TAG, "File native : " + upcoming.size() + " piste(s) d'avance");
+        }
+        call.resolve();
+    }
     
     @Override
     public void load() {
@@ -76,9 +125,95 @@ public class AudioPlayerPlugin extends Plugin {
     }
     
     public static void notifyTrackEnded(android.content.Context context) {
+        // D'abord tenter l'avance SANS le JS : c'est tout l'intérêt: écran
+        // verrouillé, personne ne répondrait à l'événement ci-dessous.
+        if (advanceNatively(context)) return;
+
+        // File vide (ou plus rien à jouer) : on retombe sur le chemin
+        // historique, qui suppose une WebView vivante.
         if (instance != null) {
             instance.notifyListeners("trackEnded", new JSObject());
         }
+    }
+
+    /**
+     * Joue la piste suivante de la file native. Renvoie false si la file est
+     * vide — l'appelant retombe alors sur l'ancien chemin via le JS.
+     */
+    private static boolean advanceNatively(android.content.Context context) {
+        final Upcoming next;
+        synchronized (upcoming) {
+            next = upcoming.poll();
+        }
+        if (next == null) return false;
+        if (context == null) return false;
+
+        Log.d(TAG, "Avance native vers : " + next.title);
+        final android.content.Context app = context.getApplicationContext();
+
+        // URL déjà en cache : départ immédiat, aucune latence.
+        String cached = getFreshUrl(next.videoId);
+        if (cached != null) {
+            sendPlay(app, next, cached);
+            return true;
+        }
+
+        // Sinon extraction sur un thread — le service tient le CPU éveillé
+        // pendant ce temps grâce à son WakeLock.
+        new Thread(() -> {
+            try {
+                if (NewPipe.getDownloader() == null) {
+                    NewPipe.init(DownloaderImpl.getInstance());
+                }
+                StreamInfo info = StreamInfo.getInfo("https://www.youtube.com/watch?v=" + next.videoId);
+                AudioStream best = info.getAudioStreams().stream()
+                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
+                    .orElse(null);
+                if (best == null) {
+                    Log.e(TAG, "Avance native : aucun flux audio pour " + next.videoId);
+                    // Piste injouable : on tente la suivante plutôt que de
+                    // laisser le silence s'installer.
+                    if (!advanceNatively(app) && instance != null) {
+                        instance.notifyListeners("trackEnded", new JSObject());
+                    }
+                    return;
+                }
+                putUrl(next.videoId, best.getUrl());
+                sendPlay(app, next, best.getUrl());
+            } catch (Exception e) {
+                Log.e(TAG, "Avance native : extraction échouée pour " + next.videoId, e);
+                if (!advanceNatively(app) && instance != null) {
+                    instance.notifyListeners("trackEnded", new JSObject());
+                }
+            }
+        }).start();
+        return true;
+    }
+
+    /** Commande la lecture au service, puis informe le JS de ce qui tourne. */
+    private static void sendPlay(android.content.Context app, Upcoming t, String url) {
+        Intent intent = new Intent(app, AudioService.class);
+        intent.putExtra("action", ACTION_PLAY);
+        intent.putExtra("url", url);
+        intent.putExtra("videoId", t.videoId);
+        intent.putExtra("title", t.title);
+        intent.putExtra("artist", t.artist);
+        intent.putExtra("thumb", t.thumb);
+        // Le service tourne déjà en foreground (la lecture précédente vient de
+        // s'achever) : startService suffit et évite le démarrage d'un second.
+        // En cas de refus (service mort entre-temps, restriction Android 12+),
+        // mieux vaut repasser la main au JS que laisser le silence s'installer.
+        try {
+            app.startService(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Avance native : service injoignable", e);
+            if (instance != null) instance.notifyListeners("trackEnded", new JSObject());
+            return;
+        }
+
+        // `trackChanged` et non `trackEnded` : le JS n'a qu'à resynchroniser son
+        // index quand il se réveillera, surtout pas à relancer une lecture.
+        notifyTrackChanged(app, t.videoId);
     }
     
     public static void notifyRequestNextTrack(android.content.Context context) {
@@ -456,12 +591,22 @@ public class AudioPlayerPlugin extends Plugin {
     @PluginMethod
     public void setCrossfade(PluginCall call) {
         int durationMs = call.getInt("durationMs", 0);
-        
-        Intent intent = new Intent(getContext(), AudioService.class);
-        intent.putExtra("action", "com.sevenz.app.SET_CROSSFADE");
-        intent.putExtra("durationMs", durationMs);
-        getContext().startService(intent);
-        
+        if (durationMs < 0) durationMs = 0;
+
+        // Mémoriser la valeur pour le prochain démarrage du service ; on ne
+        // démarre pas le service juste pour ça, sinon Android 12+ tue le
+        // foreground service faute d’appel immédiat à startForeground().
+        AudioService.setPendingCrossfade(durationMs);
+
+        // Si le service est déjà en vie (lecture en cours), lui transmettre
+        // directement afin que le fondu s’applique au titre courant.
+        if (AudioService.isRunning()) {
+            Intent intent = new Intent(getContext(), AudioService.class);
+            intent.putExtra("action", "com.sevenz.app.SET_CROSSFADE");
+            intent.putExtra("durationMs", durationMs);
+            getContext().startService(intent);
+        }
+
         JSObject result = new JSObject();
         result.put("durationMs", durationMs);
         call.resolve(result);

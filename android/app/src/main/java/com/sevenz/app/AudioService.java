@@ -103,6 +103,22 @@ public class AudioService extends Service {
     public static double getLastPositionSec() { return lastPositionMs / 1000.0; }
     public static double getLastDurationSec() { return lastDurationMs / 1000.0; }
     public static boolean isLastPlaying() { return lastIsPlaying; }
+
+    // État du service exposé au plugin : on évite de le démarrer sans raison
+    // quand l’utilisateurice règle le crossfade avant la première lecture
+    // (Android 12+ tue un foreground service lancé sans startForeground).
+    private static volatile boolean serviceRunning = false;
+    public static boolean isRunning() { return serviceRunning; }
+    private static volatile int pendingCrossfadeMs = -1;
+    public static void setPendingCrossfade(int ms) { pendingCrossfadeMs = ms; }
+
+    private void applyPendingCrossfade() {
+        int ms = pendingCrossfadeMs;
+        if (ms >= 0) {
+            pendingCrossfadeMs = -1;
+            setCrossfade(ms);
+        }
+    }
     
     // ── Réglages de fondu (mono-lecteur) ──
     private int crossfadeDuration = 0;          // durée du fondu en ms, 0 = désactivé
@@ -158,9 +174,11 @@ public class AudioService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        serviceRunning = true;
         createNotificationChannel();
         acquireWakeLock();
         initMediaSession();
+        applyPendingCrossfade();
     }
     
     private void initMediaSession() {
@@ -381,6 +399,11 @@ public class AudioService extends Service {
             .build();
         newPlayer.setAudioAttributes(audioAttributes, false);
         newPlayer.setHandleAudioBecomingNoisy(true);
+        // WAKE_MODE_NETWORK pose un WakeLock CPU *et* un WifiLock. Le service
+        // tenait déjà le CPU, mais rien ne gardait la radio Wi-Fi active : en
+        // veille profonde, l'extraction réseau de la piste suivante pouvait
+        // échouer sans bruit sur certains appareils.
+        newPlayer.setWakeMode(C.WAKE_MODE_NETWORK);
         selfRef[0] = newPlayer;
 
         newPlayer.addListener(new Player.Listener() {
@@ -1210,6 +1233,7 @@ public class AudioService extends Service {
             mediaSession = null;
         }
         releaseWakeLock();
+        serviceRunning = false;
         super.onDestroy();
     }
     

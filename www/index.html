@@ -277,65 +277,6 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, .icon-btn:
   color: #4CAF50;
 }
 
-/* Menu "plus" regroupant les actions secondaires */
-.more-menu {
-  position: relative;
-}
-.more-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 190px;
-  background: var(--card);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  padding: 6px;
-  display: none;
-  z-index: 20;
-}
-.more-dropdown.active {
-  display: block;
-}
-.more-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: none;
-  background: transparent;
-  color: var(--gray);
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s, color 0.2s;
-}
-@media (hover: hover) {
-.more-item:hover {
-  background: rgba(255,255,255,0.1);
-  color: var(--white);
-}
-}
-.more-item i {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-.more-item.added {
-  color: var(--accent-primary);
-}
-.more-toggle {
-  border: 1px solid rgba(255,255,255,0.25) !important;
-  background: rgba(255,255,255,0.05) !important;
-}
-@media (hover: hover) {
-.more-toggle:hover {
-  background: rgba(255,255,255,0.12) !important;
-}
-}
-
 .search-results-list .play-icon {
   width: 44px;
   height: 44px;
@@ -877,7 +818,7 @@ h1, h2, h3 {
 @media (hover: hover) { .np-q-item:hover { background: var(--card-hover); } }
 .np-q-cover { width: 44px; height: 44px; border-radius: 14px; overflow: hidden; background: var(--card); flex-shrink: 0; }
 .np-q-cover img { width: 100%; height: 100%; object-fit: cover; }
-.np-q-info { min-width: 0; }
+.np-q-info { min-width: 0; flex: 1; }
 .np-q-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np-q-artist { font-size: 12px; color: var(--gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np-q-empty { font-size: 13px; color: var(--dark-gray); padding: 8px; }
@@ -932,7 +873,7 @@ h1, h2, h3 {
 .artist-section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 16px 0 10px; }
 .artist-tracks { display: flex; flex-direction: column; }
 .artist-track {
-  display: grid; grid-template-columns: 22px 40px 1fr auto; align-items: center; gap: 16px;
+  display: grid; grid-template-columns: 22px 40px 1fr auto auto; align-items: center; gap: 16px;
   padding: 7px 10px; border-radius: 12px; cursor: pointer; transition: background 0.15s;
 }
 @media (hover: hover) { .artist-track:hover { background: rgba(255,255,255,0.08); } }
@@ -1753,9 +1694,9 @@ body.player-hidden .app { height: 100vh; }
 
 /* ── TRACKLIST ─────────────────────────────────────────────────── */
 .tracklist { padding: 0 16px 40px; }
-.list-head { display: grid; grid-template-columns: 40px 1fr 80px 36px; align-items: center; gap: 12px; padding: 6px 14px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dark-gray); border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px; }
+.list-head { display: grid; grid-template-columns: 40px 1fr 80px 44px; align-items: center; gap: 12px; padding: 6px 14px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dark-gray); border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 6px; }
 .list-head .r { text-align: right; }
-.track { display: grid; grid-template-columns: 40px 1fr 80px 36px; align-items: center; gap: 12px; padding: 7px 14px; border-radius: 14px; cursor: pointer; transition: background 0.15s; }
+.track { display: grid; grid-template-columns: 40px 1fr 80px 44px; align-items: center; gap: 12px; padding: 7px 14px; border-radius: 14px; cursor: pointer; transition: background 0.15s; }
 @media (hover: hover) { .track:hover { background: rgba(255,255,255,0.06); } }
 .track.playing { background: rgba(var(--accent-primary-rgb),0.07); border-left: 3px solid var(--accent-primary); padding-left: 11px; }
 .track.playing .t-name { color: var(--accent-primary); }
@@ -1779,44 +1720,11 @@ body.player-hidden .app { height: 100vh; }
 .liked-empty h3 { color: var(--white); font-size: 20px; margin: 16px 0 8px; font-weight: 700; }
 .liked-empty p { font-size: 14px; line-height: 1.5; max-width: 320px; margin: 0 auto; }
 
-.liked-head { grid-template-columns: 40px 1fr 80px 44px 44px !important; }
-.liked-track { grid-template-columns: 40px 1fr 80px 44px 44px !important; }
-
-button.t-like, button.t-more {
-  background: none; border: none; color: var(--text-secondary); font-size: 17px; cursor: pointer;
-  width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  opacity: 0.75; transition: opacity 0.15s, transform 0.15s, background 0.15s, color 0.15s;
-}
-button.t-like { color: var(--accent-primary); opacity: 0.85; }
-@media (hover: hover) { button.t-like:hover, button.t-more:hover { opacity: 1; background: rgba(255,255,255,0.08); transform: scale(1.08); color: var(--text-primary); } }
-
-@media (hover: hover) {
-.liked-track:hover button.t-like,
-.liked-track:hover button.t-more { opacity: 1; }
-}
+.liked-head { grid-template-columns: 40px 1fr 80px 44px !important; }
+.liked-track { grid-template-columns: 40px 1fr 80px 44px !important; }
 
 #likedView .detail-actions { align-items: center; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
 #likedView .play-big { width: 52px; height: 52px; }
-
-.liked-track-menu {
-  position: fixed;
-  background: var(--bg-secondary);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 6px;
-  min-width: 200px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  z-index: 1001;
-  display: none;
-}
-.liked-track-menu.active { display: block; }
-.liked-track-menu button {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; padding: 10px 12px; border: none; background: transparent;
-  color: var(--text-secondary); font-family: 'StyreneA', sans-serif; font-size: 13px;
-  text-align: left; border-radius: 8px; cursor: pointer; transition: background 0.15s, color 0.15s;
-}
-@media (hover: hover) { .liked-track-menu button:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); } }
 
 /* ── MODAL ENHANCED ────────────────────────────────────────────── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
@@ -1949,12 +1857,12 @@ button.t-like { color: var(--accent-primary); opacity: 0.85; }
 
 .pl-tracklist { padding:4px 12px 40px; }
 .pl-track-head {
-  display:grid; grid-template-columns:36px 40px 1fr 60px 36px;
+  display:grid; grid-template-columns:36px 40px 1fr 60px 44px;
   gap:12px; padding:6px 24px; border-bottom:1px solid rgba(255,255,255,0.08);
   margin-bottom:4px; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--dark-gray);
 }
 .pl-track-row {
-  display:grid; grid-template-columns:36px 40px 1fr 60px 36px;
+  display:grid; grid-template-columns:36px 40px 1fr 60px 44px;
   align-items:center; gap:12px; padding:8px 24px;
   border-radius:12px; cursor:pointer; transition:background 0.18s;
 }
@@ -2166,7 +2074,7 @@ button.t-like { color: var(--accent-primary); opacity: 0.85; }
 .album-actions { display: flex; align-items: center; gap: 24px; padding: 8px 24px 12px; }
 .album-tracklist { padding: 0 24px 40px; }
 .album-track {
-  display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 16px;
+  display: grid; grid-template-columns: 32px 1fr auto auto; align-items: center; gap: 16px;
   padding: 9px 12px; border-radius: 6px; cursor: pointer;
 }
 @media (hover: hover) { .album-track:hover { background: rgba(255,255,255,0.08); } }
@@ -3173,8 +3081,6 @@ button.t-like { color: var(--accent-primary); opacity: 0.85; }
   .t-dur { display: none; }
   .t-text { flex: 1; min-width: 0; }
   .t-del { display: none; }
-  /* La ligne est plus basse : ces boutons doivent garder leur propre cible de 44px. */
-  button.t-like, button.t-more { width: 44px; height: 44px; }
 
   /* ══ QUICK ACCESS SECTION - Style cat-card mobile ══ */
   .quick-section { padding: 12px 12px 16px; }
@@ -4094,12 +4000,6 @@ button.t-like { color: var(--accent-primary); opacity: 0.85; }
   <div id="addPlList"></div>
 </div>
 
-<!-- Menu contextuel des titres likés -->
-<div class="liked-track-menu" id="likedTrackMenu">
-  <button onclick="likedMenuAction('playlist')"><i class="ti ti-playlist-add"></i> Ajouter à une playlist</button>
-  <button onclick="likedMenuAction('radio')"><i class="ti ti-radio"></i> Radio de l'artiste</button>
-  <button onclick="likedMenuAction('unlike')" style="color:#ff6b6b"><i class="ti ti-heart-off"></i> Retirer des favoris</button>
-</div>
 
 </div>
 
@@ -4742,6 +4642,32 @@ button.t-like { color: var(--accent-primary); opacity: 0.85; }
 
 }
 
+/* ── Menu « ⋯ » d'un titre / d'un artiste (feuille du bas, façon Spotify) ── */
+.track-more { flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.track-more i { font-size: 22px; }
+.track-more:active { color: var(--text-primary); }
+@media (hover: hover) { .track-more:hover { color: var(--text-primary); } }
+.tsheet-overlay { position: fixed; inset: 0; z-index: 10040; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.6); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .28s var(--ease-out), visibility 0s .28s; }
+.tsheet-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .28s var(--ease-out); }
+.tsheet { width: 100%; max-width: 520px; max-height: 85svh; overflow-y: auto; overscroll-behavior: contain; padding: 8px 0 calc(8px + var(--safe-bottom)); border-radius: 16px 16px 0 0; background: var(--bg-elevated); transform: translateY(100%); transition: transform .28s var(--ease-out); }
+.tsheet-overlay.open .tsheet { transform: translateY(0); }
+.tsheet-handle { width: 36px; height: 4px; margin: 0 auto 8px; border-radius: 2px; background: rgba(255,255,255,.28); }
+.tsheet-head { display: flex; align-items: center; gap: 12px; padding: 8px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.1); margin-bottom: 6px; }
+.tsheet-cover { flex: 0 0 48px; width: 48px; height: 48px; border-radius: var(--r-object); background: var(--bg-secondary) center/cover no-repeat; display: grid; place-items: center; color: var(--text-secondary); font-size: 22px; }
+.tsheet-cover.round { border-radius: 50%; }
+.tsheet-meta { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tsheet-title { font-size: 16px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tsheet-sub { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tsheet-item { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 16px; border: 0; background: none; color: var(--text-primary); font-family: inherit; font-size: 15px; font-weight: 500; line-height: 1.2; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tsheet-item i { flex: 0 0 24px; font-size: 24px; color: var(--text-secondary); }
+.tsheet-item.on i { color: var(--accent-primary); }
+.tsheet-item:active { background: rgba(255,255,255,.08); }
+@media (hover: hover) { .tsheet-item:hover { background: rgba(255,255,255,.05); } }
+.tsheet-item:focus-visible { outline: 2px solid var(--accent-primary); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) {
+  .tsheet-overlay, .tsheet { transition: none; }
+}
+
 /* ════════════════════════════════════════════════════════════════════
    FINITIONS — toucher, icônes, typo, surfaces
    Regroupé ici, en dernier, pour primer sur l'historique sans réécrire les
@@ -4786,8 +4712,9 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   background-color: var(--bg-elevated);
   transition-duration: 0s;
 }
-/* Puces de filtre : l'état actif glisse au lieu de clignoter. */
-.mobile-home-filter, .lib-chip, .search-chip { transition: background-color 0.2s var(--ease-out), color 0.2s var(--ease-out), transform 0.22s var(--ease-out); }
+/* Puces de filtre : l'état actif bascule net. Un fondu de couleur laissait deux
+   puces à moitié allumées pendant 0,2 s (le « jeu de lumière »). */
+.mobile-home-filter, .lib-chip, .search-chip { transition: transform 0.22s var(--ease-out); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -4814,7 +4741,13 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   .htc-artist, .result-artist, .pl-track-artist, .album-track-sub, .mobile-library-copy small {
     font-weight: 400; color: var(--text-secondary);
   }
-  .mobile-home-filter { font-weight: 500; }
+  /* Les quatre puces tiennent sur l'écran : plus de barre qui saute au toucher. */
+  .mobile-home-filters { gap: 6px; }
+  .mobile-home-filter { font-weight: 500; padding: 0 14px; }
+
+  /* Accueil allégé : les genres vivent dans Recherche, les tendances et les
+     mix automatiques ajoutaient trois rangées de plus que personne n'atteignait. */
+  #catsSection, #bubbleSection, #personalSection { display: none; }
 
   /* ── Icônes : 24 px, lisibles au pouce ── */
   .controls button i, .player-like i, .player-like { font-size: 24px; }
@@ -4861,7 +4794,16 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   .result-item, .result-thumb, .htc-cover, .mobile-quick-card, .mobile-quick-cover,
   .pl-track-thumb, .artist-track-thumb, .mobile-library-cover:not(.artist),
   .pl-card-cover, .album-card img, .detail-cover, .cat-card { border-radius: var(--r-object); }
-  .toast { border-radius: var(--r-control); }
+  /* Toast : dans les marges, au-dessus du mini-lecteur, texte qui passe à la ligne. */
+  .toast {
+    border-radius: var(--r-control);
+    left: 16px; right: 16px; width: auto; max-width: none;
+    transform: translateY(20px);
+    bottom: calc(140px + var(--safe-bottom));
+    white-space: normal; line-height: 1.35;
+  }
+  .toast.show { transform: translateY(0); }
+  body.player-hidden .toast { bottom: calc(80px + var(--safe-bottom)); }
 
   /* ── Radio : rangée d'actions qui tient sur un écran de téléphone ── */
   #radioView .detail-actions { flex-wrap: nowrap; gap: 8px; }
@@ -4897,8 +4839,6 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   .np-lyrics-card { border-radius: var(--r-control); font-weight: 700; }
   .np-context { font-weight: 500; font-size: 13px; }
 
-  /* Actions de ligne : des icônes, pas des boutons cerclés. */
-  .result-actions .more-toggle { border: 0 !important; background: none !important; }
   .radio-adventure-label { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; }
 }
 </style>
@@ -5859,98 +5799,11 @@ async function hydrateDurations(tracks, save) {
 function bindMetadataResultClicks() {
   document.querySelectorAll('.result-item').forEach(row => {
     row.addEventListener('click', function(e) {
-      if (e.target.closest('.action-btn')) return;
+      if (e.target.closest('.action-btn, .track-more')) return;
       resolveAndPlay(parseInt(this.dataset.index));
     });
   });
-
-  // Like rapide (action principale, toujours visible)
-  document.querySelectorAll('.result-item .action-btn[data-action="like"]').forEach(btn => {
-    btn.addEventListener('click', async function(e) {
-      e.stopPropagation();
-      const index = parseInt(this.dataset.index);
-      const track = S.queue[index];
-      if (!track) return;
-
-      const vid = await ensureVideoId(index).catch(() => null);
-      if (!vid) { showToast('Piste introuvable', 'error'); return; }
-
-      toggleFavoriteFromSearch(vid, track.title, track.channel, track.thumb, this);
-    });
-  });
-
-  // Bouton "+" : ouvre le menu des actions secondaires
-  document.querySelectorAll('.result-item .more-toggle').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const dropdown = this.parentElement.querySelector('.more-dropdown');
-      const wasActive = dropdown.classList.contains('active');
-      closeAllMoreMenus();
-      if (!wasActive) {
-        dropdown.classList.add('active');
-        updateOfflineMenuState(this.dataset.index);
-      }
-    });
-  });
-
-  document.querySelectorAll('.result-item .more-dropdown').forEach(menu => {
-    menu.addEventListener('click', e => e.stopPropagation());
-  });
-
-  // Actions du menu "+"
-  document.querySelectorAll('.result-item .more-item').forEach(btn => {
-    btn.addEventListener('click', async function(e) {
-      e.stopPropagation();
-      const index = parseInt(this.dataset.index);
-      const track = S.queue[index];
-      if (!track) return;
-
-      const vid = await ensureVideoId(index).catch(() => null);
-      if (!vid) { showToast('Piste introuvable', 'error'); return; }
-
-      const action = this.dataset.action;
-      if (action === 'playlist') {
-        showAddToPlaylist(vid, track.title, track.channel, track.thumb, track.duration || null, e);
-      } else if (action === 'offline') {
-        const isOffline = await isTrackOffline(vid);
-        const label = this.querySelector('span');
-        if (isOffline) {
-          await removeOfflineTrack(vid);
-          this.classList.remove('added');
-          if (label) label.textContent = 'Mode hors-ligne';
-          showToast('Retiré du mode offline');
-        } else {
-          await saveTrackOffline({ id: vid, title: track.title, channel: track.channel, thumb: track.thumb });
-          this.classList.add('added');
-          if (label) label.textContent = 'Disponible hors-ligne';
-          showToast('Sauvegardé pour le mode offline');
-        }
-      }
-    });
-  });
-}
-
-function closeAllMoreMenus() {
-  document.querySelectorAll('.more-dropdown.active').forEach(m => m.classList.remove('active'));
-}
-
-async function updateOfflineMenuState(indexStr) {
-  const index = parseInt(indexStr);
-  const track = S.queue[index];
-  if (!track) return;
-  const vid = await ensureVideoId(index).catch(() => null);
-  if (!vid) return;
-  const isOffline = await isTrackOffline(vid);
-  const item = document.querySelector(`.more-item[data-action="offline"][data-index="${index}"]`);
-  if (!item) return;
-  const label = item.querySelector('span');
-  if (isOffline) {
-    item.classList.add('added');
-    if (label) label.textContent = 'Disponible hors-ligne';
-  } else {
-    item.classList.remove('added');
-    if (label) label.textContent = 'Mode hors-ligne';
-  }
+  // Le « ⋯ » (trackMenuBtn) porte ses propres actions : like, playlist, hors-ligne.
 }
 
 // Rendu d'un résultat à partir des métadonnées Deezer.
@@ -5962,11 +5815,6 @@ async function updateOfflineMenuState(indexStr) {
 //   durée différée            -> meta.durationSec (immédiate)
 //   item.id.videoId           -> aucun : résolu au clic
 function createMetadataRow(meta, i) {
-  const sameTrack = t =>
-    (t.title || '').toLowerCase() === meta.title.toLowerCase() &&
-    (t.channel || '').toLowerCase() === meta.artist.toLowerCase();
-  const isLiked = S.favorites.some(sameTrack);
-  const inPlaylist = S.playlists.some(p => p.tracks.some(sameTrack));
   // Deezer est la seule source de durée ici (aucune hydratation ne repassera) :
   // une durée absente le restera, donc cellule vide plutôt que « --:-- ».
   // .result-duration a déjà un min-width, la colonne ne bouge pas.
@@ -5986,26 +5834,7 @@ function createMetadataRow(meta, i) {
         : esc(meta.album || '')}</div>
       <div class="result-duration">${durStr}</div>
       <div class="result-actions">
-        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-action="like" data-index="${i}"
-          title="${isLiked ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
-          <i class="ti ti-heart${isLiked ? '-filled' : ''}"></i>
-        </button>
-        <div class="more-menu">
-          <button class="action-btn more-toggle" data-action="more" data-index="${i}"
-            title="Plus d'options">
-            <i class="ti ti-plus"></i>
-          </button>
-          <div class="more-dropdown" data-index="${i}">
-            <button class="more-item ${inPlaylist ? 'added' : ''}" data-action="playlist" data-index="${i}">
-              <i class="ti ti-playlist-add"></i>
-              <span>Ajouter à une playlist</span>
-            </button>
-            <button class="more-item offline-btn" data-action="offline" data-index="${i}">
-              <i class="ti ti-wifi-off"></i>
-              <span>Mode hors-ligne</span>
-            </button>
-          </div>
-        </div>
+        ${trackMenuBtn({ id: null, title: meta.title, channel: meta.artist, thumb: meta.coverUrl || '', album: meta.album || '', meta }, { context: 'search', index: i })}
       </div>
     </div>
   `;
@@ -6520,7 +6349,7 @@ function refreshNowPlayingUI() {
 // Preload next track for crossfade (called by native when crossfade trigger fires)
 // Instrumentation temporaire pour diagnostiquer le fondu sans adb (toasts à l'écran).
 // Mettre à false (ou supprimer) une fois le crossfade validé.
-const _XFADE_DEBUG = true;
+const _XFADE_DEBUG = false;
 
 // Quelle piste suivra AUTOMATIQUEMENT la piste courante ?
 // Cette fonction est la SEULE source de vérité : playNext() et le fondu natif
@@ -7139,12 +6968,10 @@ function openPlaylistDetail(id) {
         </div>
         <div class="pl-track-info">
           <div class="pl-track-name">${esc(t.title)}</div>
-          <div class="pl-track-artist">${esc(t.channel)}</div>
+          <div class="pl-track-artist">${artistLinkInline(t.channel, t.title)}</div>
         </div>
         <div class="pl-track-dur${t.duration ? '' : ' dur-pending'}" data-dur-id="${t.id || ''}">${t.duration ? formatTime(t.duration) : ''}</div>
-        <button class="pl-track-del" onclick="event.stopPropagation();removeFromPlaylistHome('${id}', ${i})" title="Retirer">
-          <i class="ti ti-x"></i>
-        </button>
+        ${trackMenuBtn(t, { context: 'playlist', playlistId: id, index: i })}
       </div>`).join('');
 
   showHomeContent(`
@@ -7367,6 +7194,42 @@ function cleanArtistName(name) {
 // « L'Impératrice » casserait la chaîne JS de l'attribut onclick.
 function attrEnc(str) {
   return encodeURIComponent(String(str || '')).replace(/'/g, '%27');
+}
+
+// ── BOUTON « ⋯ » DES LIGNES (menu titre / artiste) ──────────────────
+// Les lignes sont du HTML en chaîne : le bouton ne peut pas porter l'objet
+// piste, on le range dans un registre et le onclick n'en garde que le numéro.
+// La feuille elle-même (openTrackMenu, openArtistMenu) est dans le second script.
+// Borne à 2000 et non 600 : les titres likés peuvent dépasser 600 lignes
+// rendues d'un coup, et les premiers « ⋯ » ne répondraient plus.
+// `var` sans valeur + création paresseuse : aucune zone morte si une ligne est
+// rendue avant que le script n'atteigne ces lignes.
+var _menuRegistry, _menuSeq;
+function _menuRegister(entry) {
+  if (!_menuRegistry) { _menuRegistry = new Map(); _menuSeq = 0; }
+  const n = ++_menuSeq;
+  _menuRegistry.set(n, entry);
+  while (_menuRegistry.size > 2000) _menuRegistry.delete(_menuRegistry.keys().next().value);
+  return n;
+}
+
+function trackMenuBtn(track, opts = {}) {
+  const n = _menuRegister({ track, opts });
+  const title = esc(track?.title || track?.meta?.title || '');
+  return `<button class="track-more" type="button" aria-label="Plus d’options pour ${title}" onclick="event.stopPropagation();openTrackMenuById(${n})"><i class="ti ti-dots"></i></button>`;
+}
+function openTrackMenuById(n) {
+  const e = _menuRegistry?.get(n);
+  if (e) openTrackMenu(e.track, e.opts);
+}
+
+function artistMenuBtn(name, opts = {}) {
+  const n = _menuRegister({ name, opts });
+  return `<button class="track-more" type="button" aria-label="Plus d’options pour ${esc(name || '')}" onclick="event.stopPropagation();openArtistMenuById(${n})"><i class="ti ti-dots"></i></button>`;
+}
+function openArtistMenuById(n) {
+  const e = _menuRegistry?.get(n);
+  if (e) openArtistMenu(e.name, e.opts);
 }
 
 // Pose un nom d'artiste cliquable dans un élément existant (barre de lecture,
@@ -7723,6 +7586,20 @@ const exploreSearchInput=document.getElementById('exploreSearchInput');
 exploreSearchInput?.addEventListener('focus',updateRecentSearchesVisibility);
 exploreSearchInput?.addEventListener('blur',()=>setTimeout(updateRecentSearchesVisibility,0));
 function submitExploreSearch(){ submitSearch(document.getElementById('exploreSearchInput')?.value); }
+// Onglet Recherche retouché depuis des résultats : on revient à l'écran de
+// recherche sans empiler d'historique, et la dernière requête est sélectionnée
+// pour être remplacée d'un geste (clavier ouvert, comme Spotify).
+function openSearchHome(){
+  const explore=document.getElementById('searchExplore');
+  if(explore && explore.style.display==='none'){
+    if(spaStack[spaIdx]) spaStack[spaIdx]={view:'search',params:{}};
+    applyView('search');
+    animateSwap(document.getElementById('mainContent'));
+  }
+  document.getElementById('mainContent')?.scrollTo({top:0});
+  const input=document.getElementById('exploreSearchInput');
+  if(input){ input.focus(); input.select(); }
+}
 function runExploreSearch(query){
   const q=(query||'').trim(); if(!q) return;
   saveRecentSearch(q);
@@ -7910,13 +7787,13 @@ function renderLibraryView(filter=libraryFilter){
   history.forEach(t=>{if(t.channel&&!seen.has(t.channel)){seen.add(t.channel);artists.push({name:t.channel,thumb:t.thumb})}});
   const albums=[]; [...S.favorites,...history].forEach(t=>{if(t.album&&!albums.some(a=>a.name===t.album))albums.push({name:t.album,artist:t.channel,thumb:t.thumb})});
   let items=[];
-  if(filter==='all'||filter==='tracks')items.push(...S.favorites.map((t,i)=>({type:'track',key:`track:${t.id}`,name:t.title,meta:`Titre · ${t.channel||''}`,thumb:t.thumb,action:`playLibraryFavorite(${i})`})));
+  if(filter==='all'||filter==='tracks')items.push(...S.favorites.map((t,i)=>({type:'track',key:`track:${t.id}`,name:t.title,meta:`Titre · ${t.channel||''}`,thumb:t.thumb,track:t,idx:i,action:`playLibraryFavorite(${i})`})));
   if(filter==='all'||filter==='playlists')items.push(...S.playlists.map(p=>({type:'playlist',key:`playlist:${p.id}`,name:p.name,meta:`Playlist · ${(p.tracks||[]).length} titres`,thumb:p.coverImage||playlistArtworks(p)[0]||'',action:`openPlaylist('${p.id}')`})));
   if(filter==='all'||filter==='artists')items.push(...artists.map(a=>({type:'artist',key:`artist:${a.name}`,name:a.name,meta:'Artiste',thumb:a.thumb,action:`openArtistEncoded('${attrEnc(a.name)}')`})));
   if(filter==='all'||filter==='albums')items.push(...albums.map(a=>({type:'album',key:`album:${a.name}`,name:a.name,meta:`Album · ${a.artist||''}`,thumb:a.thumb,action:`runExploreSearch(decodeURIComponent('${attrEnc(a.name+' '+(a.artist||''))}'))`})));
   items=items.filter(i=>!query||`${i.name} ${i.meta}`.toLowerCase().includes(query));
   if(librarySort==='name')items.sort((a,b)=>a.name.localeCompare(b.name)); else items.sort((a,b)=>(pins.has(b.key)?1:0)-(pins.has(a.key)?1:0));
-  document.getElementById('libraryBody').innerHTML=items.length?items.map(item=>`<div class="mobile-library-item" onclick="${item.action}"><div class="mobile-library-cover ${item.type==='artist'?'artist':''}" style="${item.thumb?`background-image:url('${cssUrl(item.thumb)}')`:''}">${item.thumb?'':`<i class="ti ti-${item.type==='artist'?'user':item.type==='playlist'?'playlist':'music'}"></i>`}</div><div class="mobile-library-copy"><strong>${esc(item.name)}</strong><span>${esc(item.meta)}</span></div><button class="library-pin ${pins.has(item.key)?'active':''}" onclick="event.stopPropagation();toggleLibraryPin(decodeURIComponent('${attrEnc(item.key)}'))" aria-label="Épingler"><i class="ti ti-pin"></i></button></div>`).join(''):'<div class="empty-state">Aucun contenu dans cette catégorie</div>';
+  document.getElementById('libraryBody').innerHTML=items.length?items.map(item=>`<div class="mobile-library-item" onclick="${item.action}"><div class="mobile-library-cover ${item.type==='artist'?'artist':''}" style="${item.thumb?`background-image:url('${cssUrl(item.thumb)}')`:''}">${item.thumb?'':`<i class="ti ti-${item.type==='artist'?'user':item.type==='playlist'?'playlist':'music'}"></i>`}</div><div class="mobile-library-copy"><strong>${esc(item.name)}</strong><span>${esc(item.meta)}</span></div><button class="library-pin ${pins.has(item.key)?'active':''}" onclick="event.stopPropagation();toggleLibraryPin(decodeURIComponent('${attrEnc(item.key)}'))" aria-label="Épingler"><i class="ti ti-pin"></i></button>${item.type==='track'?trackMenuBtn(item.track,{context:'library',index:item.idx}):item.type==='artist'?artistMenuBtn(item.name,{thumb:item.thumb}):''}</div>`).join(''):'<div class="empty-state">Aucun contenu dans cette catégorie</div>';
 }
 function playLibraryFavorite(index){ S.queue=S.favorites.map(t=>({...t})); S.currentIndex=index; playTrack(index); }
 function openArtistEncoded(name){ openArtistPage(cleanArtistName(decodeURIComponent(name))); }
@@ -8918,7 +8795,8 @@ function toggleFollowArtist(name) {
   const wasFollowing = arr.includes(name);
   arr = wasFollowing ? arr.filter(a => a !== name) : arr.concat([name]);
   try { localStorage.setItem('sevenz_followed_artists', JSON.stringify(arr)); } catch (e) {}
-  const btn = document.getElementById('artistFollowBtn');
+  // Le bouton de la page n'est concerné que si c'est cet artiste qui est affiché.
+  const btn = _currentArtistName === name ? document.getElementById('artistFollowBtn') : null;
   if (btn) { btn.textContent = wasFollowing ? 'Suivre' : 'Suivi'; btn.classList.toggle('following', !wasFollowing); }
   if (typeof showToast === 'function') showToast(wasFollowing ? `Tu ne suis plus ${name}` : `Tu suis ${name}`, 'success');
 }
@@ -9011,6 +8889,7 @@ function renderArtistPage(view, data) {
         ${t.album ? `<div class="album-track-sub">${esc(t.album)}</div>` : ''}
       </div>
       <div class="artist-track-dur${t.duration ? '' : ' dur-pending'}">${t.duration ? formatTime(t.duration) : ''}</div>
+      ${trackMenuBtn({ id: t.id || null, title: t.title, channel: t.channel || data.name, thumb: t.thumb || '', album: t.album || '', meta: t.meta, duration: t.duration || null }, { context: 'artist', index: i })}
     </div>`).join('');
 
   view.innerHTML = `
@@ -9115,11 +8994,12 @@ function renderAlbumPage(view, data) {
     return `
       <div class="album-track${playing ? ' playing' : ''}" onclick="playAlbumTrack(${i})">
         <div class="album-track-num">${i + 1}</div>
-        <div>
+        <div style="min-width:0">
           <div class="album-track-title">${esc(t.title)}</div>
           <div class="album-track-sub">${src.explicit ? '<span class="album-explicit">E</span>' : ''}${artistLinkInline(t.channel, t.title)}</div>
         </div>
         <div class="album-track-dur${t.duration ? '' : ' dur-pending'}">${t.duration ? formatTime(t.duration) : ''}</div>
+        ${trackMenuBtn({ id: t.id || null, title: t.title, channel: t.channel || artistName, thumb: t.thumb || al.cover || '', album: t.album || al.title || '', meta: t.meta, duration: t.duration || null }, { context: 'album', index: i })}
       </div>`;
   }).join('');
 
@@ -9217,7 +9097,7 @@ function _openPlaylistDirect(id) {
             <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel, t.title)}${t.addedBy?.name?` · ajouté par ${esc(t.addedBy.name)}`:''}</div></div>
           </div>
           <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):''}</div>
-          <div class="t-del" onclick="event.stopPropagation();removeFromPlaylist('${id}',${i})"><i class="ti ti-x"></i></div>
+          ${trackMenuBtn(t, { context: 'playlist', playlistId: id, index: i })}
         </div>`).join('')}`;
 
   document.getElementById('detailPlay').onclick = () => playPlaylist(id);
@@ -9434,7 +9314,7 @@ function renderLikedView() {
     return;
   }
 
-  tl.innerHTML = `<div class="list-head liked-head"><span>#</span><span>Titre</span><span class="r">Durée</span><span></span><span></span></div>`
+  tl.innerHTML = `<div class="list-head liked-head"><span>#</span><span>Titre</span><span class="r">Durée</span><span></span></div>`
     + favs.map((t,i) => `
       <div class="track liked-track${S.currentTrack?.id===t.id?' playing':''}" onclick="if(this.classList.contains('swiped')){event.stopPropagation();this.classList.remove('swiped');return;}playLibraryFavorite(${i})">
         <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
@@ -9443,8 +9323,7 @@ function renderLikedView() {
           <div class="t-text"><div class="t-name">${esc(t.title)}</div><div class="t-artist">${artistLinkInline(t.channel, t.title)}</div></div>
         </div>
         <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):''}</div>
-        <button class="t-like" onclick="event.stopPropagation();removeFav(decodeURIComponent('${attrEnc(t.id || radioTrackKey(t))}'))" title="Retirer des favoris"><i class="ti ti-heart-filled"></i></button>
-        <button class="t-more" onclick="event.stopPropagation();showLikedTrackMenu(${i}, this)" title="Plus d'options"><i class="ti ti-dots-vertical"></i></button>
+        ${trackMenuBtn(t, { context: 'liked', index: i })}
       </div>`).join('');
 
   hydrateDurations(favs, () => {
@@ -9455,42 +9334,6 @@ function renderLikedView() {
   });
 }
 
-let _likedMenuIndex = null;
-function showLikedTrackMenu(index, btn) {
-  _likedMenuIndex = index;
-  const menu = document.getElementById('likedTrackMenu');
-  const rect = btn.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  let left = rect.left - 160;
-  let top = rect.bottom + 8;
-  if (left < 8) left = 8;
-  if (left + 200 > vw) left = vw - 208;
-  if (top + 140 > vh) top = rect.top - 140;
-  menu.style.left = left + 'px';
-  menu.style.top = top + 'px';
-  menu.classList.add('active');
-}
-
-function closeLikedTrackMenu() {
-  document.getElementById('likedTrackMenu')?.classList.remove('active');
-  _likedMenuIndex = null;
-}
-
-function likedMenuAction(action) {
-  if (_likedMenuIndex === null) return;
-  const track = S.favorites[_likedMenuIndex];
-  closeLikedTrackMenu();
-  if (!track) return;
-  if (action === 'playlist') {
-    showAddToPlaylist(track.id, track.title, track.channel, track.thumb, track.duration, { stopPropagation: () => {} });
-  } else if (action === 'radio') {
-    if (track.channel) startRadio(track.channel, track.title);
-    else showToast('Artiste inconnu pour la radio', 'error');
-  } else if (action === 'unlike') {
-    removeFav(track.id || radioTrackKey(track));
-  }
-}
 function removeFav(id) {
   // Accepte aussi une clé radioTrackKey (pour les pistes sans id, ex. Deezer non résolu).
   S.favorites = S.favorites.filter(f => f.id !== id && radioTrackKey(f) !== id);
@@ -9743,8 +9586,6 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#addToPlaylist') && !e.target.closest('.playlist-actions')) {
     document.getElementById('addToPlaylist').classList.remove('active');
   }
-  if (!e.target.closest('.more-menu')) closeAllMoreMenus();
-  if (!e.target.closest('#likedTrackMenu') && !e.target.closest('.t-more')) closeLikedTrackMenu();
 });
 
 // showLikedTracks → alias vers navigateTo
@@ -10743,14 +10584,19 @@ async function buildRadioQueue(seedArtist) {
 
 // 🕐 Récents : 10 dernières pistes écoutées, dédupliquées (dernière écoute prime).
 // L'historique est déjà stocké le plus récent en premier et dédupliqué.
+// Deux titres par artiste au plus : après une page artiste, l'accueil ne doit
+// pas devenir un mur du même visage.
 function getRecents() {
   const history = lsParse('sevenz_history', []);
   const seen = new Set();
+  const perArtist = {};
   return history.filter(t => {
     if (!t.id || seen.has(t.id)) return false;
+    const a = cleanArtistName(t.channel || '').toLowerCase();
+    if ((perArtist[a] = (perArtist[a] || 0) + 1) > 2) return false;
     seen.add(t.id);
     return true;
-  }).slice(0, 10);
+  }).slice(0, 12);
 }
 
 // Deux radios ne doivent jamais se ressembler : à défaut de pochette, la teinte
@@ -10835,10 +10681,10 @@ function renderRadioView() {
       <div class="pl-track-thumb"><img src="${esc(t.thumb || '')}" alt="" onerror="this.parentElement.style.background='var(--card)';this.remove()"></div>
       <div class="pl-track-info">
         <div class="pl-track-name">${esc(t.title || '')}</div>
-        <div class="pl-track-artist" ${t.channel ? `onclick="event.stopPropagation();openArtistEncoded('${attrEnc(t.channel)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openArtistEncoded('${attrEnc(t.channel)}')}" role="link" tabindex="0"` : ''}>${esc(t.channel || '')}</div>
+        <div class="pl-track-artist">${t.channel ? artistLinkInline(t.channel) : ''}</div>
       </div>
       <div class="pl-track-dur">${t.duration ? formatTime(t.duration) : ''}</div>
-      <div></div>
+      ${trackMenuBtn(t, { context: 'radio', index: i })}
     </div>`).join('') : '';
   const tracklist = document.getElementById('radioTracklist');
   tracklist.innerHTML = rows || `<div style="text-align:center;padding:40px;color:var(--gray)">${active ? 'Préparation de la radio…' : 'Lance une nouvelle radio pour afficher sa sélection.'}</div>`;
@@ -11128,10 +10974,11 @@ function loadHomeExtras() {
 
   let html = `<div class="mobile-quick-grid">${quickCards.join('')}</div>`;
 
-  if (recents.length > 0) {
+  // Les 4 premiers sont déjà dans la grille du haut : on ne les répète pas.
+  if (recents.length > 4) {
     html += `<section class="home-section">
       <h2 class="section-title">Écoutés récemment</h2>
-      <div class="home-track-row">${recents.map((t, i) => homeTrackCard(t, i, 'recents')).join('')}</div>
+      <div class="home-track-row">${recents.slice(4).map((t, i) => homeTrackCard(t, i + 4, 'recents')).join('')}</div>
     </section>`;
   }
 
@@ -11142,12 +10989,7 @@ function loadHomeExtras() {
     </section>`;
   }
 
-  if (oldFavs.length > 0) {
-    html += `<section class="home-section">
-      <h2 class="section-title">À réécouter</h2>
-      <div class="home-track-row">${oldFavs.map((t, i) => homeTrackCard(t, i, 'oldFavs')).join('')}</div>
-    </section>`;
-  }
+  // « À réécouter » retiré : il répétait les récents et alourdissait l'accueil.
 
   if (!html) {
     html = `<section class="home-section"><div class="empty-state" style="padding:28px;text-align:center;color:var(--gray)">
@@ -11220,7 +11062,10 @@ function playFromList(which, i) {
     const page = item.getAttribute('data-page');
     tapFeedback();
     // Onglet déjà ouvert : on remonte en haut, comme toute app native.
+    // Recherche fait plus : retour à l'écran de recherche, champ prêt à taper
+    // (sur les résultats, le champ n'existe plus à l'écran).
     if (item.classList.contains('active') && document.querySelector('.main')?.dataset.view === page) {
+      if (page === 'search') { openSearchHome(); return; }
       document.getElementById('mainContent')?.scrollTo({ top: 0, behavior: _motionOff?.matches ? 'auto' : 'smooth' });
       return;
     }
@@ -12166,6 +12011,9 @@ function showToast(message, type = 'success') {
 // de faire autre chose. Renvoie true si une couche a été fermée.
 function closeTopLayer() {
   const layers = [
+    // Menu « ⋯ » (z-index 10040) : au-dessus de tout le reste, y compris du
+    // lecteur plein écran, de Transitions et du panneau de file d'attente.
+    ['trackSheet',          'open',   () => closeTrackMenu()],
     // En tête : .tr-overlay est plein écran opaque à z-index 10001, donc
     // au-dessus du Now Playing. Absent d'ici, le retour fermait la couche du
     // DESSOUS pendant que Transitions restait affiché. Le marqueur est 'open'
@@ -12364,13 +12212,10 @@ function updateMobileDrawerUser() {
 }
 
 // ── PARTAGE ─────────────────────────────────────────────────────────
+// Le « ⋯ » du lecteur ouvre le même menu que les lignes de titres, enrichi des
+// réglages de lecture (file, minuterie, transitions).
 function openNowPlayingOptions() {
-  const track = S.currentTrack;
-  if (!track) return;
-  document.getElementById('npOptionsTitle').textContent = decodeEntities(track.title) || '—';
-  document.getElementById('npOptionsArtist').textContent = track.channel || '—';
-  document.getElementById('npOptionsArtwork').src = track.thumb || hqThumb(track.id);
-  document.getElementById('npOptionsOverlay').classList.add('open');
+  if (S.currentTrack) openTrackMenu(S.currentTrack, { context: 'nowplaying', index: S.currentIndex });
 }
 
 function closeNowPlayingOptions(event) {
@@ -12416,6 +12261,284 @@ function dislikeCurrentTrack() {
   S.queue.splice(index, 1);
   S.currentIndex = index - 1;
   skipNext();
+}
+
+// ── MENU « ⋯ » D'UN TITRE OU D'UN ARTISTE ───────────────────────────
+// Feuille du bas façon Spotify. Les boutons « ⋯ » et leur registre
+// (trackMenuBtn, artistMenuBtn) sont dans le premier script, près d'attrEnc :
+// les lignes sont rendues dès le démarrage, depuis ce premier script.
+
+// Une seule feuille dans le DOM, créée au premier usage et réutilisée.
+let _sheetActions = [];
+let _sheetReturnFocus = null;
+function _sheetEl() {
+  let el = document.getElementById('trackSheet');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'trackSheet';
+  el.className = 'tsheet-overlay';
+  el.innerHTML = '<div class="tsheet" role="dialog" aria-modal="true"></div>';
+  // Le clic ne remonte pas au document : son écouteur global refermerait
+  // aussitôt le panneau « Ajouter à une playlist » qu'on vient d'ouvrir.
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if (e.target === el) { closeTrackMenu(); return; }
+    const btn = e.target.closest('.tsheet-item');
+    if (!btn) return;
+    const run = _sheetActions[Number(btn.dataset.i)];
+    closeTrackMenu();
+    if (run) Promise.resolve().then(run).catch(err => {
+      console.error('[Menu]', err);
+      showToast('Action impossible pour le moment', 'error');
+    });
+  });
+  document.body.appendChild(el);
+  return el;
+}
+
+function _openSheet({ label, cover, round, icon, title, sub, items }) {
+  if (typeof closeLikedTrackMenu === 'function') closeLikedTrackMenu();
+  document.getElementById('npOptionsOverlay')?.classList.remove('open');
+  const el = _sheetEl();
+  const sheet = el.firstElementChild;
+  const list = items.filter(Boolean);
+  _sheetActions = list.map(it => it.run);
+  sheet.setAttribute('aria-label', label);
+  sheet.innerHTML = `
+    <div class="tsheet-handle"></div>
+    <div class="tsheet-head">
+      <div class="tsheet-cover${round ? ' round' : ''}">${cover ? '' : `<i class="ti ${icon}"></i>`}</div>
+      <div class="tsheet-meta">
+        <div class="tsheet-title">${esc(title)}</div>
+        ${sub ? `<div class="tsheet-sub">${esc(sub)}</div>` : ''}
+      </div>
+    </div>
+    ${list.map((it, i) => `<button type="button" class="tsheet-item${it.on ? ' on' : ''}" data-i="${i}"><i class="ti ${it.icon}"></i><span>${esc(it.label)}</span></button>`).join('')}`;
+  // Pochette posée en style DOM : une URL piégée ne peut pas sortir de l'attribut.
+  if (cover) sheet.querySelector('.tsheet-cover').style.backgroundImage = `url(${JSON.stringify(String(cover))})`;
+  sheet.scrollTop = 0;
+  if (!el.classList.contains('open')) {
+    _sheetReturnFocus = document.activeElement;
+    void el.offsetWidth; // la transition part bien de translateY(100%)
+    el.classList.add('open');
+    tapFeedback();
+  }
+  sheet.querySelector('.tsheet-item')?.focus({ preventScroll: true });
+}
+
+function closeTrackMenu() {
+  const el = document.getElementById('trackSheet');
+  if (!el || !el.classList.contains('open')) return;
+  el.classList.remove('open');
+  _sheetActions = [];
+  const f = _sheetReturnFocus;
+  _sheetReturnFocus = null;
+  if (f && f !== document.body && document.contains(f)) f.focus?.({ preventScroll: true });
+}
+
+// Nom d'artiste affichable : la chaîne YouTube est souvent un label ou « - Topic ».
+function _trackArtist(track) {
+  if (track?.meta?.artist) return track.meta.artist;
+  const ch = track?.channel || track?.artist || '';
+  return artistFromTitle(ch, track?.title) || cleanArtistName(ch);
+}
+
+// videoId de la piste, résolu à la demande pour une piste Deezer.
+async function _trackVideoId(track) {
+  if (track.id) return track.id;
+  if (!track.meta) return null;
+  const vid = await resolveVideoId(track.meta).catch(() => null);
+  if (vid) track.id = vid;
+  return vid;
+}
+
+function _sameTrack(a, b) {
+  if (!a || !b) return false;
+  return a === b || (a.id && a.id === b.id) || radioTrackKey(a) === radioTrackKey(b);
+}
+
+function _currentView() { return document.querySelector('.main')?.dataset.view || ''; }
+
+function isTrackLiked(track) {
+  return S.favorites.some(f => _sameTrack(f, track));
+}
+
+// Même chemin que toggleLike(), mais pour n'importe quelle piste.
+function toggleTrackLike(track) {
+  const was = isTrackLiked(track);
+  if (was) S.favorites = S.favorites.filter(f => !_sameTrack(f, track));
+  else S.favorites.push({ ...track, likedAt: Date.now() });
+  try { localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites)); } catch (e) {}
+  syncToCloud();
+  updateLikeButton();
+  updateLikedCount();
+  if (_currentView() === 'liked') renderLikedView();
+  showToast(was ? 'Retiré des titres likés' : 'Ajouté aux titres likés');
+}
+
+async function addTrackToPlaylistFromMenu(track) {
+  const vid = await _trackVideoId(track);
+  if (!vid) { showToast('Titre introuvable en lecture', 'error'); return; }
+  showAddToPlaylist(vid, track.title || track.meta?.title || '', track.channel || track.meta?.artist || '',
+    track.thumb || track.meta?.coverUrl || hqThumb(vid), track.duration || track.meta?.durationSec || null);
+}
+
+// « Ajouter à la file » façon Spotify : après le titre en cours et après les
+// titres déjà ajoutés à la main, dans l'ordre d'ajout.
+function addTrackToQueue(track) {
+  const copy = { ...track };
+  delete copy.dead;
+  if (!S.currentTrack || !S.queue.length) {
+    S.queue = [copy];
+    S.currentIndex = 0;
+    if (copy.id) playTrack(0); else resolveAndPlay(0);
+    return;
+  }
+  if (!S._userQueued) S._userQueued = new WeakSet();
+  let pos = S.currentIndex + 1;
+  while (pos < S.queue.length && S._userQueued.has(S.queue[pos])) pos++;
+  S.queue.splice(pos, 0, copy);
+  S._userQueued.add(copy);
+  nativeQueueChanged();
+  if (document.getElementById('queueManagerPanel')) { closeQueueManager(true); openQueueManager(); }
+  showToast('Ajouté à la file d’attente');
+}
+
+function removeTrackFromPlaylistMenu(track, opts) {
+  const pl = S.playlists.find(p => p.id === opts.playlistId);
+  if (!pl) return;
+  let i = opts.index;
+  if (!(Number.isInteger(i) && _sameTrack(pl.tracks[i], track))) i = pl.tracks.findIndex(t => _sameTrack(t, track));
+  if (i < 0) return;
+  // Vue SPA « playlist » : removeFromPlaylist() la rouvre (nouvelle entrée
+  // d'historique) ; on la redessine sur place. Vue détail de l'accueil : son
+  // propre chemin.
+  if (_currentView() === 'playlist') {
+    pl.tracks.splice(i, 1);
+    pl.updatedAt = Date.now();
+    savePlaylists();
+    renderSidebarPlaylists();
+    _openPlaylistDirect(pl.id);
+  } else if (document.querySelector('.pl-detail-header')) {
+    removeFromPlaylistHome(pl.id, i);
+  } else {
+    pl.tracks.splice(i, 1);
+    savePlaylists();
+    renderSidebarPlaylists();
+  }
+  showToast(`Retiré de « ${pl.name} »`, 'info');
+}
+
+// « Ne plus recommander » pour n'importe quel titre de la radio : mêmes clés
+// sevenz_disliked que dislikeCurrentTrack(), et retour au moteur radio.
+function dislikeTrack(track, opts = {}) {
+  if (_sameTrack(track, S.currentTrack) && S.queue[S.currentIndex] === S.currentTrack) { dislikeCurrentTrack(); return; }
+  const disliked = new Set(lsParse('sevenz_disliked', []));
+  if (track.id) disliked.add(track.id);
+  disliked.add(radioTrackKey(track));
+  try { localStorage.setItem('sevenz_disliked', JSON.stringify([...disliked])); } catch (e) {}
+  if (S.radioId) {
+    fetchWithRetry(`${PROXY_URL}/radio/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ radioId: S.radioId, feedback: [{ trackKey: track.normalizedKey || radioTrackKey(track), type: 'dislike' }] })
+    }).catch(() => {});
+  }
+  // Retiré de la file s'il est encore à venir.
+  let i = S.queue.indexOf(track);
+  if (i < 0 && Number.isInteger(opts.index) && _sameTrack(S.queue[opts.index], track)) i = opts.index;
+  if (i > S.currentIndex) { S.queue.splice(i, 1); nativeQueueChanged(); }
+  if (_currentView() === 'radio') renderRadioView();
+  showToast('Ce titre ne sera plus recommandé', 'info');
+}
+
+function _shareLink(title, text, url) {
+  const copy = () => {
+    if (!navigator.clipboard) { showToast('Partage non disponible', 'info'); return; }
+    navigator.clipboard.writeText(url ? `${text}\n${url}` : text)
+      .then(() => showToast('Lien copié dans le presse-papier'))
+      .catch(() => showToast('Impossible de copier', 'error'));
+  };
+  if (!navigator.share) { copy(); return; }
+  navigator.share(url ? { title, text, url } : { title, text })
+    .catch(err => { if (err?.name !== 'AbortError') copy(); });
+}
+
+async function shareTrack(track) {
+  if (!track) { showToast('Aucune piste en lecture', 'info'); return; }
+  const title = decodeEntities(track.title || track.meta?.title || '');
+  const artist = _trackArtist(track);
+  const vid = await _trackVideoId(track);
+  _shareLink(title, artist ? `${title} — ${artist}` : title, vid ? `https://www.youtube.com/watch?v=${vid}` : '');
+}
+
+function openTrackMenu(track, opts = {}) {
+  if (!track) return;
+  const ctx = opts.context || '';
+  const title = decodeEntities(track.title || track.meta?.title || '') || '—';
+  const artist = _trackArtist(track);
+  const liked = isTrackLiked(track);
+  const albumId = track.albumId || track.meta?.albumId;
+  const albumName = track.album || track.meta?.album;
+  const qi = opts.index;
+  const inQueue = ctx === 'queue' && Number.isInteger(qi) && qi !== S.currentIndex && _sameTrack(S.queue[qi], track);
+  // Recherche : la piste est S.queue[index] sans videoId ; on la résout d'abord
+  // (comme les anciens boutons de ligne) et on agit sur l'entrée résolue.
+  const withTrack = fn => async () => {
+    let t = track;
+    if (ctx === 'search' && !t.id && Number.isInteger(qi) && _sameTrack(S.queue[qi], t)) {
+      await ensureVideoId(qi).catch(() => null);
+      t = S.queue[qi] || t;
+    }
+    return fn(t);
+  };
+  _openSheet({
+    label: `Options pour ${title}`,
+    cover: track.thumb || track.meta?.coverUrl || (track.id ? hqThumb(track.id) : ''),
+    icon: 'ti-music', title, sub: artist,
+    items: [
+      { icon: 'ti-circle-plus', label: 'Ajouter à une playlist', run: withTrack(addTrackToPlaylistFromMenu) },
+      liked
+        ? { icon: 'ti-heart-filled', label: 'Retirer des titres likés', on: true, run: withTrack(toggleTrackLike) }
+        : { icon: 'ti-heart', label: 'Ajouter aux titres likés', run: withTrack(toggleTrackLike) },
+      { icon: 'ti-list-details', label: 'Ajouter à la file d’attente', run: withTrack(addTrackToQueue) },
+      inQueue && { icon: 'ti-circle-minus', label: 'Retirer de la file d’attente', run: () => removeFromQueue(qi) },
+      ctx === 'playlist' && opts.playlistId && { icon: 'ti-circle-minus', label: 'Retirer de cette playlist', run: () => removeTrackFromPlaylistMenu(track, opts) },
+      ctx === 'radio' && { icon: 'ti-circle-x', label: 'Ne plus recommander', run: () => dislikeTrack(track, opts) },
+      artist && { icon: 'ti-broadcast', label: 'Lancer la radio du titre', run: () => startRadio(artist, title) },
+      ctx !== 'album' && (albumId || albumName) && { icon: 'ti-disc', label: 'Accéder à l’album', run: () => {
+        if (albumId) { openAlbum(attrEnc(albumId)); return; }
+        dismissNowPlayingOverlay();
+        searchAlbumTracks(attrEnc(artist), attrEnc(albumName));
+      } },
+      artist && { icon: 'ti-user', label: 'Accéder à l’artiste', run: () => openArtistPage(artist) },
+      { icon: 'ti-share-3', label: 'Partager', run: withTrack(shareTrack) },
+      // Depuis le lecteur plein écran : les réglages de lecture de l'ancien menu.
+      ...(ctx === 'nowplaying' ? [
+        { icon: 'ti-list', label: 'Ouvrir la file d’attente', run: () => openQueueManager() },
+        { icon: 'ti-moon', label: 'Minuterie d’arrêt', run: () => openSleepTimer() },
+        { icon: 'ti-arrow-merge', label: 'Transitions', run: () => openTransitions() },
+      ] : []),
+    ],
+  });
+}
+
+function openArtistMenu(name, opts = {}) {
+  name = String(name || '').trim();
+  if (!name) return;
+  const following = isFollowingArtist(name);
+  _openSheet({
+    label: `Options pour ${name}`,
+    cover: opts.thumb || '', round: true, icon: 'ti-user',
+    title: name, sub: 'Artiste',
+    items: [
+      following
+        ? { icon: 'ti-user-check', label: 'Ne plus suivre', on: true, run: () => toggleFollowArtist(name) }
+        : { icon: 'ti-user-plus', label: 'Suivre', run: () => toggleFollowArtist(name) },
+      { icon: 'ti-broadcast', label: 'Lancer la radio de l’artiste', run: () => startRadio(name, radioSeedTitleForArtist(name)) },
+      { icon: 'ti-share-3', label: 'Partager', run: () => _shareLink(name, name, `https://music.youtube.com/search?q=${encodeURIComponent(name)}`) },
+    ],
+  });
 }
 
 async function openAudioOutputPicker() {
@@ -12590,22 +12713,7 @@ function closeLyricsPanel(event) {
   }
 }
 
-function shareCurrentTrack() {
-  const track = S.currentTrack;
-  if (!track) { showToast('Aucune piste en lecture', 'info'); return; }
-  const url = `https://www.youtube.com/watch?v=${track.id}`;
-  const text = `${track.title} — ${track.channel}`;
-  if (navigator.share) {
-    navigator.share({ title: track.title, text, url })
-      .catch(() => {});
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(`${text}\n${url}`)
-      .then(() => showToast('Lien copié dans le presse-papier'))
-      .catch(() => showToast('Impossible de copier', 'error'));
-  } else {
-    showToast('Partage non disponible', 'info');
-  }
-}
+function shareCurrentTrack() { shareTrack(S.currentTrack); }
 
 // ── RADIO ────────────────────────────────────────────────────────────
 async function openRadio() {
@@ -12806,6 +12914,7 @@ function updateNowPlayingPanel() {
           <div class="np-q-title">${esc(tr.title || '')}</div>
           <div class="np-q-artist">${esc(tr.channel || '')}</div>
         </div>
+        ${trackMenuBtn(tr, { context: 'queue', index: S.currentIndex + 1 + i })}
       </div>`).join('');
   } else {
     listEl.innerHTML = '<div class="np-q-empty">Aucun titre à suivre</div>';
@@ -12874,7 +12983,8 @@ function openQueueManager() {
         <div style="font-size:13px;font-weight:${i === S.currentIndex ? '600' : '400'};color:${i === S.currentIndex ? 'var(--accent-primary)' : '#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div>
         <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.channel || '')}</div>
       </div>
-      ${i === S.currentIndex ? '<i class="ti ti-volume" style="color:var(--accent-primary);font-size:14px;flex-shrink:0"></i>' : `<button onclick="event.stopPropagation();removeFromQueue(${i})" style="background:none;border:none;color:#666;cursor:pointer;padding:4px;font-size:14px;flex-shrink:0" title="Retirer"><i class="ti ti-x"></i></button>`}
+      ${i === S.currentIndex ? '<i class="ti ti-volume" style="color:var(--accent-primary);font-size:14px;flex-shrink:0"></i>' : ''}
+      ${trackMenuBtn(t, { context: 'queue', index: i })}
     </div>
   `).join('');
 
@@ -13106,8 +13216,8 @@ function renderListeningStats() {
     body.innerHTML = `<div style="padding:80px 24px;text-align:center;color:var(--gray)"><i class="ti ti-chart-bar" style="font-size:42px;color:var(--accent-primary)"></i><h2 style="color:var(--white);margin:18px 0 8px">Ton récap d'écoute</h2><p>Écoute des titres pour voir tes stats</p><div style="margin-top:24px">${statCard(S.favorites.length, 'Titres likés')}</div></div>`;
     return;
   }
-  const artistRows = topArtists.map(([artist, count], i) => `<div class="lib-item"><div class="lib-cover is-artist" style="display:grid;place-items:center;font-weight:800;color:var(--accent-primary)">${i + 1}</div><div class="lib-info"><div class="lib-name">${esc(artist)}</div><div class="lib-meta">${count} écoute${count > 1 ? 's' : ''}</div></div></div>`).join('');
-  const trackRows = topTracks.map(([key, track], i) => `<div class="lib-item" onclick="playStatsTrack('${attrEnc(key)}')"><div class="lib-cover">${track.thumb ? `<img src="${esc(track.thumb)}" alt="">` : `<span style="font-weight:800;color:var(--accent-primary)">${i + 1}</span>`}</div><div class="lib-info"><div class="lib-name">${esc(track.title)}</div><div class="lib-meta">${esc(track.artist)} · ${track.count} écoute${track.count > 1 ? 's' : ''}</div></div></div>`).join('');
+  const artistRows = topArtists.map(([artist, count], i) => `<div class="lib-item" onclick="openArtistEncoded('${attrEnc(artist)}')"><div class="lib-cover is-artist" style="display:grid;place-items:center;font-weight:800;color:var(--accent-primary)">${i + 1}</div><div class="lib-info"><div class="lib-name">${esc(artist)}</div><div class="lib-meta">${count} écoute${count > 1 ? 's' : ''}</div></div>${artistMenuBtn(artist, {})}</div>`).join('');
+  const trackRows = topTracks.map(([key, track], i) => `<div class="lib-item" onclick="playStatsTrack('${attrEnc(key)}')"><div class="lib-cover">${track.thumb ? `<img src="${esc(track.thumb)}" alt="">` : `<span style="font-weight:800;color:var(--accent-primary)">${i + 1}</span>`}</div><div class="lib-info"><div class="lib-name">${esc(track.title)}</div><div class="lib-meta">${esc(track.artist)} · ${track.count} écoute${track.count > 1 ? 's' : ''}</div></div>${trackMenuBtn({ id: key, title: track.title, channel: track.artist, thumb: track.thumb || '' }, { context: 'stats' })}</div>`).join('');
   body.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:8px 0 28px">${statCard(listeningLabel, 'Temps d’écoute')}${statCard(playCount, 'Lectures')}${statCard(S.favorites.length, 'Titres likés')}</div><h2 class="section-title">Top artistes</h2><div style="margin-bottom:30px">${artistRows}</div><h2 class="section-title">Top titres</h2><div>${trackRows}</div>`;
 }
 

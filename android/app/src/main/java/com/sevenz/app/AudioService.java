@@ -176,7 +176,8 @@ public class AudioService extends Service {
         super.onCreate();
         serviceRunning = true;
         createNotificationChannel();
-        acquireWakeLock();
+        // Pas de WakeLock ici : un service créé pour rien (bouton média, reprise
+        // START_STICKY) le gardait 10h. Il est pris par playAudio/resumeAudio.
         initMediaSession();
         applyPendingCrossfade();
     }
@@ -205,11 +206,31 @@ public class AudioService extends Service {
         android.util.Log.d("AudioService", "onStartCommand called, intent=" + (intent != null ? "not null" : "null"));
 
         if (intent == null) {
+            // Relance START_STICKY après la mort du processus : plus de lecteur,
+            // rien à jouer. Ce n'est pas un startForegroundService (aucune
+            // obligation de startForeground, qui serait d'ailleurs refusé en
+            // arrière-plan sur Android 12+) : on s'arrête simplement, au lieu de
+            // rester vivant à vide.
             android.util.Log.d("AudioService", "Intent is null, returning START_NOT_STICKY");
+            if (player == null) stopSelf();
             return START_NOT_STICKY;
         }
 
         if (Intent.ACTION_MEDIA_BUTTON.equals(intent.getAction())) {
+            if (player == null) {
+                // Bouton casque/Bluetooth alors que rien ne joue : MediaButtonReceiver
+                // nous a lancés via startForegroundService. Sans startForeground,
+                // Android 12+ tue l'app (ForegroundServiceDidNotStartInTimeException).
+                // On honore le contrat puis on s'arrête aussitôt.
+                try {
+                    startForeground(NOTIFICATION_ID, buildNotification());
+                } catch (Exception e) {
+                    android.util.Log.w("AudioService", "startForeground refusé (bouton média à vide)", e);
+                }
+                stopForeground(STOP_FOREGROUND_REMOVE);
+                stopSelf();
+                return START_NOT_STICKY;
+            }
             MediaButtonReceiver.handleIntent(mediaSession, intent);
             return START_STICKY;
         }
@@ -330,6 +351,7 @@ public class AudioService extends Service {
         // Start with placeholder notification immediately
         startForeground(NOTIFICATION_ID, buildNotification());
         android.util.Log.d("AudioService", "startForeground called immediately");
+        acquireWakeLock();
         
         // Une nouvelle lecture (choix utilisateur, skip, avance de repli) invalide
         // tout chevauchement et toute piste suivante déjà préparée.
@@ -459,8 +481,14 @@ public class AudioService extends Service {
                 android.util.Log.e("AudioService", "Lecteur principal en erreur: "
                     + error.getErrorCodeName(), error);
                 // L'URL est probablement morte : ne pas la resservir depuis le cache.
-                AudioPlayerPlugin.invalidateUrl(currentVideoId);
-                AudioPlayerPlugin.notifyPlaybackError(currentVideoId, error.getErrorCodeName());
+                final String failedId = currentVideoId;
+                AudioPlayerPlugin.invalidateUrl(failedId);
+                // Reprise native (écran verrouillé, le JS dort) : 1re erreur ->
+                // ré-extraction de la même piste ; 2e -> piste suivante de la file.
+                int handled = AudioPlayerPlugin.retryAfterError(getApplicationContext(),
+                    failedId, currentTitle, currentArtist, currentThumb);
+                AudioPlayerPlugin.notifyPlaybackError(failedId, error.getErrorCodeName(),
+                    handled != 0, handled == 2);
             }
 
             @Override
@@ -731,6 +759,9 @@ public class AudioService extends Service {
         }
 
         currentVideoId = nextVideoId;
+        // La piste promue était en tête de la file native : la retirer, sinon
+        // l'avance native (écran verrouillé) la rejouerait en fin de morceau.
+        AudioPlayerPlugin.consumeUpcoming(currentVideoId);
         currentTitle   = nextTitle;
         currentArtist  = nextArtist;
         currentThumb   = nextThumb;
@@ -905,12 +936,16 @@ public class AudioService extends Service {
             return;
         }
         
+        // Une pochette lente pouvait arriver APRÈS le passage à la piste
+        // suivante et écraser la bonne : on ignore tout résultat périmé.
+        final String requested = thumbUrl;
         Glide.with(getApplicationContext())
             .asBitmap()
             .load(thumbUrl)
             .into(new CustomTarget<Bitmap>() {
                 @Override
                 public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                    if (!requested.equals(currentThumb)) return;
                     currentArtwork = resource;
                     updateMediaMetadata();
                     updateNotification(); // Update with artwork
@@ -921,6 +956,7 @@ public class AudioService extends Service {
                 
                 @Override
                 public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                    if (!requested.equals(currentThumb)) return;
                     currentArtwork = null;
                     updateNotification(); // Update without artwork
                 }
@@ -1060,10 +1096,13 @@ public class AudioService extends Service {
             updatePlaybackState();
             updateNotification();
         }
+        // En pause, rien ne justifie de garder le CPU éveillé.
+        releaseWakeLock();
     }
 
     private void resumeAudio() {
         if (player != null) {
+            acquireWakeLock();
             player.play();
             startProgressUpdates();
             updatePlaybackState();
@@ -1197,13 +1236,18 @@ public class AudioService extends Service {
         }
     }
     
+    // Idempotent : un seul WakeLock, réutilisé, jamais empilé (non compté).
     private void acquireWakeLock() {
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        if (powerManager != null) {
+        if (wakeLock == null) {
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+            if (powerManager == null) return;
             wakeLock = powerManager.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK,
                 "Sevenz:AudioWakeLock"
             );
+            wakeLock.setReferenceCounted(false);
+        }
+        if (!wakeLock.isHeld()) {
             wakeLock.acquire(10 * 60 * 60 * 1000L); // 10 hours max
         }
     }

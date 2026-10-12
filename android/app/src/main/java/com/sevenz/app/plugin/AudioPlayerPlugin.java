@@ -23,6 +23,7 @@ import org.schabi.newpipe.extractor.stream.StreamInfo;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 @CapacitorPlugin(name = "AudioPlayerPlugin")
 public class AudioPlayerPlugin extends Plugin {
@@ -34,7 +35,17 @@ public class AudioPlayerPlugin extends Plugin {
     public static final String ACTION_STOP = "com.sevenz.app.STOP";
     
     // Static instance for AudioService callbacks
+    // Sert UNIQUEMENT à notifyListeners vers la WebView. La file native et
+    // l'avance (advanceNatively/sendPlay) sont statiques et passent par le
+    // contexte applicatif fourni par le service : elles fonctionnent même
+    // instance == null (activité détruite, lecture en arrière-plan).
     private static volatile AudioPlayerPlugin instance;
+
+    // Génération de lecture : chaque nouvelle demande (playVideo, stop, avance
+    // native) l'incrémente. Un thread d'extraction qui revient après coup
+    // compare sa valeur capturée et se tait si elle a changé — sinon une
+    // extraction lente relançait une piste que plus personne n'attendait.
+    static final AtomicLong playGen = new AtomicLong();
 
     // ══════════════════════════════════════════════════════════════
     // FILE D'ATTENTE NATIVE
@@ -84,10 +95,61 @@ public class AudioPlayerPlugin extends Plugin {
         }
         call.resolve();
     }
+
+    /**
+     * Retire la tête de la file si c'est `videoId`. Appelé par le service quand
+     * un fondu promeut la suivante : sans ça, cette piste restait en tête de
+     * file et, écran verrouillé, l'avance native la rejouait une 2e fois.
+     */
+    public static void consumeUpcoming(String videoId) {
+        if (videoId == null || videoId.isEmpty()) return;
+        synchronized (upcoming) {
+            Upcoming head = upcoming.peek();
+            if (head != null && videoId.equals(head.videoId)) upcoming.poll();
+        }
+    }
+
+    // Pistes déjà retentées après une erreur de lecture : une seule reprise
+    // par piste, au 2e échec on passe à la suivante.
+    private static final java.util.Set<String> retriedIds = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Erreur du lecteur principal : reprise native sans le JS (écran verrouillé).
+     * 1er échec -> la piste est remise en tête de file et ré-extraite (l'URL a
+     * été purgée du cache par l'appelant). 2e échec -> on saute à la suivante.
+     * Renvoie 0 si rien n'a été pris en charge (file vide), 1 = reprise, 2 = saut.
+     */
+    public static int retryAfterError(android.content.Context context, String videoId,
+                                      String title, String artist, String thumb) {
+        if (context == null || videoId == null || videoId.isEmpty()) return 0;
+        boolean firstFailure = retriedIds.add(videoId);
+        if (firstFailure) {
+            synchronized (upcoming) {
+                upcoming.addFirst(new Upcoming(videoId,
+                    title != null ? title : "Unknown",
+                    artist != null ? artist : "Unknown Artist",
+                    thumb != null ? thumb : ""));
+            }
+        } else {
+            // Oubli après abandon : une écoute ultérieure aura droit à sa reprise.
+            retriedIds.remove(videoId);
+        }
+        if (!advanceNatively(context)) return 0;
+        return firstFailure ? 1 : 2;
+    }
     
     @Override
     public void load() {
         instance = this;
+    }
+
+    // L'activité (donc le bridge) est détruite : ne plus garder de référence
+    // vers ce plugin. Le service peut continuer à jouer et à enchaîner via la
+    // file statique ; seuls les événements vers le JS sont alors perdus — il
+    // n'y a de toute façon plus de WebView pour les recevoir.
+    @Override
+    protected void handleOnDestroy() {
+        if (instance == this) instance = null;
     }
 
     @PluginMethod
@@ -141,12 +203,13 @@ public class AudioPlayerPlugin extends Plugin {
      * vide — l'appelant retombe alors sur l'ancien chemin via le JS.
      */
     private static boolean advanceNatively(android.content.Context context) {
+        if (context == null) return false;
         final Upcoming next;
         synchronized (upcoming) {
             next = upcoming.poll();
         }
         if (next == null) return false;
-        if (context == null) return false;
+        final long gen = playGen.incrementAndGet();
 
         Log.d(TAG, "Avance native vers : " + next.title);
         final android.content.Context app = context.getApplicationContext();
@@ -169,6 +232,8 @@ public class AudioPlayerPlugin extends Plugin {
                 AudioStream best = info.getAudioStreams().stream()
                     .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
                     .orElse(null);
+                // Une autre lecture a été demandée pendant l'extraction.
+                if (playGen.get() != gen) return;
                 if (best == null) {
                     Log.e(TAG, "Avance native : aucun flux audio pour " + next.videoId);
                     // Piste injouable : on tente la suivante plutôt que de
@@ -182,6 +247,7 @@ public class AudioPlayerPlugin extends Plugin {
                 sendPlay(app, next, best.getUrl());
             } catch (Exception e) {
                 Log.e(TAG, "Avance native : extraction échouée pour " + next.videoId, e);
+                if (playGen.get() != gen) return;
                 if (!advanceNatively(app) && instance != null) {
                     instance.notifyListeners("trackEnded", new JSObject());
                 }
@@ -259,6 +325,14 @@ public class AudioPlayerPlugin extends Plugin {
         }
 
         Log.d(TAG, "playVideo called for: " + videoId);
+        final long gen = playGen.incrementAndGet();
+        // La file native était calculée par rapport à l'ANCIENNE piste : la
+        // garder, c'est risquer que la fin de celle-ci (pendant l'extraction
+        // ci-dessous) enchaîne sur une suite périmée. Le JS la repousse dès
+        // que playVideo est résolu (pushUpcomingToNative).
+        synchronized (upcoming) {
+            upcoming.clear();
+        }
 
         // Si l'URL a déjà été préchargée (cache rempli par preload/loadNextTrack),
         // on démarre IMMÉDIATEMENT sans ré-extraction réseau (1-3s) -> transition fluide
@@ -303,6 +377,14 @@ public class AudioPlayerPlugin extends Plugin {
                     .stream()
                     .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
                     .orElse(null);
+
+                // Demande périmée (autre playVideo, stop, avance native) : ne
+                // surtout pas démarrer cette piste par-dessus.
+                if (playGen.get() != gen) {
+                    Log.d(TAG, "playVideo périmé, abandon : " + videoId);
+                    getActivity().runOnUiThread(() -> call.reject("Superseded"));
+                    return;
+                }
                 
                 if (bestAudio == null) {
                     Log.e(TAG, "No audio stream found");
@@ -386,6 +468,14 @@ public class AudioPlayerPlugin extends Plugin {
     
     @PluginMethod
     public void pause(PluginCall call) {
+        // Service absent : rien à mettre en pause. Le démarrer ici le laissait
+        // tourner à vide (et hors foreground) pour rien.
+        if (!AudioService.isRunning()) {
+            JSObject result = new JSObject();
+            result.put("success", true);
+            call.resolve(result);
+            return;
+        }
         Intent intent = new Intent(getContext(), AudioService.class);
         intent.putExtra("action", ACTION_PAUSE);
         getContext().startService(intent);
@@ -397,6 +487,14 @@ public class AudioPlayerPlugin extends Plugin {
     
     @PluginMethod
     public void resume(PluginCall call) {
+        // Service absent : rien à reprendre. Le démarrer ici le laissait
+        // tourner à vide (et hors foreground) pour rien.
+        if (!AudioService.isRunning()) {
+            JSObject result = new JSObject();
+            result.put("success", true);
+            call.resolve(result);
+            return;
+        }
         Intent intent = new Intent(getContext(), AudioService.class);
         intent.putExtra("action", ACTION_RESUME);
         getContext().startService(intent);
@@ -408,6 +506,7 @@ public class AudioPlayerPlugin extends Plugin {
     
     @PluginMethod
     public void stop(PluginCall call) {
+        playGen.incrementAndGet();   // périme toute extraction en vol
         Intent intent = new Intent(getContext(), AudioService.class);
         intent.putExtra("action", ACTION_STOP);
         getContext().startService(intent);
@@ -438,6 +537,7 @@ public class AudioPlayerPlugin extends Plugin {
     @PluginMethod
     public void seekTo(PluginCall call) {
         double seconds = call.getDouble("position", 0.0);
+        if (!AudioService.isRunning()) { call.resolve(); return; }   // rien à déplacer
         Intent intent = new Intent(getContext(), AudioService.class);
         intent.putExtra("action", "com.sevenz.app.SEEK");
         intent.putExtra("positionMs", (long) (seconds * 1000));
@@ -494,11 +594,17 @@ public class AudioPlayerPlugin extends Plugin {
     }
 
     /** Remonte au JS une erreur de LECTURE (distincte d'une erreur d'extraction). */
-    public static void notifyPlaybackError(String videoId, String codeName) {
+    // `nativeRetry` : le natif a déjà pris la main (nouvelle extraction de la
+    // même piste, ou saut à la suivante si `nativeSkipped`). Le JS ne doit
+    // alors PAS relancer de son côté, sous peine de double lecture.
+    public static void notifyPlaybackError(String videoId, String codeName,
+                                           boolean nativeRetry, boolean nativeSkipped) {
         if (instance == null) return;
         JSObject d = new JSObject();
         d.put("videoId", videoId != null ? videoId : "");
         d.put("name", codeName != null ? codeName : "");
+        d.put("nativeRetry", nativeRetry);
+        d.put("nativeSkipped", nativeSkipped);
         instance.notifyListeners("playbackError", d);
     }
     
@@ -614,6 +720,7 @@ public class AudioPlayerPlugin extends Plugin {
     
     @PluginMethod
     public void cancelCrossfade(PluginCall call) {
+        if (!AudioService.isRunning()) { call.resolve(); return; }   // aucun fondu possible
         Intent intent = new Intent(getContext(), AudioService.class);
         intent.putExtra("action", "com.sevenz.app.ABORT_CROSSFADE");
         getContext().startService(intent);
@@ -653,6 +760,7 @@ public class AudioPlayerPlugin extends Plugin {
         }
         
         // Extract URL on background thread
+        final long gen = playGen.get();
         new Thread(() -> {
             try {
                 if (NewPipe.getDownloader() == null) {
@@ -669,7 +777,14 @@ public class AudioPlayerPlugin extends Plugin {
                 
                 if (bestAudio != null) {
                     String audioUrl = bestAudio.getUrl();
-                    putUrl(videoId, audioUrl);
+                    putUrl(videoId, audioUrl);   // le cache reste utile même périmé
+
+                    // La piste courante a changé pendant l'extraction : cette
+                    // « suivante » ne l'est plus, ne pas la préparer.
+                    if (playGen.get() != gen) {
+                        getActivity().runOnUiThread(() -> call.reject("Superseded"));
+                        return;
+                    }
                     
                     // Send to service
                     Intent intent = new Intent(getContext(), AudioService.class);

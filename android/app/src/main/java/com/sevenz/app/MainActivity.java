@@ -23,6 +23,12 @@ public class MainActivity extends BridgeActivity {
         // when the WebView initializes.
         registerPlugin(AudioPlayerPlugin.class);
         super.onCreate(savedInstanceState);
+        // Navigation à 3 boutons : Android pose un voile clair sous les boutons
+        // pour garantir le contraste. L'app dessine déjà son fond nuit jusqu'en
+        // bas (--safe-bottom), on retire donc ce voile blanc.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
         createNotificationChannel();
         requestNotificationPermission();
     }

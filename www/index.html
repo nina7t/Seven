@@ -4776,6 +4776,10 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   .mobile-bottom-nav { background: var(--bg-primary); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .topbar.scrolled { background: var(--bg-primary); -webkit-backdrop-filter: none; backdrop-filter: none; }
 
+  /* Résultats de recherche : la barre du haut est masquée sur cette vue, le
+     contenu doit donc dégager lui-même la barre d'état. */
+  .main[data-view="search"] #searchResults { padding-top: calc(12px + var(--safe-top)); }
+
   /* ── Recherche : champ dans la palette, genres en photo ── */
   .explore-search { background: var(--bg-elevated); color: var(--text-primary); border-radius: var(--r-control); }
   .explore-search input { color: var(--text-primary); font-weight: 500; }

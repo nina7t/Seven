@@ -65,7 +65,6 @@ function degradedSources(seed, candidates = []) {
   else if (!actualSources.has(CONFIG.sources.DEEZER)) {
     out.push({ source: 'deezer', reason: 'no candidates returned' });
   }
-  if (!seed.ids.mbid) out.push({ source: 'musicbrainz', reason: 'mbid not resolved' });
   if (lastfm.isConfigured() && !actualSources.has(CONFIG.sources.LASTFM)) {
     out.push({ source: 'lastfm', reason: 'no candidates returned' });
   }
@@ -163,6 +162,11 @@ router.post('/next', async (req, res) => {
           artists: session.candidates.map(candidate => candidate.artist)
         });
         session.candidates.push(...fresh);
+        // Plafond mémoire : on évince d'abord les titres joués ou rejetés,
+        // puis les plus anciens
+        if (session.candidates.length > CONFIG.radio.maxSessionCandidates) {
+          session.candidates = session.candidates.filter(isAvailable).slice(-CONFIG.radio.maxSessionCandidates);
+        }
       } catch (error) {
         console.warn('[radio/next] candidate replenishment failed:', error.message);
       }

@@ -17,3 +17,5 @@ services:
         sync: false   # credentials TIDAL — à renseigner dans le dashboard Render
       - key: TIDAL_CLIENT_SECRET
         sync: false
+      - key: APP_ORIGINS
+        sync: false   # origines autorisées pour le token Spotify (virgules) — vide = liste par défaut du serveur

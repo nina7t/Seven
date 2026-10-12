@@ -4,6 +4,8 @@ const { normalizeForDedupe } = require('./normalize');
 
 const sessions = new Map();
 const TTL_MS = 24 * 60 * 60 * 1000;
+// Plafond mémoire : au-delà, on évince la session la moins récemment utilisée
+const MAX_SESSIONS = 200;
 
 function generateRadioId() {
   return crypto.randomUUID();
@@ -17,6 +19,7 @@ function cleanupSessions() {
 }
 
 function createSession(seed, userHistoryArtists = [], candidates = [], knownTrackKeys = new Set()) {
+  cleanupSessions();
   const radioId = generateRadioId();
   const knownArtists = new Set(userHistoryArtists.map(a => normalizeForDedupe(a)));
   if (seed?.artist) knownArtists.add(normalizeForDedupe(seed.artist));
@@ -32,6 +35,9 @@ function createSession(seed, userHistoryArtists = [], candidates = [], knownTrac
     history: [],
     lastUsed: Date.now()
   });
+  // La Map garde l'ordre d'insertion, et getSession réinsère à chaque accès :
+  // la première clé est donc la moins récemment utilisée.
+  if (sessions.size > MAX_SESSIONS) sessions.delete(sessions.keys().next().value);
   return radioId;
 }
 
@@ -40,6 +46,8 @@ function getSession(radioId) {
   const s = sessions.get(radioId);
   if (!s) return null;
   s.lastUsed = Date.now();
+  sessions.delete(radioId);
+  sessions.set(radioId, s);
   return s;
 }
 

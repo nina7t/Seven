@@ -156,7 +156,9 @@ async function getSimilarTracks(artist, track, limit = 30) {
  * Top tracks d'un artiste (artist.getTopTracks).
  */
 async function getTopTracks(artist, limit = 5) {
-  const cacheKey = normalizeForDedupe(artist);
+  // La limite fait partie de la clé : sinon un appel à 3 titres servait
+  // ensuite 3 titres à un appel qui en demandait 5
+  const cacheKey = `${normalizeForDedupe(artist)}|${limit}`;
   const cached = cache.get('search', cacheKey, 'lastfm-toptracks');
   if (cached) return cached;
 

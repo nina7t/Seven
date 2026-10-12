@@ -121,30 +121,6 @@ async function resolveDeezerArtist(artistName) {
   }
 }
 
-/**
- * Résout le MBID du titre via MusicBrainz (repli gratuit, pas de clé).
- */
-async function resolveMusicBrainzId(seed) {
-  const cacheKey = trackTitleKey(seed.title, seed.artist);
-  const cached = cache.get('search', cacheKey, 'mbid');
-  if (cached !== undefined) return cached; // null autorisé
-
-  try {
-    const q = `recording:${seed.title} AND artist:${seed.artist}`;
-    const url = `https://musicbrainz.org/ws/2/recording/?query=${encodeURIComponent(q)}&fmt=json&limit=1`;
-    const res = await withTimeout(axios.get(url, {
-      headers: { 'User-Agent': 'SevenzRadio/1.0 (contact@sevenz.app)' },
-      timeout: TIMEOUT
-    }));
-    const rec = res.data?.recordings?.[0];
-    const mbid = rec?.id || null;
-    return cache.set('search', cacheKey, 'mbid', mbid);
-  } catch (e) {
-    console.warn('[seed] MusicBrainz failed:', e.message);
-    return cache.set('search', cacheKey, 'mbid', null);
-  }
-}
-
 function topTags(trackTags, artistTags, limit = 5) {
   const map = new Map();
   (trackTags || []).forEach((t, i) => {
@@ -170,21 +146,14 @@ async function resolveTrackSeed(input) {
     throw new Error('title et artist sont requis');
   }
 
-  const [dzTrack, dzArtist] = await Promise.all([
+  // Deezer et les tags Last.fm sont indépendants : on les lance ensemble
+  const lfm = lastfm.isConfigured();
+  const [dzTrack, dzArtist, trackTags, artistTags] = await Promise.all([
     resolveDeezerTrack(seed),
-    resolveDeezerArtist(seed.artist)
+    resolveDeezerArtist(seed.artist),
+    lfm ? lastfm.getTrackTopTags(seed.artist, seed.title).catch(() => []) : [],
+    lfm ? lastfm.getArtistTopTags(seed.artist).catch(() => []) : []
   ]);
-
-  const mbid = await resolveMusicBrainzId(seed);
-
-  let trackTags = [];
-  let artistTags = [];
-  if (lastfm.isConfigured()) {
-    [trackTags, artistTags] = await Promise.all([
-      lastfm.getTrackTopTags(seed.artist, seed.title).catch(() => []),
-      lastfm.getArtistTopTags(seed.artist).catch(() => [])
-    ]);
-  }
 
   const tags = topTags(trackTags, artistTags, 5);
 
@@ -203,7 +172,6 @@ async function resolveTrackSeed(input) {
       // on expose donc l'ID de piste à part, seul utilisable pour l'ISRC.
       deezerTrack: dzTrack?.ids?.deezer || null,
       artistDeezer: dzTrack?.ids?.artistDeezer || dzArtist?.id || null,
-      mbid,
       tidal: null // résolu éventuellement par candidates.js
     },
     artistMeta: dzArtist ? { name: dzArtist.name, id: dzArtist.id, nbFan: dzArtist.nbFan } : null,

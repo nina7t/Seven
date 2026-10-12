@@ -3,16 +3,13 @@
 
 const axios = require('axios');
 
-// Instances Invidious publiques (testées et fonctionnelles)
-const INVIDIOUS_INSTANCES = [
-  'https://iv.datura.network',
-  'https://vid.puffyan.us',
-  'https://iv.nboeck.de',
-  'https://iv.melmac.space',
-  'https://yt.artemislena.eu',
-  'https://iv.drgns.space',
-  'https://iv.minitar.de'
-];
+// Mêmes instances que server.js (variable INVIDIOUS_INSTANCES, vide par
+// défaut) : l'ancienne liste en dur était entièrement hors service et ne
+// faisait qu'ajouter des secondes d'attente avant chaque repli.
+const INVIDIOUS_INSTANCES = String(process.env.INVIDIOUS_INSTANCES || '')
+  .split(',')
+  .map(u => u.trim().replace(/\/+$/, ''))
+  .filter(u => /^https:\/\//.test(u));
 
 let currentInstanceIndex = 0;
 
@@ -28,6 +25,7 @@ function rotateInstance() {
 
 // Récupérer la meilleure instance en parallèle (première réponse gagnante)
 async function fetchFromBestInstance(path, timeout = 4000) {
+  if (!INVIDIOUS_INSTANCES.length) throw new Error('Aucune instance Invidious configurée');
   const controller = new AbortController();
   
   const promises = INVIDIOUS_INSTANCES.map(async (instance) => {
@@ -147,6 +145,7 @@ async function getTrendingInvidious(region = 'FR') {
 
 // Détails vidéo Invidious - PARALLÈLE
 async function getVideosInvidious(ids) {
+  if (!INVIDIOUS_INSTANCES.length) throw new Error('Aucune instance Invidious configurée');
   const idArray = ids.split(',');
   console.log(`[Invidious] Détails vidéos parallèles: ${idArray.length} vidéos`);
   

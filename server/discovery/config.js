@@ -14,7 +14,7 @@ const CONFIG = {
   // Cache LRU (max éléments, TTL en ms)
   cache: {
     similar: { max: 500, ttlMs: 24 * 60 * 60 * 1000 },   // 24 h
-    search:  { max: 500, ttlMs: 60 * 60 * 1000 },         // 1 h
+    search:  { max: 5000, ttlMs: 60 * 60 * 1000 },        // 1 h
     token:   { max: 1,   ttlMs: 10 * 60 * 60 * 1000 }    // marge avant expiration TIDAL
   },
 
@@ -43,6 +43,8 @@ const CONFIG = {
     sourceTimeoutMs: 4000,
     candidateLimit: 300,
     replenishThreshold: 40,
+    // Taille max du vivier d'une session, réalimenté à chaque /next
+    maxSessionCandidates: 600,
     batchSize: 20,
     sessionTtlMs: 24 * 60 * 60 * 1000,
     maxPerArtistInBatch: 2,

@@ -1406,7 +1406,7 @@ function classifyStreamError(message) {
 }
 
 // Fallback yt-dlp quand Invidious est bloqué
-async function getAudioStreamWithYtdl(videoId) {
+async function getAudioStreamWithYtdl(videoId, preferM4a = false) {
   const ytdl = getYtdl();
   if (!ytdl) throw new Error('Fallback yt-dlp indisponible sur ce serveur');
 
@@ -1445,9 +1445,15 @@ async function getAudioStreamWithYtdl(videoId) {
 
     const result = await ytdl(`https://www.youtube.com/watch?v=${videoId}`, opts);
 
-    const audioFormats = (result.formats || [])
+    let audioFormats = (result.formats || [])
       .filter(f => f.vcodec === 'none' && f.acodec && f.acodec !== 'none')
       .sort((a, b) => (b.abr || 0) - (a.abr || 0));
+
+    // iOS : privilégier m4a/aac (AVPlayer ne décode pas l'opus webm).
+    if (preferM4a) {
+      const m4a = audioFormats.filter(f => f.ext === 'm4a');
+      if (m4a.length) audioFormats = m4a;
+    }
 
     if (audioFormats.length === 0) {
       throw new Error('Aucun format audio trouvé via yt-dlp');
@@ -1477,19 +1483,21 @@ const streamCache = new NodeCache({ stdTTL: 7200, checkperiod: 600 });
 const pendingStreams = new Map();
 
 // Récupère le stream audio via Invidious avec fallback entre instances, puis yt-dlp
-function getAudioStream(videoId) {
-  const cached = streamCache.get(videoId);
+// preferM4a : l'iOS (AVPlayer) ne lit pas l'opus/webm — on force un format m4a/aac.
+function getAudioStream(videoId, preferM4a = false) {
+  const key = preferM4a ? `${videoId}:m4a` : videoId;
+  const cached = streamCache.get(key);
   if (cached) return Promise.resolve(cached);
-  if (pendingStreams.has(videoId)) return pendingStreams.get(videoId);
+  if (pendingStreams.has(key)) return pendingStreams.get(key);
 
-  const promise = resolveAudioStream(videoId)
-    .then(data => { streamCache.set(videoId, data); return data; })
-    .finally(() => pendingStreams.delete(videoId));
-  pendingStreams.set(videoId, promise);
+  const promise = resolveAudioStream(videoId, preferM4a)
+    .then(data => { streamCache.set(key, data); return data; })
+    .finally(() => pendingStreams.delete(key));
+  pendingStreams.set(key, promise);
   return promise;
 }
 
-async function resolveAudioStream(videoId) {
+async function resolveAudioStream(videoId, preferM4a = false) {
   for (const instance of INVIDIOUS_INSTANCES) {
     try {
       console.log(`[INVIDIOUS] Trying ${instance}...`);
@@ -1517,10 +1525,20 @@ async function resolveAudioStream(videoId) {
       }
       
       // Trouve le meilleur format audio
-      const audioFormats = (data.adaptiveFormats || [])
+      let audioFormats = (data.adaptiveFormats || [])
         .filter(f => f.type && f.type.startsWith('audio/'))
         .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
-      
+
+      // iOS : AVPlayer ne lit pas l'opus (audio/webm) — garder uniquement le mp4/aac.
+      if (preferM4a) {
+        const m4a = audioFormats.filter(f => f.type.startsWith('audio/mp4'));
+        if (!m4a.length) {
+          console.log(`[INVIDIOUS] ${instance} - pas de format m4a, instance suivante`);
+          continue;
+        }
+        audioFormats = m4a;
+      }
+
       if (audioFormats.length === 0) {
         console.log(`[INVIDIOUS] ${instance} - no audio format found`);
         continue;
@@ -1556,7 +1574,7 @@ async function resolveAudioStream(videoId) {
   } else {
     console.log('[INVIDIOUS] Toutes les instances ont échoué, tentative yt-dlp...');
   }
-  return getAudioStreamWithYtdl(videoId);
+  return getAudioStreamWithYtdl(videoId, preferM4a);
 }
 
 // Route pour lister les instances disponibles
@@ -1699,7 +1717,7 @@ app.get('/api/audio/:videoId', rateLimit, async (req, res) => {
   }
 
   try {
-    const streamData = await getAudioStream(videoId);
+    const streamData = await getAudioStream(videoId, req.query.format === 'm4a');
     await pipeAudioStream(req, res, streamData);
   } catch (error) {
     const { status, ...info } = classifyStreamError(error.message);
@@ -1723,7 +1741,8 @@ app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
   }
 
   try {
-    const streamData = await getAudioStream(videoId);
+    const preferM4a = req.query.format === 'm4a';
+    const streamData = await getAudioStream(videoId, preferM4a);
 
     res.json({
       videoId,
@@ -1731,7 +1750,7 @@ app.get('/api/stream/:videoId', rateLimit, async (req, res) => {
       author: streamData.author,
       duration: streamData.duration,
       audioUrl: streamData.audioUrl,
-      proxyUrl: `/api/audio/${videoId}`,
+      proxyUrl: `/api/audio/${videoId}${preferM4a ? '?format=m4a' : ''}`,
       mimeType: streamData.mimeType.split(';')[0].trim(),
       expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // expire dans 4h
       via: streamData.instance
@@ -1754,7 +1773,7 @@ app.get('/api/proxy/stream/:videoId', rateLimit, async (req, res) => {
   }
 
   try {
-    const streamData = await getAudioStream(videoId);
+    const streamData = await getAudioStream(videoId, req.query.format === 'm4a');
     console.log(`[PROXY] Stream ${videoId} via ${streamData.instance}`);
     await pipeAudioStream(req, res, streamData);
   } catch (error) {

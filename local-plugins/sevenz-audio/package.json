@@ -1,0 +1,15 @@
+{
+  "name": "@sevenz/audio-player",
+  "version": "1.0.0",
+  "description": "Lecteur audio natif Sevenz (AVPlayer, crossfade, background audio)",
+  "main": "index.js",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "files": [
+    "ios/",
+    "Package.swift"
+  ]
+}

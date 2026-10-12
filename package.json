@@ -28,6 +28,7 @@
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/haptics": "^8.0.2",
-    "@capacitor/ios": "^8.4.0"
+    "@capacitor/ios": "^8.4.0",
+    "@sevenz/audio-player": "file:local-plugins/sevenz-audio"
   }
 }

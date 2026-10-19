@@ -225,16 +225,10 @@ public class AudioPlayerPlugin extends Plugin {
         // pendant ce temps grâce à son WakeLock.
         new Thread(() -> {
             try {
-                if (NewPipe.getDownloader() == null) {
-                    NewPipe.init(DownloaderImpl.getInstance());
-                }
-                StreamInfo info = StreamInfo.getInfo("https://www.youtube.com/watch?v=" + next.videoId);
-                AudioStream best = info.getAudioStreams().stream()
-                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
-                    .orElse(null);
+                java.util.List<String> urls = extractAudioUrls(next.videoId);
                 // Une autre lecture a été demandée pendant l'extraction.
                 if (playGen.get() != gen) return;
-                if (best == null) {
+                if (urls.isEmpty()) {
                     Log.e(TAG, "Avance native : aucun flux audio pour " + next.videoId);
                     // Piste injouable : on tente la suivante plutôt que de
                     // laisser le silence s'installer.
@@ -243,8 +237,8 @@ public class AudioPlayerPlugin extends Plugin {
                     }
                     return;
                 }
-                putUrl(next.videoId, best.getUrl());
-                sendPlay(app, next, best.getUrl());
+                putUrls(next.videoId, urls);
+                sendPlay(app, next, urls.get(0));
             } catch (Exception e) {
                 Log.e(TAG, "Avance native : extraction échouée pour " + next.videoId, e);
                 if (playGen.get() != gen) return;
@@ -262,6 +256,7 @@ public class AudioPlayerPlugin extends Plugin {
         intent.putExtra("action", ACTION_PLAY);
         intent.putExtra("url", url);
         intent.putExtra("videoId", t.videoId);
+        intent.putExtra("loudnessDb", loudnessOf(t.videoId));
         intent.putExtra("title", t.title);
         intent.putExtra("artist", t.artist);
         intent.putExtra("thumb", t.thumb);
@@ -353,30 +348,8 @@ public class AudioPlayerPlugin extends Plugin {
         new Thread(() -> {
             try {
                 Log.d(TAG, "Starting NewPipeExtractor for: " + videoId);
-                
-                // Initialize NewPipe
-                // Initialize NewPipe downloader
-                if (NewPipe.getDownloader() == null) {
-                    NewPipe.init(DownloaderImpl.getInstance());
-                }
-                
-                YoutubeService service = (YoutubeService) NewPipe.getService(0); // 0 = YouTube
-                
-                String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                Log.d(TAG, "Fetching stream info from: " + videoUrl);
-                
-                // Get stream info
-                StreamInfo info = StreamInfo.getInfo(videoUrl);
-                Log.d(TAG, "Stream info fetched, title: " + info.getName());
-                
-                // Find best audio stream (highest bitrate)
-                java.util.List<AudioStream> audioStreams = info.getAudioStreams();
-                Log.d(TAG, "Found " + audioStreams.size() + " audio streams");
-                
-                AudioStream bestAudio = audioStreams
-                    .stream()
-                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
-                    .orElse(null);
+                java.util.List<String> urls = extractAudioUrls(videoId);
+                Log.d(TAG, "Found " + urls.size() + " audio streams");
 
                 // Demande périmée (autre playVideo, stop, avance native) : ne
                 // surtout pas démarrer cette piste par-dessus.
@@ -385,17 +358,17 @@ public class AudioPlayerPlugin extends Plugin {
                     getActivity().runOnUiThread(() -> call.reject("Superseded"));
                     return;
                 }
-                
-                if (bestAudio == null) {
+
+                if (urls.isEmpty()) {
                     Log.e(TAG, "No audio stream found");
                     getActivity().runOnUiThread(() -> call.reject("No audio available for this video."));
                     return;
                 }
 
-                String audioUrl = bestAudio.getUrl();
-                int bitrate = bestAudio.getAverageBitrate();
-
-                Log.d(TAG, "Found audio URL! Bitrate: " + bitrate + " URL length: " + audioUrl.length());
+                // Les adresses de secours restent en cache : AudioService s'en sert
+                // si ExoPlayer refuse la première (voir nextAlternateUrl).
+                putUrls(videoId, urls);
+                String audioUrl = urls.get(0);
 
                 // Start the AudioService with the extracted URL
                 startAudioService(audioUrl, title, artist, thumb, videoId);
@@ -404,7 +377,6 @@ public class AudioPlayerPlugin extends Plugin {
                     JSObject result = new JSObject();
                     result.put("success", true);
                     result.put("audioUrl", audioUrl);
-                    result.put("bitrate", bitrate);
                     result.put("message", "Playing: " + title);
                     call.resolve(result);
                 });
@@ -431,6 +403,7 @@ public class AudioPlayerPlugin extends Plugin {
         intent.putExtra("action", ACTION_PLAY);
         intent.putExtra("url", url);
         intent.putExtra("videoId", videoId != null ? videoId : "");
+        intent.putExtra("loudnessDb", loudnessOf(videoId));
         intent.putExtra("title", title);
         intent.putExtra("artist", artist);
         intent.putExtra("thumb", thumb);
@@ -550,9 +523,12 @@ public class AudioPlayerPlugin extends Plugin {
     // aucune péremption : une entrée périmée était resservie telle quelle, ExoPlayer
     // prenait un 403, et — faute de gestionnaire d'erreur — la lecture s'arrêtait
     // sans un mot. C'est la panne « ça marchait hier soir ».
+    // `urls` : toutes les adresses audio de la vidéo, la meilleure en tête. Les
+    // suivantes servent de secours sans nouvelle extraction (voir nextAlternateUrl).
     private static final class CachedUrl {
-        final String url; final long expiresAt;
-        CachedUrl(String url, long expiresAt) { this.url = url; this.expiresAt = expiresAt; }
+        final java.util.List<String> urls; final long expiresAt;
+        CachedUrl(java.util.List<String> urls, long expiresAt) { this.urls = urls; this.expiresAt = expiresAt; }
+        String url() { return urls.get(0); }
     }
     private static final Map<String, CachedUrl> urlCache = new ConcurrentHashMap<>();
     private static final long URL_TTL_FALLBACK_MS = 90 * 60 * 1000L;
@@ -573,10 +549,85 @@ public class AudioPlayerPlugin extends Plugin {
         } catch (Exception e) { return fallback; }
     }
 
-    private static void putUrl(String videoId, String url) {
-        if (videoId == null || url == null || url.isEmpty()) return;
+    private static void putUrls(String videoId, java.util.List<String> urls) {
+        if (videoId == null || urls == null || urls.isEmpty()) return;
         if (urlCache.size() >= URL_CACHE_MAX) urlCache.clear(); // borne mémoire simple
-        urlCache.put(videoId, new CachedUrl(url, computeExpiry(url)));
+        urlCache.put(videoId, new CachedUrl(new java.util.ArrayList<>(urls), computeExpiry(urls.get(0))));
+    }
+
+    /**
+     * Extraction NewPipe unique : toutes les adresses audio de la vidéo, triées
+     * par débit décroissant, sans doublon. Avant, chaque appelant ne gardait que
+     * la meilleure ; si ExoPlayer la refusait (format non décodable sur cet
+     * appareil, serveur injoignable), il n'y avait aucune solution de repli.
+     */
+    static java.util.List<String> extractAudioUrls(String videoId) throws Exception {
+        if (NewPipe.getDownloader() == null) {
+            NewPipe.init(DownloaderImpl.getInstance());
+        }
+        // Extracteur gardé sous la main (même nombre de requêtes que
+        // StreamInfo.getInfo(url)) pour y lire le niveau sonore de la vidéo.
+        org.schabi.newpipe.extractor.stream.StreamExtractor ex =
+            NewPipe.getService(0).getStreamExtractor("https://www.youtube.com/watch?v=" + videoId);
+        ex.fetchPage();
+        StreamInfo info = StreamInfo.getInfo(ex);
+        Float loudness = readLoudnessDb(ex);
+        if (loudness != null) {
+            if (loudnessCache.size() >= URL_CACHE_MAX) loudnessCache.clear();
+            loudnessCache.put(videoId, loudness);
+        }
+        java.util.List<AudioStream> streams = new java.util.ArrayList<>(info.getAudioStreams());
+        streams.sort((a, b) -> Integer.compare(b.getAverageBitrate(), a.getAverageBitrate()));
+        java.util.LinkedHashSet<String> urls = new java.util.LinkedHashSet<>();
+        for (AudioStream s : streams) {
+            String u = s.getUrl();
+            if (u != null && !u.isEmpty()) urls.add(u);
+        }
+        return new java.util.ArrayList<>(urls);
+    }
+
+    // Niveau sonore par vidéo : écart en dB à la cible YouTube de -14 LUFS.
+    // Il ne périme pas, contrairement aux URLs, d'où un cache séparé.
+    private static final Map<String, Float> loudnessCache = new ConcurrentHashMap<>();
+
+    /**
+     * NewPipe reçoit `audioConfig.loudnessDb` dans la réponse player de YouTube
+     * mais ne l'expose pas : on le lit dans son champ privé `playerResponse`.
+     * minifyEnabled est à false, le nom du champ survit donc au build. Si une
+     * future version de NewPipe le renomme, on retombe simplement sans égalisation.
+     */
+    private static Float readLoudnessDb(Object extractor) {
+        try {
+            java.lang.reflect.Field f = extractor.getClass().getDeclaredField("playerResponse");
+            f.setAccessible(true);
+            // JsonObject de nanojson est une Map : nanojson n'est qu'une dépendance
+            // d'exécution de NewPipe, on ne peut pas nommer sa classe ici.
+            Object pr = f.get(extractor);
+            Object pc = pr instanceof Map ? ((Map<?, ?>) pr).get("playerConfig") : null;
+            Object ac = pc instanceof Map ? ((Map<?, ?>) pc).get("audioConfig") : null;
+            Object db = ac instanceof Map ? ((Map<?, ?>) ac).get("loudnessDb") : null;
+            return db instanceof Number ? ((Number) db).floatValue() : null;
+        } catch (Throwable t) {
+            Log.w(TAG, "loudnessDb illisible : pas d'égalisation pour cette piste");
+            return null;
+        }
+    }
+
+    /** NaN si inconnu : le service joue alors à volume plein. */
+    static float loudnessOf(String videoId) {
+        Float v = videoId == null ? null : loudnessCache.get(videoId);
+        return v == null ? Float.NaN : v;
+    }
+
+    // Réglage « Volume égalisé » (activé par défaut), lu par le service à
+    // chaque nouvelle piste.
+    private static volatile boolean normalizeVolume = true;
+    public static boolean isNormalizeVolume() { return normalizeVolume; }
+
+    @PluginMethod
+    public void setNormalizeVolume(PluginCall call) {
+        normalizeVolume = call.getBoolean("enabled", true);
+        call.resolve();
     }
 
     /** null si absente OU périmée (l'entrée périmée est purgée au passage). */
@@ -585,7 +636,25 @@ public class AudioPlayerPlugin extends Plugin {
         CachedUrl c = urlCache.get(videoId);
         if (c == null) return null;
         if (System.currentTimeMillis() >= c.expiresAt) { urlCache.remove(videoId); return null; }
-        return c.url;
+        return c.url();
+    }
+
+    /**
+     * Abandonne l'adresse en tête (celle qui vient d'échouer) et renvoie la
+     * suivante, ou null s'il n'en reste plus. Chaque appel en retire une : la
+     * liste s'épuise forcément, aucune boucle de reprise n'est possible.
+     */
+    public static String nextAlternateUrl(String videoId) {
+        if (videoId == null || videoId.isEmpty()) return null;
+        CachedUrl c = urlCache.get(videoId);
+        if (c == null) return null;
+        if (c.urls.size() < 2 || System.currentTimeMillis() >= c.expiresAt) {
+            urlCache.remove(videoId);
+            return null;
+        }
+        java.util.List<String> rest = new java.util.ArrayList<>(c.urls.subList(1, c.urls.size()));
+        urlCache.put(videoId, new CachedUrl(rest, c.expiresAt));
+        return rest.get(0);
     }
 
     /** Purge ciblée : appelée quand ExoPlayer refuse une URL (403/410). */
@@ -641,22 +710,9 @@ public class AudioPlayerPlugin extends Plugin {
         new Thread(() -> {
             try {
                 Log.d(TAG, "Preloading track: " + videoId);
-                
-                // Initialize NewPipe if needed
-                if (NewPipe.getDownloader() == null) {
-                    NewPipe.init(DownloaderImpl.getInstance());
-                }
-                
-                String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                StreamInfo info = StreamInfo.getInfo(videoUrl);
-                
-                AudioStream bestAudio = info.getAudioStreams()
-                    .stream()
-                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
-                    .orElse(null);
-                
-                if (bestAudio != null) {
-                    putUrl(videoId, bestAudio.getUrl());
+                java.util.List<String> urls = extractAudioUrls(videoId);
+                if (!urls.isEmpty()) {
+                    putUrls(videoId, urls);
                     Log.d(TAG, "Preloaded URL cached for: " + videoId);
                 }
             } catch (Exception e) {
@@ -747,6 +803,7 @@ public class AudioPlayerPlugin extends Plugin {
             intent.putExtra("action", "com.sevenz.app.LOAD_NEXT");
             intent.putExtra("url", cachedUrl);
             intent.putExtra("videoId", videoId);
+            intent.putExtra("loudnessDb", loudnessOf(videoId));
             intent.putExtra("title", title);
             intent.putExtra("artist", artist);
             intent.putExtra("thumb", thumb);
@@ -763,21 +820,11 @@ public class AudioPlayerPlugin extends Plugin {
         final long gen = playGen.get();
         new Thread(() -> {
             try {
-                if (NewPipe.getDownloader() == null) {
-                    NewPipe.init(DownloaderImpl.getInstance());
-                }
-                
-                String videoUrl = "https://www.youtube.com/watch?v=" + videoId;
-                StreamInfo info = StreamInfo.getInfo(videoUrl);
-                
-                AudioStream bestAudio = info.getAudioStreams()
-                    .stream()
-                    .max(Comparator.comparingInt(AudioStream::getAverageBitrate))
-                    .orElse(null);
-                
-                if (bestAudio != null) {
-                    String audioUrl = bestAudio.getUrl();
-                    putUrl(videoId, audioUrl);   // le cache reste utile même périmé
+                java.util.List<String> urls = extractAudioUrls(videoId);
+
+                if (!urls.isEmpty()) {
+                    String audioUrl = urls.get(0);
+                    putUrls(videoId, urls);   // le cache reste utile même périmé
 
                     // La piste courante a changé pendant l'extraction : cette
                     // « suivante » ne l'est plus, ne pas la préparer.
@@ -791,6 +838,7 @@ public class AudioPlayerPlugin extends Plugin {
                     intent.putExtra("action", "com.sevenz.app.LOAD_NEXT");
                     intent.putExtra("url", audioUrl);
                     intent.putExtra("videoId", videoId);
+                    intent.putExtra("loudnessDb", loudnessOf(videoId));
                     intent.putExtra("title", title);
                     intent.putExtra("artist", artist);
                     intent.putExtra("thumb", thumb);
@@ -840,10 +888,11 @@ public class AudioPlayerPlugin extends Plugin {
                 }
 
                 String audioUrl = null;
-                if (fetchAudio) {
-                    audioUrl = track.fetchAudioUrl();
-                    if (audioUrl != null && !audioUrl.isEmpty()) {
-                        putUrl(track.videoId, audioUrl);
+                if (fetchAudio && track.videoId != null) {
+                    java.util.List<String> urls = extractAudioUrls(track.videoId);
+                    if (!urls.isEmpty()) {
+                        putUrls(track.videoId, urls);
+                        audioUrl = urls.get(0);
                     }
                 }
 

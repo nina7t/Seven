@@ -5283,6 +5283,7 @@ function stopProgress() {
 
 function updateProgress() {
   recordListeningTime();
+  tickListen();
   const t = getPlayerTime();
   const dur = getPlayerDuration();
   if (dur) {
@@ -5360,7 +5361,24 @@ let _searchToken = 0;
 // évite d'afficher des titres reuploadés/édités par des utilisateurs.
 
 const _metaCache = {};    // query -> résultats Deezer
-const _resolveCache = {}; // sourceId Deezer -> videoId YouTube
+
+// sourceId Deezer -> videoId YouTube. Un videoId ne change pas : gardé d'un
+// lancement à l'autre, une réécoute n'a plus aucune recherche à faire.
+const RESOLVE_STORE_KEY = 'sevenz_resolve_v1';
+const RESOLVE_STORE_MAX = 3000;
+const _resolveCache = lsParse(RESOLVE_STORE_KEY, {});
+const _resolveInflight = {}; // évite deux recherches simultanées du même titre
+let _resolveSaveTimer = null;
+
+function rememberResolved(key, vid) {
+  _resolveCache[key] = vid;
+  clearTimeout(_resolveSaveTimer);
+  _resolveSaveTimer = setTimeout(() => {
+    const keys = Object.keys(_resolveCache);
+    for (const k of keys.slice(0, Math.max(0, keys.length - RESOLVE_STORE_MAX))) delete _resolveCache[k];
+    try { localStorage.setItem(RESOLVE_STORE_KEY, JSON.stringify(_resolveCache)); } catch (e) {}
+  }, 1000);
+}
 
 async function searchMetadata(query) {
   const key = query.toLowerCase().trim();
@@ -5384,7 +5402,51 @@ async function searchMetadata(query) {
 async function resolveVideoId(meta) {
   const cacheKey = meta.sourceId || `${meta.artist}|${meta.title}`;
   if (_resolveCache[cacheKey]) return _resolveCache[cacheKey];
+  if (_resolveInflight[cacheKey]) return _resolveInflight[cacheKey];
 
+  const p = (async () => {
+    // Sur téléphone, le résolveur natif (catalogue YouTube Music, sans serveur
+    // ni quota) trouve la vidéo ET met son adresse audio en cache : le
+    // playVideo qui suit démarre sans attendre. Le serveur reste le repli.
+    const vid = await resolveVideoIdNative(meta) || await resolveVideoIdViaProxy(meta);
+    if (vid) rememberResolved(cacheKey, vid);
+    return vid;
+  })();
+  _resolveInflight[cacheKey] = p;
+  try { return await p; } finally { delete _resolveInflight[cacheKey]; }
+}
+
+async function resolveVideoIdNative(meta) {
+  const plugin = isNativeAudio() && window.Capacitor.Plugins.AudioPlayerPlugin;
+  if (!plugin?.resolveTrack || !meta.artist || !meta.title) return null;
+  try {
+    const opts = { artist: meta.artist, title: meta.title, fetchAudio: true };
+    if (meta.durationSec) opts.durationSec = Math.round(meta.durationSec);
+    const r = await plugin.resolveTrack(opts);
+    return r?.videoId || null;
+  } catch (e) {
+    return null; // aucun match fiable ou réseau : on passe au serveur
+  }
+}
+
+// Démarrage immédiat : sur téléphone, les premiers titres affichés sont résolus
+// en arrière-plan, l'un après l'autre. Au toucher, il ne reste qu'à jouer.
+function prewarmTracks(tracks, n = 3) {
+  if (!isNativeAudio() || !Array.isArray(tracks)) return;
+  const plugin = window.Capacitor.Plugins.AudioPlayerPlugin;
+  const todo = tracks.filter(t => t && (t.id || t.meta)).slice(0, n);
+  (async () => {
+    for (const t of todo) {
+      // videoId déjà connu : seule l'adresse audio manque, le natif l'extrait
+      // et la garde en cache (sans effet si elle y est déjà).
+      if (t.id) { plugin.preload?.({ videoId: t.id }).catch(() => {}); continue; }
+      const vid = await resolveVideoId(t.meta).catch(() => null);
+      if (vid && !t.id) t.id = vid;
+    }
+  })();
+}
+
+async function resolveVideoIdViaProxy(meta) {
   const q = `${meta.artist} ${meta.title}`;
   const res = await fetch(`${PROXY_URL}/youtube/search?q=${encodeURIComponent(q)}&maxResults=5`, { signal: proxySignal() });
   if (!res.ok) throw new Error('Résolution audio indisponible');
@@ -5417,7 +5479,6 @@ async function resolveVideoId(meta) {
     if (score > bestScore) { bestScore = score; best = vid; }
   }
 
-  if (best) _resolveCache[cacheKey] = best;
   return best;
 }
 
@@ -5539,6 +5600,7 @@ async function doSearch(query) {
       </div>
     `;
     bindMetadataResultClicks();
+    prewarmTracks(S.queue);
 
     // Dictée « mets-moi X » : lance directement la piste si le match est net.
     consumeVoiceIntent();
@@ -5983,7 +6045,7 @@ function playTrack(index) {
   }
 
   updateLikeButton();
-  saveToHistory(track);
+  beginListen(track);
 
   // Rafraîchir l'overlay Now Playing s'il est ouvert (titre, pochette, "même veine")
   if (document.getElementById('now-playing-overlay')?.classList.contains('open')) syncNowPlaying();
@@ -6345,7 +6407,7 @@ function refreshNowPlayingUI() {
   updatePlayButton();
   updateLikeButton();
   updateMediaSession(track);
-  saveToHistory(track);
+  beginListen(track);
 
   // Overlay Now Playing s'il est ouvert
   if (document.getElementById('now-playing-overlay')?.classList.contains('open')) syncNowPlaying();
@@ -7098,6 +7160,37 @@ document.querySelectorAll('.lib-filter').forEach(btn => {
     likedItem.style.display = (libFilter === 'playlists') ? 'none' : '';
   });
 });
+
+// Une écoute ne compte qu'après 31 s réellement jouées (seuil de Spotify), ou à
+// la fin d'un titre plus court : un titre zappé au bout de 5 s ne doit ni gonfler
+// les stats ni apparaître dans « Récents ». L'anti-répétition de l'aléatoire
+// (notePlayed) reste, elle, au lancement : un titre zappé a bien été entendu.
+const LISTEN_THRESHOLD_SEC = 31;
+let _pendingListen = null;
+function beginListen(track) {
+  _pendingListen = track ? { track, played: 0, lastPos: null, lastAt: 0 } : null;
+}
+// Appelé à chaque tick de progression. On cumule l'avancée réelle de la tête de
+// lecture : rien en pause, et un saut plus rapide que l'horloge (seek) ne compte pas.
+function tickListen() {
+  const p = _pendingListen;
+  if (!p) return;
+  if (S.currentTrack !== p.track) { _pendingListen = null; return; }
+  const pos = Number(getPlayerTime()) || 0;
+  const now = Date.now();
+  if (p.lastPos !== null && S.isPlaying) {
+    const d = pos - p.lastPos;
+    if (d > 0 && d <= (now - p.lastAt) / 1000 + 1.5) p.played += d;
+  }
+  p.lastPos = pos;
+  p.lastAt = now;
+  const dur = Number(getPlayerDuration()) || 0;
+  const need = dur > 0 ? Math.min(LISTEN_THRESHOLD_SEC, Math.max(1, dur - 2)) : LISTEN_THRESHOLD_SEC;
+  if (p.played >= need) {
+    _pendingListen = null;
+    saveToHistory(p.track);
+  }
+}
 
 function saveToHistory(track) {
   let history = lsParse('sevenz_history', []);
@@ -8948,6 +9041,7 @@ function renderArtistPage(view, data, opts = {}) {
   const following = isFollowingArtist(data.name);
   _artistTracks     = data.tracks;
   _currentArtistName = data.name;
+  prewarmTracks(_artistTracks);
   _artistDisco      = { albums: data.albums || [], singles: data.singles || [] };
 
   const top = data.tracks.slice(0, 5).map((t, i) => `
@@ -9050,6 +9144,7 @@ function renderAlbumPage(view, data) {
   const artistName = data.artist?.name || data.tracks?.[0]?.artist || '';
   _albumTracks = (data.tracks || []).map(metaToTrack);
   _currentAlbumId = al.id;
+  prewarmTracks(_albumTracks);
 
   const kind = al.type === 'single' ? 'Single' : al.type === 'ep' ? 'EP' : 'Album';
   const totalMin = al.durationSec ? Math.round(al.durationSec / 60) : 0;
@@ -11035,6 +11130,8 @@ function loadHomeExtras() {
   S._recents = recents;
   S._radios = radios;
   S._oldFavs = oldFavs;
+  // Les 4 raccourcis de l'accueil sont les titres qu'on relance le plus.
+  prewarmTracks(recents, 4);
 
   const quickCards = [
     mobileQuickCard('Titres likés', "navigateTo('liked')", S.favorites[0]?.thumb || '', 'ti-heart-filled'),

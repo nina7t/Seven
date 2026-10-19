@@ -56,6 +56,10 @@ dependencies {
     implementation 'androidx.media3:media3-exoplayer:1.4.1'
     implementation 'androidx.media3:media3-ui:1.4.1'
     implementation 'androidx.media3:media3-session:1.4.1'
+    // Cache disque des flux (AudioCache) : déjà tirés par exoplayer, déclarés
+    // explicitement pour ne pas dépendre du périmètre d'une dépendance transitive.
+    implementation 'androidx.media3:media3-datasource:1.4.1'
+    implementation 'androidx.media3:media3-database:1.4.1'
     implementation 'androidx.media:media:1.7.0'
     
     // YouTubeExtractor - extracts audio URLs directly on Android

@@ -80,6 +80,7 @@ public class AudioService extends Service {
     private String nextTitle = "";
     private String nextArtist = "";
     private String nextThumb = "";
+    private float nextLoudnessDb = Float.NaN;
 
     // true entre le démarrage du chevauchement et la promotion de nextPlayer.
     // Pendant ce laps, STATE_ENDED du lecteur sortant doit être IGNORÉ : sinon le JS
@@ -90,6 +91,8 @@ public class AudioService extends Service {
     private String currentTitle = "";
     private String currentArtist = "";
     private String currentThumb = "";
+    // Niveau sonore publié par YouTube pour la piste courante (NaN = inconnu).
+    private float currentLoudnessDb = Float.NaN;
     private Bitmap currentArtwork = null;
     private PowerManager.WakeLock wakeLock;
     private MediaSessionCompat mediaSession;
@@ -255,7 +258,7 @@ public class AudioService extends Service {
                 currentArtist = intent.getStringExtra("artist");
                 currentThumb = intent.getStringExtra("thumb");
                 android.util.Log.d("AudioService", "PLAY action - URL: " + (url != null ? "present (" + url.length() + " chars)" : "NULL"));
-                playAudio(url);
+                playAudio(url, playVideoId, intent.getFloatExtra("loudnessDb", Float.NaN));
                 // Après playAudio(), qui remet currentVideoId à vide.
                 currentVideoId = playVideoId != null ? playVideoId : "";
                 break;
@@ -312,7 +315,8 @@ public class AudioService extends Service {
                     intent.getStringExtra("videoId"),
                     intent.getStringExtra("title"),
                     intent.getStringExtra("artist"),
-                    intent.getStringExtra("thumb")
+                    intent.getStringExtra("thumb"),
+                    intent.getFloatExtra("loudnessDb", Float.NaN)
                 );
                 break;
             case ACTION_ABORT_CROSSFADE:
@@ -331,7 +335,9 @@ public class AudioService extends Service {
     // so the upcoming track doesn't auto-start once the player is ready.
     private volatile boolean shouldAutoPlay = true;
     
-    private void playAudio(String url) {
+    // `videoId` sert de clé au cache disque (voir AudioCache) : il faut le
+    // connaître ici, avant que currentVideoId ne soit posé par l'appelant.
+    private void playAudio(String url, String videoId, float loudnessDb) {
         android.util.Log.d("AudioService", "playAudio called, URL: " + (url != null ? url.substring(0, Math.min(50, url.length())) + "..." : "NULL"));
 
         if (url == null || url.isEmpty()) {
@@ -367,6 +373,8 @@ public class AudioService extends Service {
         // Create new player
         player = createSimpleExoPlayer();
         activePlayer = player;
+        currentLoudnessDb = loudnessDb;
+        setGain(player, loudnessDb);
 
         // Si le fondu est activé, la piste démarrera en fondu d'ENTRÉE (volume 0->1)
         // une fois READY. Sinon volume plein immédiat (comportement historique).
@@ -375,9 +383,8 @@ public class AudioService extends Service {
 
         try {
             android.util.Log.d("AudioService", "Setting media item and preparing...");
-            MediaItem mediaItem = MediaItem.fromUri(url);
-            player.setMediaItem(mediaItem);
-            player.setVolume(fadeIn ? 0f : 1.0f);
+            player.setMediaItem(buildMediaItem(url, videoId));
+            setVol(player, fadeIn ? 0f : 1f);
             player.setPlayWhenReady(shouldAutoPlay);
             shouldAutoPlay = true; // consumed; default back to auto-play for the next track
             player.prepare();
@@ -412,9 +419,13 @@ public class AudioService extends Service {
         // historique stable). `handleAudioFocus=true` faisait pauser/reprendre le
         // player tout seul sur les changements de focus -> bouton play et timeline
         // désynchronisés. Avec un seul lecteur, ce focus explicite est inutile.
-        ExoPlayer newPlayer = new ExoPlayer.Builder(this)
-            .setLoadControl(loadControl)
-            .build();
+        ExoPlayer.Builder builder = new ExoPlayer.Builder(this)
+            .setLoadControl(loadControl);
+        // Cache disque partagé : une réécoute démarre sans attendre le réseau.
+        // Si le cache est indisponible, fabrique par défaut (lecture réseau seule).
+        androidx.media3.exoplayer.source.MediaSource.Factory cached = AudioCache.mediaSourceFactory(this);
+        if (cached != null) builder.setMediaSourceFactory(cached);
+        ExoPlayer newPlayer = builder.build();
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -480,8 +491,42 @@ public class AudioService extends Service {
                 if (selfRef[0] != player) return;
                 android.util.Log.e("AudioService", "Lecteur principal en erreur: "
                     + error.getErrorCodeName(), error);
-                // L'URL est probablement morte : ne pas la resservir depuis le cache.
                 final String failedId = currentVideoId;
+
+                // Format refusé, coupure réseau... : la même extraction fournit
+                // d'autres adresses (autre format, autre débit). On en essaie une
+                // avant toute ré-extraction. Inutile sur un 403/410 : toutes les
+                // adresses d'une extraction expirent ensemble.
+                if (!isExpiredUrlError(error)) {
+                    final String alt = AudioPlayerPlugin.nextAlternateUrl(failedId);
+                    if (alt != null) {
+                        final long resumeAt = Math.max(0, player.getCurrentPosition());
+                        final boolean keepPlaying = player.getPlayWhenReady();
+                        final float loudness = currentLoudnessDb; // même piste, même gain
+                        android.util.Log.w("AudioService", "Adresse de secours pour " + failedId);
+                        // Différé : playAudio() libère ce lecteur, dont on parcourt
+                        // justement les listeners.
+                        crossfadeHandler.post(new Runnable() {
+                            @Override public void run() {
+                                if (!failedId.equals(currentVideoId)) return; // autre piste entre-temps
+                                shouldAutoPlay = keepPlaying;
+                                playAudio(alt, failedId, loudness);
+                                currentVideoId = failedId;  // playAudio() le remet à vide
+                                // Reprise au même endroit : pas de fondu d'entrée.
+                                pendingFadeIn = false;
+                                if (player != null) {
+                                    setVol(player, 1f);
+                                    if (resumeAt > 0) player.seekTo(resumeAt);
+                                }
+                            }
+                        });
+                        AudioPlayerPlugin.notifyPlaybackError(failedId, error.getErrorCodeName(),
+                            true, false);
+                        return;
+                    }
+                }
+
+                // L'URL est probablement morte : ne pas la resservir depuis le cache.
                 AudioPlayerPlugin.invalidateUrl(failedId);
                 // Reprise native (écran verrouillé, le JS dort) : 1re erreur ->
                 // ré-extraction de la même piste ; 2e -> piste suivante de la file.
@@ -512,7 +557,27 @@ public class AudioService extends Service {
 
         return newPlayer;
     }
-    
+
+    // Clé de cache = videoId + format (itag), jamais l'URL : les URLs googlevideo
+    // changent à chaque extraction, une clé par URL ne resservirait jamais rien.
+    // L'itag sépare les formats : une adresse de secours d'un autre format ne
+    // doit jamais relire les octets mis en cache pour le premier.
+    private static MediaItem buildMediaItem(String url, String videoId) {
+        MediaItem.Builder b = new MediaItem.Builder().setUri(url);
+        if (videoId != null && !videoId.isEmpty()) {
+            String itag = queryParam(url, "itag");
+            b.setCustomCacheKey(itag != null ? videoId + ":" + itag : videoId);
+        }
+        return b.build();
+    }
+
+    private static String queryParam(String url, String name) {
+        if (url == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+            .compile("[?&]" + name + "=([^&]+)").matcher(url);
+        return m.find() ? m.group(1) : null;
+    }
+
     // ══════════════════════════════════════════════════════════════
     // FONDU MONO-LECTEUR (fade-out de fin + fade-in de début)
     // Toutes ces méthodes tournent sur le MAIN THREAD (handlers main looper).
@@ -540,7 +605,7 @@ public class AudioService extends Service {
             abortCrossfade();
             cancelFade();
             if (player != null) {
-                try { player.setVolume(1f); } catch (Exception ignored) {}
+                try { setVol(player, 1f); } catch (Exception ignored) {}
             }
         }
     }
@@ -608,7 +673,8 @@ public class AudioService extends Service {
 
     // Prépare la piste suivante dans un lecteur séparé : muet, en pause, mais en train
     // de bufferiser. Appelé bien avant la fenêtre de fondu (voir REQUEST_NEXT_LEAD_MS).
-    private void prepareNextPlayer(String url, String videoId, String title, String artist, String thumb) {
+    private void prepareNextPlayer(String url, String videoId, String title, String artist, String thumb,
+                                   float loudnessDb) {
         if (url == null || url.isEmpty()) {
             android.util.Log.w("AudioService", "prepareNextPlayer: URL vide, ignoré");
             return;
@@ -626,6 +692,8 @@ public class AudioService extends Service {
         try {
             final ExoPlayer np = createSimpleExoPlayer();
             nextPlayer = np;
+            nextLoudnessDb = loudnessDb;
+            setGain(np, loudnessDb);
 
             // Listener dédié au rôle "suivante" : il se neutralise tout seul dès que
             // np n'est plus nextPlayer (donc après promotion ou libération).
@@ -647,7 +715,7 @@ public class AudioService extends Service {
                     nextTrackRequested = false;
                     pendingFadeIn = false;
                     if (player != null) {
-                        try { player.setVolume(1f); } catch (Exception ignored) {}
+                        try { setVol(player, 1f); } catch (Exception ignored) {}
                     }
 
                     // La libération, elle, est différée d'un tour de boucle : on est
@@ -664,8 +732,8 @@ public class AudioService extends Service {
                 }
             });
 
-            np.setMediaItem(MediaItem.fromUri(url));
-            np.setVolume(0f);            // silencieux jusqu'au fondu
+            np.setMediaItem(buildMediaItem(url, nextVideoId));
+            setVol(np, 0f);            // silencieux jusqu'au fondu
             np.setPlayWhenReady(false);  // bufferise sans jouer
             np.prepare();
 
@@ -703,7 +771,7 @@ public class AudioService extends Service {
         fadeOutStarted = true;  // bloque tout autre déclenchement sur cette piste
 
         try {
-            in.setVolume(0f);
+            setVol(in, 0f);
             in.play();
         } catch (Exception e) {
             android.util.Log.e("AudioService", "Impossible de démarrer la suivante -> repli", e);
@@ -765,11 +833,12 @@ public class AudioService extends Service {
         currentTitle   = nextTitle;
         currentArtist  = nextArtist;
         currentThumb   = nextThumb;
+        currentLoudnessDb = nextLoudnessDb;   // le gain, lui, est déjà attaché au lecteur promu
         // On GARDE l'ancienne pochette jusqu'à l'arrivée de la nouvelle : la mettre
         // à null ferait clignoter l'écran verrouillé le temps du chargement Glide.
 
         try {
-            player.setVolume(1f);
+            setVol(player, 1f);
             if (wasPlaying) player.play();   // no-op si le chevauchement l'avait démarré
             else player.pause();             // pause externe pendant le fondu : on la respecte
         } catch (Exception ignored) {}
@@ -808,7 +877,7 @@ public class AudioService extends Service {
         nextTrackRequested = false;
         pendingFadeIn = false;
         if (player != null) {
-            try { player.setVolume(1f); } catch (Exception ignored) {}
+            try { setVol(player, 1f); } catch (Exception ignored) {}
         }
     }
 
@@ -822,7 +891,7 @@ public class AudioService extends Service {
 
         final ExoPlayer fp = player;
         float startVol;
-        try { startVol = fp.getVolume(); } catch (Exception e) { startVol = 1f; }
+        try { startVol = getVol(fp); } catch (Exception e) { startVol = 1f; }
         if (startVol <= 0.01f) startVol = 1f; // sécurité
 
         long dur = Math.max(200, remainingMs); // au moins 200ms de rampe
@@ -865,7 +934,7 @@ public class AudioService extends Service {
         final float outFrom;
         if (out != null) {
             float v;
-            try { v = out.getVolume(); } catch (Exception e) { v = 1f; }
+            try { v = getVol(out); } catch (Exception e) { v = 1f; }
             outFrom = (v <= 0.01f) ? 1f : v;
         } else {
             outFrom = 1f;
@@ -882,8 +951,8 @@ public class AudioService extends Service {
 
                 float t = (android.os.SystemClock.uptimeMillis() - startAt) / (float) dur;
                 if (t >= 1f) {
-                    if (out != null) { try { out.setVolume(0f); } catch (Exception ignored) {} }
-                    if (in  != null) { try { in.setVolume(1f);  } catch (Exception ignored) {} }
+                    if (out != null) { try { setVol(out, 0f); } catch (Exception ignored) {} }
+                    if (in  != null) { try { setVol(in, 1f);  } catch (Exception ignored) {} }
                     fadeRunnable = null;
                     if (onComplete != null) onComplete.run();
                     return;
@@ -892,16 +961,62 @@ public class AudioService extends Service {
                 double angle = t * Math.PI / 2.0;
                 if (out != null) {
                     float v = clamp01((float) (outFrom * Math.cos(angle)));
-                    try { out.setVolume(v); } catch (Exception ignored) {}
+                    try { setVol(out, v); } catch (Exception ignored) {}
                 }
                 if (in != null) {
                     float v = clamp01((float) Math.sin(angle));
-                    try { in.setVolume(v); } catch (Exception ignored) {}
+                    try { setVol(in, v); } catch (Exception ignored) {}
                 }
                 fadeHandler.postDelayed(this, FADE_STEP_MS);
             }
         };
         fadeHandler.post(fadeRunnable);
+    }
+
+    // 403/410 du serveur vidéo : l'adresse a expiré (ou a été révoquée). Seule
+    // une nouvelle extraction peut en fournir une valide.
+    @OptIn(markerClass = UnstableApi.class)
+    private static boolean isExpiredUrlError(androidx.media3.common.PlaybackException error) {
+        for (Throwable c = error.getCause(); c != null; c = c.getCause()) {
+            if (c instanceof androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                int code = ((androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) c).responseCode;
+                return code == 403 || code == 410;
+            }
+        }
+        return false;
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // VOLUME ÉGALISÉ
+    // YouTube publie pour chaque vidéo son écart (loudnessDb) à sa cible de
+    // -14 LUFS, la même que Spotify. On ne fait que BAISSER les titres trop
+    // forts : setVolume plafonne à 1, et YouTube ne remonte pas non plus les
+    // titres faibles. Tout le code du fondu manipule un volume « logique » 0..1 ;
+    // setVol/getVol le convertissent avec le gain propre à chaque lecteur, si
+    // bien que les rampes restent complémentaires et que le gain suit le
+    // lecteur lors de la promotion.
+    // ══════════════════════════════════════════════════════════════
+    private final java.util.Map<ExoPlayer, Float> gains = new java.util.WeakHashMap<>();
+
+    private static float gainFor(float loudnessDb) {
+        if (Float.isNaN(loudnessDb) || !AudioPlayerPlugin.isNormalizeVolume()) return 1f;
+        return (float) Math.min(1.0, Math.pow(10, -loudnessDb / 20.0));
+    }
+
+    private void setGain(ExoPlayer p, float loudnessDb) {
+        if (p != null) gains.put(p, gainFor(loudnessDb));
+    }
+
+    private void setVol(ExoPlayer p, float logical) {
+        if (p == null) return;
+        Float g = gains.get(p);
+        try { p.setVolume(clamp01(logical) * (g == null ? 1f : g)); } catch (Exception ignored) {}
+    }
+
+    private float getVol(ExoPlayer p) {
+        Float g = gains.get(p);
+        float raw = p.getVolume();
+        return (g == null || g <= 0f) ? raw : clamp01(raw / g);
     }
 
     private static float clamp01(float v) {
@@ -1050,7 +1165,7 @@ public class AudioService extends Service {
             if (nextPlayer == null) nextTrackRequested = false;
         }
         if (player != null) {
-            try { player.setVolume(1f); } catch (Exception ignored) {}
+            try { setVol(player, 1f); } catch (Exception ignored) {}
         }
     }
 

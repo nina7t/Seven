@@ -624,6 +624,40 @@ public class AudioPlayerPlugin extends Plugin {
     private static volatile boolean normalizeVolume = true;
     public static boolean isNormalizeVolume() { return normalizeVolume; }
 
+    // ── Égaliseur (AudioFx) : lisible et réglable même si le service ne tourne
+    // pas ; le réglage est réappliqué à chaque nouveau lecteur. ──
+    @PluginMethod
+    public void getEqualizerInfo(PluginCall call) {
+        com.sevenz.app.AudioFx.Info info = com.sevenz.app.AudioFx.info(getContext());
+        com.getcapacitor.JSArray bands = new com.getcapacitor.JSArray();
+        for (int i = 0; i < info.centerHz.length; i++) {
+            JSObject b = new JSObject();
+            b.put("centerHz", info.centerHz[i]);
+            b.put("minDb", info.minDb[i]);
+            b.put("maxDb", info.maxDb[i]);
+            bands.put(b);
+        }
+        JSObject result = new JSObject();
+        result.put("available", info.available);
+        result.put("bands", bands);
+        result.put("bassBoost", info.bassBoost);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void setEqualizer(PluginCall call) {
+        boolean enabled = call.getBoolean("enabled", false);
+        float[] gains = new float[0];
+        com.getcapacitor.JSArray arr = call.getArray("bandsDb");
+        if (arr != null) {
+            gains = new float[arr.length()];
+            for (int i = 0; i < gains.length; i++) gains[i] = (float) arr.optDouble(i, 0.0);
+        }
+        Double boost = call.getDouble("bassBoost");
+        com.sevenz.app.AudioFx.set(enabled, gains, boost != null ? boost.floatValue() : 0f);
+        call.resolve();
+    }
+
     @PluginMethod
     public void setNormalizeVolume(PluginCall call) {
         normalizeVolume = call.getBoolean("enabled", true);

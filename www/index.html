@@ -4037,6 +4037,7 @@ body.player-hidden .app { height: 100vh; }
     <button class="icon-btn" id="npToggleBtn" onclick="toggleNpPanel()" title="En lecture"><i class="ti ti-layout-sidebar-right-expand"></i></button>
     <button class="icon-btn" onclick="openQueueManager()" title="File d'attente"><i class="ti ti-playlist"></i></button>
     <button class="icon-btn" onclick="openTransitions()" title="Transitions"><i class="ti ti-arrow-merge"></i></button>
+    <button class="icon-btn" onclick="openEqualizer()" title="Égaliseur"><i class="ti ti-adjustments-horizontal"></i></button>
     <button class="icon-btn"><i class="ti ti-speaker"></i></button>
     <div class="vol-section">
       <i class="ti ti-volume" style="font-size:16px;color:var(--gray)"></i>
@@ -4526,6 +4527,37 @@ body.player-hidden .app { height: 100vh; }
   font-size: 12px; color: #d0a040; background: rgba(208,160,64,0.1);
   border-radius: 14px; padding: 10px 12px; margin-bottom: 20px;
 }
+/* ── Égaliseur : même panneau que Transitions ── */
+.eq-switch {
+  width: 44px; height: 26px; padding: 0; border: 0; border-radius: 99px; flex-shrink: 0;
+  background: rgba(255,255,255,0.22); position: relative; cursor: pointer; transition: background 0.15s;
+}
+.eq-switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s cubic-bezier(.3,0,0,1);
+}
+.eq-switch[aria-checked="true"] { background: var(--accent-primary); }
+.eq-switch[aria-checked="true"]::after { transform: translateX(18px); }
+.eq-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -20px 20px; padding: 0 20px; }
+.eq-chip {
+  flex: 0 0 auto; height: 32px; padding: 0 14px; border: 0; border-radius: 99px;
+  background: var(--bg-elevated); color: var(--text-primary); font: 600 13px/1 'StyreneA', sans-serif;
+}
+.eq-chip.active { background: var(--accent-primary); color: var(--on-accent); }
+.eq-chip:active { transform: none; box-shadow: inset 0 0 0 99px rgba(0,0,0,0.25); }
+.eq-graph { position: relative; background: var(--bg-secondary); border-radius: 12px; padding: 12px 4px 10px; margin-bottom: 16px; }
+.eq-graph.off { opacity: 0.45; }
+.eq-curve { position: absolute; left: 4px; right: 4px; top: 34px; height: 160px; width: calc(100% - 8px); pointer-events: none; }
+.eq-curve path { fill: none; stroke: var(--accent-primary); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.eq-curve line { stroke: rgba(255,255,255,0.12); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.eq-bands { display: grid; position: relative; }
+.eq-band { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.eq-band b { font-size: 12px; font-weight: 600; color: #fff; height: 16px; font-variant-numeric: tabular-nums; }
+.eq-band input[type=range] {
+  writing-mode: vertical-lr; direction: rtl; width: 28px; height: 160px; margin: 0;
+  accent-color: var(--accent-primary); background: transparent; opacity: 0.85;
+}
+.eq-band small { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
 .tr-queue { display: flex; flex-direction: column; }
 .tr-track { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
 .tr-cover {
@@ -4917,6 +4949,7 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
     <button class="np-option" onclick="closeNowPlayingOptions();openQueueManager()"><i class="ti ti-list"></i>Ouvrir la file d’attente</button>
     <button class="np-option" onclick="closeNowPlayingOptions();openSleepTimer()"><i class="ti ti-moon"></i>Minuterie d’arrêt</button>
     <button class="np-option" onclick="closeNowPlayingOptions();openTransitions()"><i class="ti ti-arrow-merge"></i>Transitions</button>
+    <button class="np-option" onclick="closeNowPlayingOptions();openEqualizer()"><i class="ti ti-adjustments-horizontal"></i>Égaliseur</button>
     <button class="np-option" onclick="closeNowPlayingOptions();shareCurrentTrack()"><i class="ti ti-share-3"></i>Partager</button>
   </div>
 </div>
@@ -12188,6 +12221,7 @@ function closeTopLayer() {
     // DESSOUS pendant que Transitions restait affiché. Le marqueur est 'open'
     // (la classe réellement posée), pas un style inline.
     ['transitionsOverlay',  'open',   () => closeTransitions()],
+    ['eqOverlay',           'open',   () => closeEqualizer()],
     ['queueManagerPanel',   null,     () => closeQueueManager()],
     ['lyricsOverlay',       'open',   () => closeLyricsPanel()],
     ['npOptionsOverlay',    'open',   () => closeNowPlayingOptions()],
@@ -12687,6 +12721,7 @@ function openTrackMenu(track, opts = {}) {
         { icon: 'ti-list', label: 'Ouvrir la file d’attente', run: () => openQueueManager() },
         { icon: 'ti-moon', label: 'Minuterie d’arrêt', run: () => openSleepTimer() },
         { icon: 'ti-arrow-merge', label: 'Transitions', run: () => openTransitions() },
+        { icon: 'ti-adjustments-horizontal', label: 'Égaliseur', run: () => openEqualizer() },
       ] : []),
     ],
   });
@@ -13362,6 +13397,246 @@ function renderTransitionsBody() {
     </div>
     ${!isNative ? `<div class="tr-note"><i class="ti ti-info-circle"></i> Aperçu visuel — le fondu audio réel s'applique dans l'app Android (le lecteur web ne le permet pas).</div>` : ''}
     <div class="tr-queue">${list}</div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// ÉGALISEUR — réglé ici, appliqué par le natif (Equalizer Android).
+// Les préréglages sont définis sur 5 fréquences de référence puis projetés
+// sur les vraies bandes de l'appareil, dont le nombre et les centres varient.
+// ════════════════════════════════════════════════════════════
+const EQ_STORE_KEY = 'sevenz_eq_v1';
+const EQ_REF_HZ = [60, 230, 910, 3600, 14000];
+const EQ_PRESETS = [
+  { id: 'off',      label: 'Désactivé',       db: [0, 0, 0, 0, 0],    bass: 0 },
+  { id: 'bass',     label: 'Basses+',         db: [6, 4, 0, 0, 0],    bass: 0.3 },
+  { id: 'treble',   label: 'Aigus+',          db: [0, 0, 0, 3, 6],    bass: 0 },
+  { id: 'v',        label: 'Basses et aigus', db: [5, 2, -1, 2, 5],   bass: 0.2 },
+  { id: 'vocal',    label: 'Voix',            db: [-2, -1, 3, 4, 1],  bass: 0 },
+  { id: 'electro',  label: 'Électro',         db: [5, 3, 0, 2, 4],    bass: 0.3 },
+  { id: 'rap',      label: 'Rap',             db: [6, 4, -1, 1, 2],   bass: 0.4 },
+  { id: 'rock',     label: 'Rock',            db: [4, 2, -2, 2, 4],   bass: 0.1 },
+  { id: 'acoustic', label: 'Acoustique',      db: [3, 1, 1, 2, 2],    bass: 0 },
+];
+
+let _eqInfo = null;   // réponse de getEqualizerInfo, ou { available: false }
+// custom : courbe « Personnalisé », gardée avec ses fréquences pour pouvoir
+// la reprojeter si l'appareil (donc ses bandes) change.
+let _eqState = Object.assign({ enabled: false, preset: 'off', custom: null, bass: 0 }, lsParse(EQ_STORE_KEY, {}));
+
+function eqPlugin() {
+  return isNativeAudio() ? window.Capacitor.Plugins.AudioPlayerPlugin : null;
+}
+
+// Valeur d'une courbe (hz[], db[]) à la fréquence f : interpolation linéaire
+// sur l'échelle log, valeurs des extrémités prolongées au-delà.
+function eqInterp(hz, db, f) {
+  if (f <= hz[0]) return db[0];
+  for (let i = 1; i < hz.length; i++) {
+    if (f <= hz[i]) {
+      const t = Math.log(f / hz[i - 1]) / Math.log(hz[i] / hz[i - 1]);
+      return db[i - 1] + t * (db[i] - db[i - 1]);
+    }
+  }
+  return db[db.length - 1];
+}
+
+function eqCurrentDb() {
+  const bands = _eqInfo?.bands || [];
+  const src = _eqState.preset === 'custom' && _eqState.custom
+    ? _eqState.custom
+    : { hz: EQ_REF_HZ, db: (EQ_PRESETS.find(p => p.id === _eqState.preset) || EQ_PRESETS[0]).db };
+  return bands.map(b => {
+    const v = eqInterp(src.hz, src.db, b.centerHz);
+    return Math.round(Math.max(b.minDb, Math.min(b.maxDb, v)) * 2) / 2;
+  });
+}
+
+function eqSave() {
+  try { localStorage.setItem(EQ_STORE_KEY, JSON.stringify(_eqState)); } catch (e) {}
+}
+
+// Envoi au natif limité à ~1 appel / 100 ms pendant un geste ; `now` force
+// l'envoi (fin du geste, préréglage, interrupteur).
+let _eqPushTimer = null, _eqPushAt = 0;
+function eqPush(now) {
+  const plugin = eqPlugin();
+  if (!plugin?.setEqualizer || !_eqInfo?.available) return;
+  const send = () => {
+    _eqPushAt = Date.now();
+    const enabled = _eqState.enabled && _eqState.preset !== 'off';
+    plugin.setEqualizer({ enabled, bandsDb: eqCurrentDb(), bassBoost: enabled ? _eqState.bass : 0 })
+      .catch(err => console.warn('[EQ] setEqualizer', err));
+  };
+  clearTimeout(_eqPushTimer);
+  const wait = now ? 0 : Math.max(0, 100 - (Date.now() - _eqPushAt));
+  if (wait === 0) send(); else _eqPushTimer = setTimeout(send, wait);
+}
+
+async function eqLoadInfo() {
+  if (_eqInfo) return _eqInfo;
+  const plugin = eqPlugin();
+  try {
+    _eqInfo = plugin?.getEqualizerInfo ? await plugin.getEqualizerInfo() : { available: false };
+  } catch (e) {
+    _eqInfo = { available: false };
+  }
+  if (!_eqInfo.available || !_eqInfo.bands?.length) _eqInfo = { available: false };
+  return _eqInfo;
+}
+
+// Au démarrage : réappliquer le réglage mémorisé, une fois le plugin prêt.
+async function initEqualizer() {
+  if (!eqPlugin()) return;
+  await eqLoadInfo();
+  if (_eqState.enabled) eqPush(true);
+}
+window.addEventListener('load', () => setTimeout(initEqualizer, 500));
+
+function eqHzLabel(hz) {
+  if (hz < 1000) return Math.round(hz) + ' Hz';
+  const k = hz / 1000;
+  return (k >= 10 ? Math.round(k) : k.toFixed(1).replace('.0', '').replace('.', ',')) + ' kHz';
+}
+
+async function openEqualizer() {
+  if (document.getElementById('eqOverlay')) { closeEqualizer(); return; }
+  const overlay = document.createElement('div');
+  overlay.id = 'eqOverlay';
+  overlay.className = 'tr-overlay';
+  overlay.innerHTML = `
+    <div class="tr-header">
+      <button class="icon-btn" onclick="closeEqualizer()" aria-label="Fermer"><i class="ti ti-chevron-down"></i></button>
+      <span class="tr-title">Égaliseur</span>
+      <span id="eqSwitchSlot" style="width:44px"></span>
+    </div>
+    <div class="tr-body" id="eqBody"></div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('open'));
+  await eqLoadInfo();
+  renderEqualizerBody();
+}
+
+function closeEqualizer() {
+  const o = document.getElementById('eqOverlay');
+  if (!o) return;
+  o.classList.remove('open');
+  setTimeout(() => o.remove(), 250);
+}
+
+function renderEqualizerBody() {
+  const body = document.getElementById('eqBody');
+  const slot = document.getElementById('eqSwitchSlot');
+  if (!body) return;
+  if (!_eqInfo?.available) {
+    if (slot) slot.innerHTML = '';
+    body.innerHTML = `
+      <p class="tr-sub">Règle les basses, les médiums et les aigus de toute la musique.</p>
+      <div class="tr-note"><i class="ti ti-info-circle"></i> L'égaliseur fonctionne dans l'appli Android. Ce lecteur ne permet pas de modifier le son.</div>`;
+    return;
+  }
+  const on = _eqState.enabled;
+  if (slot) slot.innerHTML = `<button class="eq-switch" role="switch" aria-checked="${on}" aria-label="Activer l'égaliseur" onclick="eqToggle()"></button>`;
+
+  const chips = EQ_PRESETS.filter(p => p.id !== 'off').map(p =>
+    `<button class="eq-chip${on && _eqState.preset === p.id ? ' active' : ''}" onclick="eqSelectPreset('${p.id}')">${p.label}</button>`
+  ).join('') + (_eqState.custom
+    ? `<button class="eq-chip${on && _eqState.preset === 'custom' ? ' active' : ''}" onclick="eqSelectPreset('custom')">Personnalisé</button>`
+    : '');
+
+  const bands = _eqInfo.bands;
+  const db = eqCurrentDb();
+  const cols = bands.map((b, i) => `
+    <div class="eq-band">
+      <b id="eqVal${i}">${eqDbLabel(db[i])}</b>
+      <input type="range" min="${b.minDb}" max="${b.maxDb}" step="0.5" value="${db[i]}"
+        aria-label="${eqHzLabel(b.centerHz)}"
+        oninput="eqBandInput(${i}, this.value, false)" onchange="eqBandInput(${i}, this.value, true)">
+      <small>${eqHzLabel(b.centerHz)}</small>
+    </div>`).join('');
+
+  const bass = _eqInfo.bassBoost ? `
+    <div class="tr-slider-row">
+      <span>Renfort des basses</span>
+      <input type="range" min="0" max="100" step="1" value="${Math.round(_eqState.bass * 100)}"
+        oninput="eqBassInput(this.value, false)" onchange="eqBassInput(this.value, true)">
+      <span class="tr-sec" id="eqBassVal">${Math.round(_eqState.bass * 100)}%</span>
+    </div>` : '';
+
+  body.innerHTML = `
+    <p class="tr-sub">Choisis un son ou règle chaque fréquence. S'applique à toute la musique.</p>
+    <div class="eq-chips">${chips}</div>
+    <div class="eq-graph${on ? '' : ' off'}">
+      <svg class="eq-curve" id="eqCurve" viewBox="0 0 ${bands.length * 100} 160" preserveAspectRatio="none"></svg>
+      <div class="eq-bands" style="grid-template-columns:repeat(${bands.length},1fr)">${cols}</div>
+    </div>
+    ${bass}`;
+  eqDrawCurve(db);
+  // « Personnalisé » est en bout de rangée : la puce active reste visible.
+  const active = body.querySelector('.eq-chip.active');
+  if (active) active.parentElement.scrollLeft = active.offsetLeft - 20;
+}
+
+function eqDbLabel(v) {
+  const n = Number(v);
+  return (n > 0 ? '+' : '') + String(n).replace('.', ',');
+}
+
+// Courbe tracée derrière les curseurs, alignée sur le centre de chaque bande.
+function eqDrawCurve(db) {
+  const svg = document.getElementById('eqCurve');
+  const bands = _eqInfo?.bands;
+  if (!svg || !bands) return;
+  const y = (v, b) => 160 - ((v - b.minDb) / (b.maxDb - b.minDb)) * 160;
+  const pts = db.map((v, i) => `${i * 100 + 50},${y(v, bands[i]).toFixed(1)}`);
+  const mid = y(0, bands[0]).toFixed(1);
+  svg.innerHTML = `<line x1="0" x2="${bands.length * 100}" y1="${mid}" y2="${mid}"></line><path d="M${pts.join(' L')}"></path>`;
+}
+
+function eqToggle() {
+  _eqState.enabled = !_eqState.enabled;
+  // Allumer sur « Désactivé » ne changerait rien à l'oreille : on part d'un vrai son.
+  if (_eqState.enabled && _eqState.preset === 'off') _eqState.preset = 'v';
+  eqSave(); eqPush(true);
+  renderEqualizerBody();
+}
+
+function eqSelectPreset(id) {
+  _eqState.preset = id;
+  _eqState.enabled = true;
+  const p = EQ_PRESETS.find(x => x.id === id);
+  if (p) _eqState.bass = p.bass;
+  eqSave(); eqPush(true);
+  renderEqualizerBody();
+}
+
+// Pendant le geste on ne redessine que le libellé et la courbe : refaire le
+// panneau remplacerait le curseur sous le doigt et couperait le glissement.
+function eqBandInput(i, value, final) {
+  const bands = _eqInfo?.bands;
+  if (!bands) return;
+  if (_eqState.preset !== 'custom' || !_eqState.custom) {
+    _eqState.custom = { hz: bands.map(b => b.centerHz), db: eqCurrentDb() };
+  }
+  _eqState.preset = 'custom';
+  _eqState.enabled = true;
+  // La courbe personnalisée est stockée sur les bandes de CET appareil.
+  if (_eqState.custom.hz.length !== bands.length) {
+    _eqState.custom = { hz: bands.map(b => b.centerHz), db: eqCurrentDb() };
+  }
+  _eqState.custom.db[i] = Number(value);
+  const label = document.getElementById('eqVal' + i);
+  if (label) label.textContent = eqDbLabel(value);
+  eqDrawCurve(eqCurrentDb());
+  eqPush(final);
+  if (final) { eqSave(); renderEqualizerBody(); }
+}
+
+function eqBassInput(value, final) {
+  _eqState.bass = Math.max(0, Math.min(1, Number(value) / 100));
+  const label = document.getElementById('eqBassVal');
+  if (label) label.textContent = Math.round(_eqState.bass * 100) + '%';
+  if (_eqState.enabled) eqPush(final);
+  if (final) eqSave();
 }
 
 // ── STATS D'ÉCOUTE ───────────────────────────────────────────────────

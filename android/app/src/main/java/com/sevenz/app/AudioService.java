@@ -432,6 +432,13 @@ public class AudioService extends Service {
             .build();
         newPlayer.setAudioAttributes(audioAttributes, false);
         newPlayer.setHandleAudioBecomingNoisy(true);
+        // Session audio commune aux deux lecteurs du fondu : l'égaliseur, attaché
+        // à cette session, s'applique aux deux sans saut à la bascule.
+        int fxSession = AudioFx.sessionId(this);
+        if (fxSession != 0) {
+            newPlayer.setAudioSessionId(fxSession);
+            AudioFx.attach(this);
+        }
         // WAKE_MODE_NETWORK pose un WakeLock CPU *et* un WifiLock. Le service
         // tenait déjà le CPU, mais rien ne gardait la radio Wi-Fi active : en
         // veille profonde, l'extraction réseau de la piste suivante pouvait
@@ -1239,6 +1246,9 @@ public class AudioService extends Service {
             player.release();
             player = null;
         }
+        // Plus aucun lecteur sur la session : les effets sont libérés, le réglage
+        // reste mémorisé pour la prochaine lecture.
+        AudioFx.release();
 
         if (mediaSession != null) {
             mediaSession.setActive(false);
@@ -1385,6 +1395,7 @@ public class AudioService extends Service {
             player.release();
             player = null;
         }
+        AudioFx.release();
 
         if (mediaSession != null) {
             mediaSession.setActive(false);

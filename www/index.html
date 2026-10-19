@@ -1489,7 +1489,7 @@ body.player-hidden .app { height: 100vh; }
 /* Footer */
 .ob-footer {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 20px 32px; display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 20px 32px calc(20px + var(--safe-bottom)); display: flex; align-items: center; justify-content: center; gap: 16px;
   background: linear-gradient(to top, #0a0a0a 60%, transparent);
   z-index: 10000;
 }
@@ -4713,8 +4713,13 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   transition-duration: 0s;
 }
 /* Puces de filtre : l'état actif bascule net. Un fondu de couleur laissait deux
-   puces à moitié allumées pendant 0,2 s (le « jeu de lumière »). */
-.mobile-home-filter, .lib-chip, .search-chip { transition: transform 0.22s var(--ease-out); }
+   puces à moitié allumées pendant 0,2 s (le « jeu de lumière »). À l'appui,
+   la puce fonce sans changer de taille, comme chez Spotify. */
+.mobile-home-filter, .lib-chip, .search-chip { transition: none; }
+.mobile-home-filter:active, .lib-chip:active, .search-chip:active {
+  transform: none;
+  box-shadow: inset 0 0 0 99px rgba(0, 0, 0, 0.25);
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -5546,6 +5551,7 @@ async function doSearch(query) {
       fetchArtistData(query).then(data => {
         if (token !== _searchToken || !data.deezer) return;
         _artistCache[data.name] = data;
+        artistStorePut(data.name, data);
 
         const list = document.getElementById('srList');
         if (list && !document.querySelector('.mb-artist-card')) {
@@ -8777,6 +8783,56 @@ async function fetchArtistData(name) {
   return out;
 }
 
+// Pages artiste gardées d'un lancement à l'autre, façon Spotify : on affiche
+// tout de suite la version enregistrée, puis on la rafraîchit en arrière-plan
+// si elle a plus d'une heure.
+const ARTIST_STORE_KEY = 'sevenz_artist_cache_v1';
+const ARTIST_STORE_MAX = 15;
+const ARTIST_FRESH_MS = 3600 * 1000;
+
+function artistStoreGet(name) {
+  const entry = lsParse(ARTIST_STORE_KEY, {})[name];
+  return entry && entry.data && entry.data.tracks?.length ? entry : null;
+}
+
+function artistStorePut(name, data) {
+  // Seul le résultat Deezer est stable ; le repli YouTube ne mérite pas d'être gardé.
+  if (!data || !data.deezer || !data.tracks?.length) return;
+  const all = lsParse(ARTIST_STORE_KEY, {});
+  all[name] = { data, ts: Date.now() };
+  let keys = Object.keys(all).sort((a, b) => all[b].ts - all[a].ts);
+  for (const k of keys.slice(ARTIST_STORE_MAX)) delete all[k];
+  try { localStorage.setItem(ARTIST_STORE_KEY, JSON.stringify(all)); }
+  catch (e) {
+    // Stockage plein : on ne garde que la moitié la plus récente.
+    keys = keys.slice(0, Math.ceil(ARTIST_STORE_MAX / 2));
+    const kept = Object.fromEntries(keys.filter(k => all[k]).map(k => [k, all[k]]));
+    try { localStorage.setItem(ARTIST_STORE_KEY, JSON.stringify(kept)); } catch (_) {}
+  }
+}
+
+function artistSignature(d) {
+  return JSON.stringify([
+    (d.tracks || []).map(t => t.title),
+    (d.albums || []).map(a => a.id), (d.singles || []).map(a => a.id), (d.releases || []).map(a => a.id),
+    d.deezer?.nbFan
+  ]);
+}
+
+async function refreshArtistInBackground(name) {
+  const fresh = await fetchArtistData(name).catch(() => null);
+  // Réseau en panne ou repli YouTube : on garde la version affichée.
+  if (!fresh || !fresh.deezer || !fresh.tracks.length) return;
+  const old = _artistCache[name];
+  _artistCache[name] = fresh;
+  artistStorePut(name, fresh);
+  const stillHere = document.querySelector('.main')?.getAttribute('data-view') === 'artist'
+    && old && _currentArtistName === old.name;
+  if (stillHere && artistSignature(old) !== artistSignature(fresh)) {
+    renderArtistPage(document.getElementById('artistView'), fresh, { keepScroll: true });
+  }
+}
+
 async function _openArtistDirect(params) {
   const name = params && params.name;
   const view = document.getElementById('artistView');
@@ -8784,12 +8840,22 @@ async function _openArtistDirect(params) {
   if (!name) { view.innerHTML = ''; return; }
 
   let data = _artistCache[name];
+  let stale = false;
+  if (!data) {
+    const stored = artistStoreGet(name);
+    if (stored) {
+      data = _artistCache[name] = stored.data;
+      stale = Date.now() - stored.ts > ARTIST_FRESH_MS;
+    }
+  }
   if (!data || !(data.tracks && data.tracks.length)) {
     view.innerHTML = `<div class="artist-loading"><i class="ti ti-loader-2"></i> Chargement…</div>`;
     data = await fetchArtistData(name);
     _artistCache[name] = data;
+    artistStorePut(name, data);
   }
   renderArtistPage(view, data);
+  if (stale) refreshArtistInBackground(name);
 }
 
 function isFollowingArtist(name) { return lsParse('sevenz_followed_artists', []).includes(name); }
@@ -8870,7 +8936,7 @@ function renderRelatedSection(related) {
   </div>`;
 }
 
-function renderArtistPage(view, data) {
+function renderArtistPage(view, data, opts = {}) {
   const dz = data.deezer;
   const a  = data.mbArtist;
   const heroImg = dz?.picture || data.tracks[0]?.thumb || '';
@@ -8925,6 +8991,7 @@ function renderArtistPage(view, data) {
     const hero = document.getElementById('artistHero');
     if (hero && c) hero.style.setProperty('--artist-accent', c);
   });
+  if (opts.keepScroll) return;
   const content = document.getElementById('mainContent');
   if (content) content.scrollTop = 0;
 }
@@ -9843,7 +9910,7 @@ function finishOnboarding() {
   localStorage.setItem('sevenz_onboarded', '1');
   const overlay = document.getElementById('onboarding');
   overlay.classList.add('closing');
-  setTimeout(() => overlay.classList.add('hidden'), 400);
+  setTimeout(() => { overlay.classList.add('hidden'); try { navigateTo('home'); } catch(e) {} }, 400);
   // Reload trending with new artist prefs
   loadTrending();
 }
@@ -9851,6 +9918,7 @@ function finishOnboarding() {
 function skipOnboarding() {
   localStorage.setItem('sevenz_onboarded', '1');
   document.getElementById('onboarding').classList.add('hidden');
+  try { navigateTo('home'); } catch(e) {}
 }
 
 // Photos récupérées chez Deezer : sur 53 entrées d'origine, 2 seulement avaient
@@ -13192,7 +13260,7 @@ function renderTransitionsBody() {
     <div class="tr-presets">${presets}</div>
     <div class="tr-slider-row">
       <span>Durée</span>
-      <input type="range" min="0" max="12" step="1" value="${sec}" oninput="applyTransition(this.value)">
+      <input type="range" min="0" max="12" step="1" value="${sec}" oninput="this.nextElementSibling.textContent = this.value + 's'" onchange="applyTransition(this.value)">
       <span class="tr-sec">${sec}s</span>
     </div>
     ${!isNative ? `<div class="tr-note"><i class="ti ti-info-circle"></i> Aperçu visuel — le fondu audio réel s'applique dans l'app Android (le lecteur web ne le permet pas).</div>` : ''}

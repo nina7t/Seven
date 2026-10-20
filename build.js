@@ -14,3 +14,11 @@ if (!fs.existsSync(src)) {
 fs.mkdirSync(destDir, { recursive: true });
 fs.copyFileSync(src, dest);
 console.log(`Built: ${src} -> ${dest} (${fs.statSync(dest).size} bytes)`);
+
+// Les polices étaient recopiées à la main dans www/ : une nouvelle police
+// manquait alors dans l'APK sans aucun message.
+const fontsSrc = path.join(__dirname, 'fonts');
+if (fs.existsSync(fontsSrc)) {
+  fs.cpSync(fontsSrc, path.join(destDir, 'fonts'), { recursive: true });
+  console.log('Fonts copied');
+}

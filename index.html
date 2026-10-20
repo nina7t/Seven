@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>sevenz/</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#080C12">
+<meta name="theme-color" content="#121212">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,77 +32,74 @@
   font-style: normal;
 }
 
+/* Texte : Albert Sans (libre, OFL), la plus proche de la police de Spotify
+   par ses proportions. Police variable : un fichier couvre 100 à 900.
+   « StyreneA » reste déclaré comme alias des mêmes fichiers : une cinquantaine
+   de règles le nomment encore, elles passent ainsi à Albert Sans sans être
+   réécrites une à une. */
 @font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-Thin-Trial-BF63f6cbd91263f.otf') format('opentype');
-  font-weight: 100;
+  font-family: 'Albert Sans';
+  src: url('fonts/AlbertSans-latin.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-ThinItalic-Trial-BF63f6cbd95634b.otf') format('opentype');
-  font-weight: 100;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-Light-Trial-BF63f6cbd99dc3e.otf') format('opentype');
-  font-weight: 300;
+  font-family: 'Albert Sans';
+  src: url('fonts/AlbertSans-latin-ext.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-LightItalic-Trial-BF63f6cbd9cb933.otf') format('opentype');
-  font-weight: 300;
+  font-family: 'Albert Sans';
+  src: url('fonts/AlbertSans-Italic-latin.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: italic;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Albert Sans';
+  src: url('fonts/AlbertSans-Italic-latin-ext.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
   font-family: 'StyreneA';
-  src: url('fonts/StyreneA-Regular-Trial-BF63f6cbd970ee9.otf') format('opentype');
-  font-weight: 400;
+  src: url('fonts/AlbertSans-latin.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'StyreneA';
-  src: url('fonts/StyreneA-RegularItalic-Trial-BF63f6cbd94325f.otf') format('opentype');
-  font-weight: 400;
-  font-style: italic;
-}
-@font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-Medium-Trial-BF63f6cbdb24b6d.otf') format('opentype');
-  font-weight: 500;
+  src: url('fonts/AlbertSans-latin-ext.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
   font-family: 'StyreneA';
-  src: url('fonts/StyreneA-MediumItalic-Trial-BF63f6cbd925a68.otf') format('opentype');
-  font-weight: 500;
+  src: url('fonts/AlbertSans-Italic-latin.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: italic;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'StyreneA';
-  src: url('fonts/StyreneA-Bold-Trial-BF63f6cbda1877f.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-BoldItalic-Trial-BF63f6cbd9bec08.otf') format('opentype');
-  font-weight: 700;
+  src: url('fonts/AlbertSans-Italic-latin-ext.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: italic;
-}
-@font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-Black-Trial-BF63f6cbd9da245.otf') format('opentype');
-  font-weight: 900;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'StyreneA';
-  src: url('fonts/StyreneA-BlackItalic-Trial-BF63f6cbd7cb688.otf') format('opentype');
-  font-weight: 900;
-  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 /* Tabler Icons via CDN */
@@ -119,25 +116,28 @@
      Modifier UNIQUEMENT ces 9 valeurs (+ 3 RGB dérivées) pour recolorer toute l'app. */
 
   /* Fonds */
-  /* Les fonds sont teintés vers l'accent, pas neutres : verdis du temps du vert,
-     bleutés maintenant. Sans ça le bleu néon se bat avec un fond resté verdâtre. */
-  --bg-primary:           #080C12;  /* base générale */
-  --bg-primary-rgb:       8,12,18;    /* garder synchro avec --bg-primary */
-  --bg-secondary:         #131A24;  /* cards, sidebar, sections */
-  --bg-secondary-rgb:     19,26,36;   /* garder synchro avec --bg-secondary */
-  --bg-elevated:          #1F2836;  /* hover, éléments surélevés */
+  /* Gris neutres de Spotify (relevés dans ses feuilles de style) : le fond bleu
+     nuit faisait « autre appli » au premier coup d'œil. */
+  --bg-primary:           #121212;  /* base générale */
+  --bg-primary-rgb:       18,18,18;   /* garder synchro avec --bg-primary */
+  --bg-secondary:         #1f1f1f;  /* cards, sidebar, sections */
+  --bg-secondary-rgb:     31,31,31;   /* garder synchro avec --bg-secondary */
+  --bg-elevated:          #2a2a2a;  /* hover, éléments surélevés */
+  --bg-press:             #191919;  /* surface appuyée */
+  --skeleton:             #282828;  /* emplacement d'image en chargement */
+  --bg-nav:               #030303;  /* barre du bas (mesurée sur l'appli Android) */
 
   /* Accents */
-  --accent-primary:       #16B9FF;  /* bleu néon — CTA, lecture en cours */
-  --accent-primary-hover: #4FCBFF;  /* survol du CTA */
-  --accent-primary-rgb:   22,185,255; /* = --accent-primary, pour les rgba(). À garder synchro. */
+  --accent-primary:       #1ED760;  /* vert Spotify — CTA, lecture en cours (était #16B9FF) */
+  --accent-primary-hover: #3BE477;  /* survol du CTA */
+  --accent-primary-rgb:   30,215,96; /* = --accent-primary, pour les rgba(). À garder synchro. */
   /* Violet et non plus bleu royal : à côté d'un primaire bleu néon, un
      secondaire bleu serait indistinguable. Écart mesuré 156 (contre 142 avant). */
   --accent-secondary:     #A57BFF;  /* violet — liens, focus, badges */
 
   /* Texte & bordures */
-  --text-primary:         #F1F3F7;  /* blanc cassé */
-  --text-secondary:       #A2ABBA;  /* gris moyen légèrement bleuté */
+  --text-primary:         #FFFFFF;
+  --text-secondary:       #B3B3B3;  /* gris secondaire de Spotify */
   --border:               rgba(255,255,255,0.07);
 
   /* Texte posé SUR --accent-primary : le noir passe AA (9.42:1),
@@ -155,7 +155,7 @@
   --accent:     var(--accent-secondary);
   --white:      var(--text-primary);
   --gray:       var(--text-secondary);
-  --dark-gray:  #6F7A8A;
+  --dark-gray:  #7C7C7C;
   --purple:     var(--accent-primary);
   --pink:       var(--accent-primary);
   --orange:     var(--accent-primary);
@@ -316,7 +316,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, .icon-btn:
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'StyreneA', sans-serif;
+  font-family: 'Albert Sans', system-ui, sans-serif;
   overflow: hidden;
   height: 100vh;
 }
@@ -328,6 +328,13 @@ h1, h2, h3 {
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+/* Mobile / tactile : aucune barre de défilement, comme sur Spotify. Dans la
+   WebView Android, la barre stylée ci-dessus prenait 6 px de mise en page
+   (contenu arrêté à 414 au lieu de 420) ; les carrousels montraient la leur. */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  * { scrollbar-width: none !important; }
+  ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+}
 
 /* APP SHELL — panneaux flottants (Spotify 2024) */
 .app {
@@ -3533,6 +3540,216 @@ body.player-hidden .app { height: 100vh; }
 .user-dropdown-item.danger { color:#ff6b6b; }
 .search-explore,.mobile-library-view{display:none;padding:calc(12px + var(--safe-top)) 0 130px}.search-explore.active,.mobile-library-view.active{display:block}.mobile-page-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}.mobile-page-head h1{flex:1;font-size:28px;letter-spacing:-1px}.mobile-page-head>button{width:40px;height:40px;border:0;background:transparent;color:var(--text-primary);font-size:24px}.mobile-page-avatar{border-radius:50%!important;overflow:hidden}.mobile-page-avatar img{width:100%;height:100%;object-fit:cover}.explore-search{height:48px;padding:0 15px;border-radius:7px;background:#f4f4f4;color:#191919;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;margin-bottom:24px}.explore-search input{width:100%;border:0;outline:0;background:transparent;color:#191919;font:600 14px/1 'StyreneA',sans-serif}.explore-search-go,.explore-search-mic{flex:0 0 34px;width:34px;height:34px;padding:0;display:grid;place-items:center;border:0;border-radius:50%;font-size:18px}.explore-search-go{background:#191919;color:#fff}.explore-search-mic{background:transparent;color:#555}.explore-search-go[hidden],.explore-search-mic[hidden]{display:none}@keyframes micPulseFlat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.15)}}.explore-search-mic.listening{color:#c91835;animation:micPulseFlat 1s ease-in-out infinite}.main[data-view="search"] .topbar,.main[data-view="library"] .topbar{display:none}.search-explore h2{font-size:17px;margin:24px 0 12px}.explore-entry-grid,.explore-genre-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.explore-entry-grid button,.explore-genre-card{position:relative;min-height:74px;padding:14px;border:0;border-radius:7px;overflow:hidden;color:#fff;text-align:left;font:700 15px/1.2 'StyreneA',sans-serif}.explore-entry-grid button:nth-child(1){background:#a34d8d}.explore-entry-grid button:nth-child(2){background:#c91835}.explore-entry-grid button:nth-child(3){background:#304aaf}.explore-entry-grid button:nth-child(4){background:#7e46b6}.explore-entry-grid i{position:absolute;right:10px;bottom:8px;font-size:30px;opacity:.65}.explore-genre-card{min-height:116px;background-size:cover;background-position:center;display:flex;align-items:flex-end}.explore-genre-card::after{content:'';position:absolute;inset:0;background:linear-gradient(transparent,rgba(0,0,0,.72))}.explore-genre-card span{position:relative;z-index:1}.mobile-section-head,.library-sort-row{display:flex;align-items:center;justify-content:space-between}.mobile-section-head h2{margin:0}.mobile-section-head button,.library-sort-row button{border:0;background:none;color:var(--text-secondary)}.search-chip-row,.library-filter-bar{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}.search-chip,.lib-chip{flex:0 0 auto;padding:8px 14px;border:0;border-radius:99px;background:var(--bg-elevated);color:var(--text-primary)}.lib-chip.active{background:var(--accent-primary);color:var(--on-accent)}.library-search-input{display:none;width:100%;margin-bottom:12px;padding:12px;border:0;border-radius:8px;background:var(--bg-elevated);color:var(--text-primary)}.library-search-input.open{display:block}.library-sort-row{padding:18px 0 10px}.library-sort-row button{display:flex;gap:8px;font-weight:700}.mobile-library-item{display:flex;align-items:center;gap:12px;padding:7px 0;min-width:0}.mobile-library-cover{width:58px;height:58px;flex:0 0 58px;border-radius:4px;display:grid;place-items:center;background:var(--bg-elevated);background-size:cover;background-position:center;font-size:24px}.mobile-library-cover.artist{border-radius:50%}.mobile-library-copy{min-width:0;flex:1}.mobile-library-copy strong,.mobile-library-copy span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mobile-library-copy span{margin-top:4px;color:var(--text-secondary);font-size:12px}.library-pin{width:38px;height:38px;border:0;background:none;color:var(--text-secondary);font-size:18px}.library-pin.active{color:var(--accent-primary)}
 @media(min-width:769px){.search-explore,.mobile-library-view{max-width:900px;margin:auto}.mobile-page-avatar{display:none}}
+/* ── Recherche façon Spotify : tout est préfixé #searchExplore / #searchResults
+   pour ne toucher aucune autre page. Pas de recherche à la frappe (Entrée seulement). */
+#searchExplore .mobile-page-head{gap:12px;margin-bottom:14px;min-height:40px}
+#searchExplore .mobile-page-head h1{font-size:24px;font-weight:700;letter-spacing:-.02em;font-family:'StyreneA',sans-serif}
+#searchExplore .mobile-page-avatar{width:32px;height:32px;flex:0 0 32px;padding:0}
+.explore-search-row{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+#searchExplore .explore-search{flex:1;min-width:0;height:48px;margin:0;padding:0 6px 0 12px;gap:10px;border-radius:6px;background:#fff;color:#121212}
+#searchExplore .explore-search>i{font-size:24px;color:#121212}
+#searchExplore .explore-search input{font:600 16px/1.2 'StyreneA',sans-serif;color:#121212}
+#searchExplore .explore-search input::placeholder{color:#535353}
+#searchExplore .explore-search-mic{width:36px;height:36px;flex:0 0 36px;color:#121212;font-size:22px}
+#searchExplore .explore-search-go{width:34px;height:34px;flex:0 0 34px;background:#121212;color:#fff}
+.explore-search-cancel,.sr-head-cancel{display:none;flex:0 0 auto;padding:8px 0;border:0;background:none;color:var(--text-primary);font:700 15px/1 'StyreneA',sans-serif}
+#searchExplore.is-focused .mobile-page-head,#searchExplore.is-focused .explore-browse-title,#searchExplore.is-focused .explore-genre-grid{display:none}
+#searchExplore.is-focused .explore-search-row{margin-bottom:16px}
+#searchExplore.is-focused .explore-search{height:40px;background:var(--bg-elevated);color:var(--text-primary)}
+#searchExplore.is-focused .explore-search>i,#searchExplore.is-focused .explore-search input,#searchExplore.is-focused .explore-search-mic{color:var(--text-primary)}
+#searchExplore.is-focused .explore-search input::placeholder{color:var(--text-secondary)}
+#searchExplore.is-focused .explore-search-go{background:var(--accent-primary);color:var(--on-accent)}
+#searchExplore.is-focused .explore-search-cancel{display:block}
+#searchExplore .search-recent h2{font-size:18px;margin:4px 0 8px}
+.search-recent-item{display:flex;align-items:center;gap:4px}
+.sri-main{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:6px 0;border:0;background:none;color:var(--text-primary);text-align:left}
+.sri-icon{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:4px;background:var(--bg-elevated);color:var(--text-secondary);font-size:22px}
+.sri-text{font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sri-remove{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border:0;background:none;color:var(--text-secondary);font-size:20px}
+.search-recent-clear{display:block;margin:20px auto 0;padding:10px 16px;border:1px solid var(--text-secondary);border-radius:99px;background:none;color:var(--text-primary);font:700 14px/1 'StyreneA',sans-serif}
+.search-focus-hint{display:none;padding:56px 24px 0;text-align:center}
+#searchExplore.is-focused .search-focus-hint:not(:empty){display:block}
+.search-focus-hint strong{display:block;margin-bottom:8px;font-size:22px;font-weight:700}
+.search-focus-hint p{margin:0;color:var(--text-secondary);font-size:14px}
+#searchExplore .explore-browse-title{margin:0 0 12px;font-size:16px;font-weight:700}
+#searchExplore .explore-genre-grid{gap:10px}
+#searchExplore .explore-genre-card{display:block;min-height:0;aspect-ratio:1.8;padding:12px;border-radius:6px;background:var(--tile,#477D95);background-image:none;color:#fff;font:700 16px/1.2 'StyreneA',sans-serif;overflow:hidden}
+#searchExplore .explore-genre-card::after{content:none}
+#searchExplore .explore-genre-card span{position:absolute;top:12px;left:12px;max-width:62%;overflow-wrap:break-word}
+.egc-art{position:absolute;right:-7%;bottom:-6%;width:38%;aspect-ratio:1;object-fit:cover;border-radius:4px;transform:rotate(25deg);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+#searchResults{background:none!important}
+.sr-head{position:sticky;top:-8px;z-index:5;margin:-8px -12px 0;padding:calc(12px + var(--safe-top)) 16px 10px;background:var(--bg-secondary)}
+@media(min-width:769px){.sr-head{margin:-8px -24px 0;padding:12px 24px 10px}}
+.sr-head-row{display:flex;align-items:center;gap:12px}
+.sr-head .sr-head-cancel{display:block}
+.sr-head-search{flex:1;min-width:0;height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;border:0;border-radius:6px;background:var(--bg-elevated);color:var(--text-primary);font:600 15px/1 'StyreneA',sans-serif;text-align:left}
+.sr-head-search i{font-size:22px}
+.sr-head-search span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sr-chips{display:flex;gap:8px;margin-top:12px;overflow-x:auto;scrollbar-width:none}
+.sr-chips .search-chip{height:32px;padding:0 14px;font-size:14px;font-weight:500}
+.sr-chips .search-chip.active{background:var(--accent-primary);color:var(--on-accent)}
+#searchResults[data-filter="tracks"] .mb-artist-card,#searchResults[data-filter="tracks"] .albums-section,#searchResults[data-filter="artists"] #srList,#searchResults[data-filter="artists"] .albums-section,#searchResults[data-filter="albums"] #srList,#searchResults[data-filter="albums"] .mb-artist-card{display:none}
+#searchResults .mb-artist-card{gap:12px;margin:0;padding:8px 4px;border:0;background:none}
+#searchResults .mb-avatar{width:56px;height:56px;box-shadow:none}
+#searchResults .mb-artist-info{display:flex;flex-direction:column}
+#searchResults .mb-name{order:1;margin:0;font-size:16px;font-weight:500;letter-spacing:0}
+#searchResults .mb-type{order:2;margin:2px 0 0;font-size:14px;text-transform:none;letter-spacing:0;color:var(--text-secondary)}
+#searchResults .mb-disambig{display:none}
+#searchResults .albums-section{padding:12px 4px 8px;border:0}
+#searchResults .search-results-list{padding:0 4px 16px}
+#searchResults .search-results-list .result-item{padding:8px 0;border-radius:0}
+#searchResults .search-results-list .result-thumb{border-radius:4px}
+#searchResults .search-results-list .result-title{font-size:16px}
+#searchResults .search-results-list .result-artist{font-size:14px}
+#searchResults .search-results-list .result-artist::before{content:'Titre • '}
+/* ── Recherche : passe « pixel » sur Spotify Android (mesures en px CSS, écran 420 px) ── */
+#searchExplore .explore-browse-title{display:none}
+#searchExplore .egc-art[hidden]{display:none}
+.explore-search-cancel>i,.sr-head-cancel>i{font-size:24px}
+.sr-head-clear{display:none}
+.sr-chip-clear{display:none}
+.sr-follow{flex:0 0 auto;margin-left:auto;height:34px;padding:0 16px;border:1px solid #7c7c7c;border-radius:17px;background:none;color:var(--text-primary);font:700 14px/1 'Albert Sans',sans-serif;cursor:pointer}
+@media(max-width:768px){
+  /* Parcourir : en-tête 54→102, barre blanche 388×48 à y 126, tuiles à y 206 */
+  #searchExplore{padding:calc(var(--safe-top) - 8px) 4px 130px}
+  .main[data-view="search"]{background-image:none}
+  #searchExplore .mobile-page-head{gap:16px;height:48px;min-height:48px;margin:0 0 16px}
+  #searchExplore .mobile-page-head h1{font-size:25px;line-height:1}
+  #searchExplore .explore-search-row{position:sticky;top:calc(var(--safe-top) - 8px);z-index:4;gap:0;margin:0 -16px 24px;padding:8px 16px;background:var(--bg-primary)}
+  #searchExplore .explore-search{padding:0 8px;gap:8px;border-radius:4px}
+  #searchExplore .explore-search input{font-weight:700}
+  /* Bande opaque derrière la barre d'état (0 → haut de la barre collante) : défilé, l'avatar et le titre passent dessous, comme Spotify. */
+  #searchExplore:not(.is-focused)::before{content:'';position:fixed;top:0;left:0;right:0;height:calc(var(--safe-top) - 8px);background:var(--bg-primary);z-index:4;pointer-events:none}
+  /* Loupe 20 → 21,7 px d'encre ; marges négatives : le texte ne bouge pas */
+  #searchExplore .explore-search>i{font-size:26px;margin:0 -1px}
+  /* Champ actif = clavier ouvert : Spotify masque la barre d'onglets (et le mini-lecteur) au lieu de les faire flotter au-dessus du clavier */
+  body:has(.main[data-view="search"] #searchExplore.is-focused) #mobileBottomNav,body:has(.main[data-view="search"] #searchExplore.is-focused) .player{display:none}
+  #searchExplore .explore-genre-grid{gap:16px}
+  #searchExplore .explore-genre-card{aspect-ratio:auto;height:101px;padding:0}
+  #searchExplore .explore-genre-card span{top:9px;left:9px;max-width:100px;line-height:22px;font-size:16.5px;-webkit-hyphens:auto;hyphens:auto}
+  #searchExplore .egc-art{width:77px;height:77px;right:-12px;bottom:-5px;border-radius:4px}
+  /* Champ actif : bandeau #1f1f1f jusqu'en haut, flèche « Annuler » 48 px, champ pilule 32 px #363636 */
+  #searchExplore.is-focused .explore-search-row{position:relative;top:auto;height:calc(48px + var(--safe-top));box-sizing:border-box;margin:calc(0px - var(--safe-top)) -16px 16px;padding:var(--safe-top) 16px 0 0;background:var(--bg-secondary)}
+  #searchExplore.is-focused .explore-search{height:32px;padding:0 4px 0 13px;border-radius:16px;background:#363636}
+  #searchExplore.is-focused .explore-search>i{display:none}
+  #searchExplore.is-focused .explore-search input{font-weight:500}
+  #searchExplore.is-focused .explore-search input::placeholder{color:#b3b3b3}
+  #searchExplore .explore-search-cancel{order:-1;width:48px;height:48px;flex:0 0 48px;padding:0;place-items:center}
+  #searchExplore.is-focused .explore-search-cancel{display:grid}
+  #searchExplore.is-focused .explore-search-mic{width:28px;height:28px;flex:0 0 28px;font-size:18px;color:#b3b3b3}
+  #searchExplore.is-focused .explore-search-go{width:26px;height:26px;flex:0 0 26px;font-size:16px}
+  #searchExplore .search-recent h2{margin:0 0 8px;font-size:21px;line-height:24px;letter-spacing:-.02em}
+  #searchExplore .search-recent-item{height:64px;gap:0}
+  #searchExplore .sri-main{padding:8px 0;gap:12px}
+  #searchExplore .sri-text{font-weight:400}
+  #searchExplore .sri-remove{width:48px;height:48px;flex:0 0 48px;margin-right:-16px;font-size:24px;color:#b3b3b3}
+  /* Résultats : bandeau #1f1f1f 0→150 (champ 54→102, puces 32 px à y 110) */
+  .sr-head{padding:var(--safe-top) 0 8px}
+  .sr-head-row{position:relative;height:48px;gap:0;padding-right:16px}
+  .sr-head .sr-head-cancel{display:grid;width:48px;height:48px;flex:0 0 48px;padding:0;place-items:center}
+  .sr-head-search{height:32px;padding:0 44px 0 13px;border-radius:16px;background:#363636;font:600 16px/1 'Albert Sans',sans-serif}
+  .sr-head-clear{position:absolute;right:13px;top:4px;width:40px;height:40px;display:grid;place-items:center;padding:0;border:0;background:none;color:#b3b3b3;font-size:20px}
+  .sr-chips{margin-top:8px;padding:0 16px}
+  #searchResults .sr-chips .search-chip{padding:0 8.75px;background:#363636;font-weight:400}
+  #searchResults .sr-chips .search-chip.active{background:var(--accent-primary);color:var(--on-accent)}
+  .sr-chips .sr-chip-clear{flex:0 0 32px;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:#363636;color:var(--text-primary);font-size:20px}
+  .sr-chips.filtered .sr-chip-clear{display:grid;place-items:center}
+  .sr-chips.filtered .search-chip:not(.active){display:none}
+  #searchResults .mb-artist-card{align-items:center;padding:8px 0 8px 4px;gap:12px}
+  #searchResults .mb-avatar{width:48px;height:48px;flex:0 0 48px}
+  #searchResults .mb-artist-info{flex:1;min-width:0}
+  #searchResults .mb-type{font-size:13.5px;margin-top:3px}
+  #searchResults .albums-section{padding:14px 4px 8px}
+  #searchResults .albums-section-title{font-size:21px;line-height:24px;letter-spacing:-.02em;margin-bottom:12px}
+  #searchResults .albums-row{gap:16px;scrollbar-width:none}
+  #searchResults .albums-row::-webkit-scrollbar{display:none}
+  #searchResults .album-card{flex:0 0 124px;width:124px}
+  #searchResults .album-cover{width:124px;height:124px;border-radius:3px}
+  #searchResults .album-name{margin-top:8px;font-size:14.5px;font-weight:700;line-height:18px;white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #searchResults .album-year{display:none}
+  #searchResults .search-results-list .result-item{grid-template-columns:48px 1fr auto;gap:12px}
+  #searchResults .search-results-list .result-artist{font-size:13.5px;margin:4px 0 -2px}
+  #searchResults .search-results-list .track-more{width:48px;height:48px;margin-right:-12px;font-size:22px;color:#b3b3b3}
+  #searchResults .search-results-list .track-more i{transform:rotate(90deg)}
+  #searchResults[data-filter="tracks"] .search-results-list .result-artist::before{content:none}
+}
+/* ── Bibliothèque façon « Your Library » de Spotify (tout est sous #libraryView) ── */
+#libraryView .mobile-page-head{gap:4px;margin-bottom:12px;min-height:44px}
+#libraryView .mobile-page-head h1{margin-left:8px;font-size:24px;line-height:1.1;letter-spacing:-.02em;font-family:'StyreneA',sans-serif;font-weight:700}
+#libraryView .mobile-page-avatar{width:34px;height:34px;flex:0 0 34px;padding:0}
+#libraryView .mobile-page-head>button:not(.mobile-page-avatar){width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:26px}
+#libraryView .library-filter-bar{gap:8px;align-items:center;padding:2px 0}
+#libraryView .lib-chip{height:32px;padding:0 14px;border-radius:99px;font:500 14px/32px 'StyreneA',sans-serif;background:var(--bg-elevated);color:var(--text-primary)}
+#libraryView .lib-chip.active{background:var(--accent-primary);color:var(--on-accent)}
+#libraryView .lib-chip-clear{display:none;width:32px;padding:0;place-items:center;font-size:16px}
+#libraryView .library-filter-bar.filtered .lib-chip-clear{display:grid}
+#libraryView .library-filter-bar.filtered .lib-chip[data-filter]:not(.active){display:none}
+#libraryView .library-search-input{-webkit-appearance:none;appearance:none;font:500 14px 'StyreneA',sans-serif}
+#libraryView .library-sort-row{padding:14px 0 6px}
+#libraryView .library-sort-row button{align-items:center;gap:8px;padding:0;font:600 14px/1 'StyreneA',sans-serif;color:var(--text-primary)}
+#libraryView .library-sort-row button i{font-size:17px}
+#libraryView .library-sort-row .library-view-toggle{width:44px;height:44px;justify-content:flex-end;color:var(--text-primary)}
+#libraryView .library-sort-row .library-view-toggle i{font-size:20px}
+#libraryView .mobile-library-item{gap:12px;padding:8px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#libraryView .mobile-library-cover{position:relative;overflow:hidden;width:64px;height:64px;flex:0 0 64px;color:var(--text-secondary);font-size:26px}
+#libraryView .mobile-library-cover.liked{background:linear-gradient(135deg,#450af5,#c4efd9);color:#fff;font-size:24px}
+#libraryView .mobile-library-cover.add{background:var(--bg-elevated);color:var(--text-primary);font-size:28px}
+#libraryView .mobile-library-copy strong{font:500 16px/1.3 'StyreneA',sans-serif;color:var(--text-primary)}
+#libraryView .mobile-library-copy span{display:flex;align-items:center;gap:6px;margin-top:2px;font:400 13px/1.3 'StyreneA',sans-serif;color:var(--text-secondary)}
+#libraryView .mobile-library-copy em{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#libraryView .lib-pinned{flex:0 0 auto;color:var(--accent-primary);font-size:13px}
+#libraryView .mobile-library-list .empty-state{padding:28px 0 12px;text-align:left;color:var(--text-secondary);font-size:14px}
+#libraryView .mobile-library-list.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 12px;padding-top:6px}
+#libraryView .mobile-library-list.grid .empty-state{grid-column:1/-1}
+#libraryView .grid .mobile-library-item{flex-direction:column;align-items:stretch;gap:8px;padding:0}
+#libraryView .grid .mobile-library-cover{width:100%;height:auto;aspect-ratio:1;flex:none;font-size:36px}
+#libraryView .grid .mobile-library-copy strong{font-size:13px;font-weight:500}
+#libraryView .grid .mobile-library-copy span{font-size:12px}
+#libraryView .grid .lib-add .mobile-library-copy strong{white-space:normal;text-align:center}
+/* Relevés pixel sur Spotify Android (écran de 420) : en-tête de 48 sous la barre
+   d'état, titre à 64, loupe et « + » de 48 collés au bord, puces dès x 8 sur une
+   bande pleine largeur ombrée, tri à 20, lignes au pas de 80 avec la pochette en
+   haut et une marge de 12, grille 3 × 118,7 espacée de 16. */
+#libraryView .mobile-page-head{gap:0;height:48px;min-height:48px;margin-bottom:5px}
+#libraryView.mobile-library-view .mobile-page-head>h1{margin-left:16px;letter-spacing:-.28px}
+#libraryView .mobile-page-head>button:not(.mobile-page-avatar){width:48px;height:48px;font-size:25px}
+#libraryView .mobile-page-head>button.lib-head-plus{margin:0 -16px 0 1px}
+#libraryView .lib-head-plus svg{width:22px;height:22px}
+#libraryView .library-filter-bar{margin:0 -16px;box-shadow:0 3px 3px -1px rgba(0,0,0,.5)}
+#libraryView .lib-chip{padding:0 10px;font-size:13px}
+#libraryView .lib-chip-clear{padding:0;font-size:16px}
+#libraryView .library-sort-row button.lib-sort-btn{gap:8px;padding-left:4px}
+#libraryView .lib-sort-btn svg{width:16px;height:16px;flex:0 0 16px}
+#libraryView .library-sort-row button span{font-size:14px;letter-spacing:-.45px}
+#libraryView .library-sort-row .library-view-toggle{width:48px;height:48px;margin-right:-2px}
+#libraryView .library-sort-row .library-view-toggle i{font-size:19px}
+#libraryView .mobile-library-list:not(.grid){margin:0 -4px}
+#libraryView .mobile-library-item{padding:0 0 16px}
+#libraryView .lib-pinned{font-size:12px}
+#libraryView .mobile-library-copy span{gap:5px;margin-top:3px}
+#libraryView .mobile-library-list.grid{gap:31px 16px;padding-top:0}
+#libraryView .grid .mobile-library-item{gap:13px}
+#libraryView .grid .mobile-library-cover{border-radius:6px}
+#libraryView .grid .mobile-library-cover.artist{border-radius:50%}
+#libraryView .grid .mobile-library-copy strong{font-size:13px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+#libraryView .grid .mobile-library-copy span{font-size:13px;margin-top:1.6px}
+/* Feuilles de la Bibliothèque (tri, appui long), relevées sur Spotify : fond #1f1f1f,
+   voile plus sombre, poignée #636363 à 12 du haut, séparateur #3f3f3f, lignes de 56
+   (60 pour le tri, titre centré et coche verte à droite). */
+.tsheet-overlay:has(.lib-sheet){background:rgba(0,0,0,.72)}
+.tsheet.lib-sheet{background:#1f1f1f}
+.lib-sheet .tsheet-handle{margin-top:4px;background:#636363}
+.lib-sheet .tsheet-head{padding-bottom:15.5px;margin-bottom:0;border-bottom-color:#3f3f3f}
+.lib-sheet .tsheet-cover{border-radius:3px}
+.lib-sheet .tsheet-title{font-weight:500}
+.lib-sheet .tsheet-meta{gap:8px}
+.lib-sheet .tsheet-item{min-height:56px;gap:12px;font-size:16px}
+.lib-sort-sheet .tsheet-head{justify-content:center;height:31px;padding:0 16px;margin-bottom:2px}
+.lib-sort-sheet .tsheet-cover{display:none}
+.lib-sort-sheet .tsheet-item{min-height:60px;flex-direction:row-reverse;justify-content:space-between}
+/* Spotify : 6 px de marge basse en moins (feuille et options 6 px plus bas), coche de 20 × 15,7. */
+.tsheet.lib-sort-sheet{padding-bottom:calc(2px + var(--safe-bottom))}
+.lib-sort-sheet .tsheet-item i{flex:0 0 28px;font-size:28px}
 </style>
 </head>
 <body class="player-hidden">
@@ -3684,9 +3901,9 @@ body.player-hidden .app { height: 100vh; }
 
       <section class="search-explore" id="searchExplore">
         <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="logo-sevenz-sfond.png" alt="Profil"></button><h1>Rechercher</h1></div>
-        <div class="explore-search"><i class="ti ti-search"></i><input id="exploreSearchInput" placeholder="Tape puis valide avec Entrée" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" oninput="exploreInputChanged(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitExploreSearch();}"><button type="button" class="explore-search-mic" id="exploreMicBtn" onclick="startVoiceSearch(this)" aria-label="Recherche vocale"><i class="ti ti-microphone"></i></button><button type="button" class="explore-search-go" id="exploreSearchGo" hidden onclick="submitExploreSearch()" aria-label="Lancer la recherche"><i class="ti ti-arrow-right"></i></button></div>
-        <div class="search-recent" id="searchRecentSection"><div class="mobile-section-head"><h2>Recherches récentes</h2><button onclick="clearRecentSearches()">Effacer</button></div><div class="search-chip-row" id="searchRecentChips"></div></div>
-        <h2>Genres</h2>
+        <div class="explore-search-row"><div class="explore-search"><i class="ti ti-search"></i><input id="exploreSearchInput" placeholder="Que souhaitez-vous écouter&#8239;?" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" oninput="exploreInputChanged(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitExploreSearch();}"><button type="button" class="explore-search-mic" id="exploreMicBtn" onclick="startVoiceSearch(this)" aria-label="Recherche vocale"><i class="ti ti-microphone"></i></button><button type="button" class="explore-search-go" id="exploreSearchGo" hidden onclick="submitExploreSearch()" aria-label="Lancer la recherche"><i class="ti ti-arrow-right"></i></button></div><button type="button" class="explore-search-cancel" onmousedown="event.preventDefault()" onclick="cancelExploreSearch()" aria-label="Annuler"><i class="ti ti-arrow-left"></i></button></div>
+        <div class="search-recent" id="searchRecentSection"><h2>Récents</h2><div class="search-recent-list" id="searchRecentChips"></div><button type="button" class="search-recent-clear" onmousedown="event.preventDefault()" onclick="clearRecentSearches()">Effacer les recherches récentes</button></div>
+        <div class="search-focus-hint" id="searchFocusHint"></div>
         <div class="explore-genre-grid" id="searchGenreGrid"></div>
       </section>
 
@@ -3722,6 +3939,7 @@ body.player-hidden .app { height: 100vh; }
 
       <!-- Playlist detail -->
       <div class="playlist-detail" id="playlistDetail">
+        <button class="pl-back mobile-only" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
         <div class="detail-header">
           <div class="detail-cover" id="detailCover"><i class="ti ti-playlist"></i></div>
           <div class="detail-meta">
@@ -3736,34 +3954,58 @@ body.player-hidden .app { height: 100vh; }
           <button class="ghost-btn" id="detailDownloadBtn" title="Télécharger tout pour le mode hors-ligne"><i class="ti ti-download"></i> Télécharger tout</button>
           <button class="ghost-btn desktop-only" onclick="openEditModal()"><i class="ti ti-pencil"></i> Modifier</button>
           <button class="ghost-btn desktop-only" style="color:#ff6b6b" onclick="confirmDeletePlaylist()"><i class="ti ti-trash"></i> Supprimer</button>
-          <button class="more-btn mobile-only" onclick="showPlaylistOptions()"><i class="ti ti-dots-vertical"></i></button>
+          <button class="pl-icon-btn mobile-only" onclick="openEditModal()" aria-label="Modifier la playlist"><i class="ti ti-pencil"></i></button>
+          <button class="more-btn mobile-only" onclick="showPlaylistOptions()" aria-label="Plus d'options"><i class="ti ti-dots-vertical"></i></button>
         </div>
         <section class="tracklist" id="detailTracklist"></section>
       </div>
 
-      <div class="playlist-detail" id="radioView">
-        <div class="detail-header">
-          <div class="detail-cover" id="radioCover"><i class="ti ti-radio"></i></div>
-          <div class="detail-meta">
-            <div class="detail-type">Radio</div>
-            <h1 class="detail-title" id="radioTitle">Radio</h1>
-            <div class="detail-desc">Cette sélection évolue au fil de ton écoute.</div>
-            <div class="detail-info" id="radioInfo">0 titres</div>
+      <!-- Page radio façon Spotify : pochette propre à la radio, textes à gauche,
+           actions sur une ligne, en-tête collant qui apparaît au défilement. -->
+      <div class="playlist-detail radio-page" id="radioView">
+        <div class="rp-sticky" id="radioSticky">
+          <button class="rp-back" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
+          <span class="rp-sticky-title" id="radioStickyTitle">Radio</span>
+          <button class="rp-play rp-play-sm" data-radio-play onclick="toggleRadioPlay()" aria-label="Lire ou mettre en pause la radio"><i class="ti ti-player-play-filled"></i></button>
+        </div>
+        <div class="rp-hero">
+          <button class="rp-back rp-back-top" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
+          <div class="rp-cover" id="radioCover">
+            <div class="rp-cover-tag"><img src="logo-sevenz-sfond.png" alt=""><span>Radio</span></div>
+            <div class="rp-cover-photo" id="radioCoverPhoto"><i class="ti ti-radio"></i></div>
           </div>
         </div>
-        <div class="detail-actions">
-          <button class="play-big" onclick="playOrResumeRadio()" title="Lire ou reprendre" aria-label="Lire ou reprendre la radio"><i class="ti ti-player-play-filled"></i></button>
-          <button class="ghost-btn" onclick="shuffleRadio()" title="Lecture aléatoire" aria-label="Lire la radio aléatoirement"><i class="ti ti-arrows-shuffle"></i></button>
-          <button class="ghost-btn" onclick="openQueueManager()" title="Ouvrir la file" aria-label="Ouvrir la file d’attente"><i class="ti ti-list"></i></button>
-          <button class="ghost-btn" onclick="radioFeedback('like')" title="J'aime cette direction" aria-label="J'aime cette direction"><i class="ti ti-thumb-up"></i></button>
-          <button class="ghost-btn" onclick="radioFeedback('dislike')" title="Moins comme ça" aria-label="Moins comme ça"><i class="ti ti-thumb-down"></i></button>
+        <div class="rp-meta">
+          <h1 class="rp-title" id="radioTitle">Radio</h1>
+          <p class="rp-desc" id="radioDesc"></p>
+          <div class="rp-owner"><img src="logo-sevenz-sfond.png" alt=""><span>Conçue pour toi</span></div>
+          <div class="rp-info" id="radioInfo">0 titres</div>
         </div>
-        <div class="radio-adventure">
-          <label for="radioAdventure" class="radio-adventure-label">Rassurant</label>
-          <input id="radioAdventure" type="range" min="0" max="1" step="0.05" value="0.35" onchange="setRadioAdventurousness(this.value)" aria-label="Aventure de la radio">
-          <label for="radioAdventure" class="radio-adventure-label">Aventureux</label>
+        <div class="rp-actions">
+          <div class="rp-actions-left">
+            <button class="rp-icon" onclick="radioFeedback('like')" title="J'aime cette direction" aria-label="J'aime cette direction"><i class="ti ti-thumb-up"></i></button>
+            <button class="rp-icon" onclick="radioFeedback('dislike')" title="Moins comme ça" aria-label="Moins comme ça"><i class="ti ti-thumb-down"></i></button>
+            <button class="rp-icon" onclick="openRadioSettings()" title="Réglages de la radio" aria-label="Réglages de la radio"><i class="ti ti-dots"></i></button>
+          </div>
+          <div class="rp-actions-right">
+            <button class="rp-icon" id="radioShuffleBtn" onclick="shuffleRadio()" title="Lecture aléatoire" aria-label="Lire la radio aléatoirement"><i class="ti ti-arrows-shuffle"></i></button>
+            <button class="rp-play" id="radioPlayBtn" data-radio-play onclick="toggleRadioPlay()" aria-label="Lire ou mettre en pause la radio"><i class="ti ti-player-play-filled"></i></button>
+          </div>
         </div>
-        <section class="tracklist" id="radioTracklist"></section>
+        <section class="rp-tracks" id="radioTracklist"></section>
+        <div class="rp-sheet-overlay" id="radioSettings" onclick="if(event.target===this)closeRadioSettings()">
+          <div class="rp-sheet" role="dialog" aria-label="Réglages de la radio">
+            <div class="rp-sheet-handle"></div>
+            <h2 class="rp-sheet-title">Réglages de la radio</h2>
+            <div class="radio-adventure">
+              <label for="radioAdventure" class="radio-adventure-label">Rassurant</label>
+              <input id="radioAdventure" type="range" min="0" max="1" step="0.05" value="0.35" onchange="setRadioAdventurousness(this.value)" aria-label="Aventure de la radio">
+              <label for="radioAdventure" class="radio-adventure-label">Aventureux</label>
+            </div>
+            <p class="rp-sheet-note">S'applique aux prochains titres ajoutés à la radio.</p>
+            <button class="rp-sheet-item" onclick="closeRadioSettings();openQueueManager()"><i class="ti ti-list"></i>File d'attente</button>
+          </div>
+        </div>
       </div>
 
       <!-- Liked tracks -->
@@ -3798,16 +4040,15 @@ body.player-hidden .app { height: 100vh; }
       <div class="playlist-detail album-view" id="albumView"></div>
 
       <section class="mobile-library-view" id="libraryView">
-        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="logo-sevenz-sfond.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button onclick="openCreateModal()" aria-label="Créer une playlist"><i class="ti ti-plus"></i></button></div>
-        <input class="library-search-input" id="librarySearchInput" placeholder="Rechercher dans ta bibliothèque" oninput="renderLibraryView()">
-        <div class="library-filter-bar">
-          <button class="lib-chip active" data-filter="all" onclick="setLibraryFilter('all')">Tout</button>
-          <button class="lib-chip" data-filter="tracks" onclick="setLibraryFilter('tracks')">Titres</button>
+        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="logo-sevenz-sfond.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openCreateModal()" aria-label="Créer une playlist"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
+        <input class="library-search-input" id="librarySearchInput" type="search" enterkeyhint="search" placeholder="Rechercher dans ta bibliothèque" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();renderLibraryView()}" oninput="if(!this.value)renderLibraryView()">
+        <div class="library-filter-bar" id="libraryFilterBar">
+          <button class="lib-chip lib-chip-clear" onclick="setLibraryFilter('all')" aria-label="Effacer la sélection du filtre"><i class="ti ti-x"></i></button>
           <button class="lib-chip" data-filter="playlists" onclick="setLibraryFilter('playlists')">Playlists</button>
-          <button class="lib-chip" data-filter="artists" onclick="setLibraryFilter('artists')">Artistes</button>
           <button class="lib-chip" data-filter="albums" onclick="setLibraryFilter('albums')">Albums</button>
+          <button class="lib-chip" data-filter="artists" onclick="setLibraryFilter('artists')">Artistes</button>
         </div>
-        <div class="library-sort-row"><button onclick="cycleLibrarySort()"><i class="ti ti-arrows-sort"></i><span id="librarySortLabel">Récents</span></button></div>
+        <div class="library-sort-row"><button class="lib-sort-btn" onclick="openLibrarySortSheet()" aria-label="Trier"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 4.8 8 1.3l3.5 3.5M0 8h16M4.5 11.2 8 14.7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span id="librarySortLabel">Récents</span></button><button class="library-view-toggle" id="libraryViewToggle" onclick="toggleLibraryLayout()" aria-label="Afficher en grille"><i class="ti ti-layout-grid"></i></button></div>
         <div class="mobile-library-list" id="libraryBody"></div>
       </section>
     </div>
@@ -3861,6 +4102,131 @@ body.player-hidden .app { height: 100vh; }
       <button class="modal-btn submit" id="modalSubmit">Créer</button>
     </div>
   </div>
+</div>
+
+<!-- ── CRÉER UNE PLAYLIST (mobile, parcours Spotify) ──
+     « + » → feuille « Créer » → écran « Donnez un nom à votre playlist » →
+     page de la playlist vide. Tout est préfixé .cpl- : rien de partagé. -->
+<style>
+.cpl-overlay { position: fixed; inset: 0; z-index: 10030; display: flex; align-items: flex-end; justify-content: center; padding: 0 8px calc(64px + var(--safe-bottom)) 12px; background: rgba(0,0,0,.72); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .25s var(--ease-out), visibility 0s .25s; }
+.cpl-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .25s var(--ease-out); }
+/* Spotify Android : carte flottante 400 de large, 16 de rayon, #1f1f1f, posée
+   16 px au-dessus de la barre d'onglets (qui reste visible, « Créer » → ✕). */
+.cpl-sheet { width: 100%; max-width: 400px; padding: 8px 4px; border-radius: 16px; background: #1f1f1f; transform: translateY(24px); transition: transform .3s var(--ease-out); }
+.cpl-overlay.open .cpl-sheet { transform: none; }
+.cpl-handle { width: 36px; height: 4px; margin: 0 auto 12px; border-radius: 2px; background: rgba(255,255,255,.28); }
+.cpl-item { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 0; border-radius: 12px; background: none; color: var(--text-primary); font-family: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.cpl-item:active { background: rgba(255,255,255,.06); }
+.cpl-item-ico { flex: 0 0 48px; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: #3f3f3f; color: #b3b3b3; font-size: 24px; }
+.cpl-item-txt { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cpl-item-txt strong { font-size: 16px; line-height: 22px; font-weight: 700; }
+.cpl-item-txt span { font-size: 14px; line-height: 18px; color: #b3b3b3; }
+body:has(#cplSheet.open) #mobileBottomNav { z-index: 10031; }
+#mobileBottomNav #mbnCreate.cpl-x span { display: none; }
+#mobileBottomNav #mbnCreate.cpl-x i { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #000; font-size: 24px; -webkit-text-stroke: 0; }
+
+/* Mesuré sur Spotify Android : titre à 191, champ 268–331, boutons 388–436,
+   dégradé #7f7f7f → #131313 sur 600 px (ancré en haut, le clavier occupe le bas). */
+.cpl-name { position: fixed; inset: 0; z-index: 10031; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0; padding: calc(137px + var(--safe-top)) 32px calc(24px + var(--safe-bottom)); background: #121212 linear-gradient(180deg, #7f7f7f 0, #131313 600px, #121212 100%) no-repeat; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .22s var(--ease-out), visibility 0s .22s; }
+.cpl-name.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .22s var(--ease-out); }
+.cpl-name h2 { margin: 0 0 48px; font-size: 24px; line-height: 29px; font-weight: 700; color: #fff; text-align: center; letter-spacing: -.027em; }
+.cpl-name input { box-sizing: border-box; width: 100%; max-width: 420px; height: 63px; padding: 0; border: 0; border-bottom: 1px solid #7c7c7c; border-radius: 0; background: transparent; color: #fff; font-family: inherit; font-size: 34px; font-weight: 700; letter-spacing: -.053em; text-align: center; outline: none; caret-color: var(--accent-primary); }
+.cpl-name input::selection { background: #929292; color: #fff; }
+.cpl-name-actions { display: flex; gap: 20px; margin-top: 57px; }
+.cpl-name .cpl-pill { min-width: 0; padding: 0 24px; }
+.cpl-pill { min-width: 112px; height: 48px; padding: 0 28px; border-radius: 999px; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .1s; }
+.cpl-pill:active { transform: scale(.96); }
+.cpl-pill.ghost { border: 1px solid #626262; background: transparent; color: #fff; }
+.cpl-pill.go { border: 0; background: var(--accent-primary); color: var(--on-accent); }
+
+/* Page de la playlist vide */
+#playlistDetail.cpl-is-empty .play-big,
+#playlistDetail.cpl-is-empty #detailDownloadBtn,
+#playlistDetail.cpl-is-empty .list-head { display: none; }
+#detailCover.cpl-cover-empty { background: #282828 !important; display: grid; place-items: center; }
+#detailCover.cpl-cover-empty i { font-size: 64px; color: #7f7f7f; }
+/* En-tête de playlist perso, mobile, façon Spotify Android : retour, pochette
+   carrée centrée, titre à gauche, ligne propriétaire, méta, puis une rangée
+   d'icônes rondes (lecture verte à droite). Limité à #playlistDetail : les
+   pages album/artiste (#albumView, #artistView) gardent leurs propres règles. */
+.pl-owner { display: none; }
+@media (max-width: 768px) {
+  .main[data-view="playlist"] .topbar { display: none; }
+  .main[data-view="playlist"] #playlistDetail { position: relative; margin: -8px -12px 0; padding-bottom: 140px; }
+  #playlistDetail .pl-back { display: grid; position: absolute; z-index: 3; left: 12px; top: calc(12px + var(--safe-top)); width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; place-items: center; background: rgba(0,0,0,.5); color: #fff; font-size: 22px; }
+  .main[data-view="playlist"] #playlistDetail .detail-header { flex-direction: column; align-items: stretch; gap: 16px; text-align: left; padding: calc(52px + var(--safe-top)) 16px 0; background: none; }
+  .main[data-view="playlist"] #playlistDetail .detail-cover { align-self: center; width: min(240px, 62vw); height: auto; aspect-ratio: 1; border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+  .main[data-view="playlist"] #playlistDetail .detail-type { display: none; }
+  .main[data-view="playlist"] #playlistDetail .detail-title { font: 700 24px/1.15 'StyreneA', sans-serif; letter-spacing: -.01em; margin: 0 0 8px; text-align: left; text-wrap: balance; }
+  .main[data-view="playlist"] #playlistDetail .detail-info { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+  .main[data-view="playlist"] #playlistDetail .detail-tags { justify-content: flex-start; }
+  #playlistDetail .pl-owner { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; font-weight: 700; color: #fff; }
+  #playlistDetail .pl-owner-av { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #c87d55; color: #000; font-size: 12px; font-weight: 700; }
+  #playlistDetail .pl-owner-av img { width: 100%; height: 100%; object-fit: cover; }
+  .main[data-view="playlist"] #playlistDetail .detail-actions { position: static; min-height: 72px; padding: 4px 16px 4px 8px; gap: 4px; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .main[data-view="playlist"] #playlistDetail .detail-actions > :is(.ghost-btn, .pl-icon-btn, .more-btn) { width: 40px; height: 40px; min-height: 0; flex: 0 0 40px; margin: 0; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: none; color: #b3b3b3; font-size: 0; }
+  .main[data-view="playlist"] #playlistDetail .detail-actions > :is(.ghost-btn, .pl-icon-btn, .more-btn) i { font-size: 24px; }
+  .main[data-view="playlist"] #playlistDetail .detail-actions > .desktop-only, .main[data-view="playlist"] #playlistDetail .detail-actions > [style*="display:none"] { display: none !important; }
+  .main[data-view="playlist"] #playlistDetail .play-big { order: 10; margin-left: auto; width: 52px; height: 52px; min-width: 52px; font-size: 24px; }
+  .main[data-view="playlist"] #playlistDetail .tracklist { background: none; }
+}
+.cpl-empty { display: flex; flex-direction: column; align-items: center; padding: 24px 16px 8px; text-align: center; }
+.cpl-empty h3 { margin: 0 0 20px; font-size: 18px; font-weight: 700; letter-spacing: -.01em; text-transform: none; color: var(--text-primary); }
+.cpl-empty .cpl-pill.light { height: 44px; border: 0; background: #fff; color: #000; font-size: 15px; }
+.cpl-recos { padding: 28px 0 16px; }
+.cpl-recos h4 { margin: 0 16px 2px; font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.cpl-recos p { margin: 0 16px 10px; font-size: 13px; color: var(--text-secondary); }
+.cpl-row { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
+.cpl-row-thumb { flex: 0 0 48px; width: 48px; height: 48px; border-radius: var(--r-object); background: var(--bg-elevated) center/cover no-repeat; }
+.cpl-row-txt { flex: 1; min-width: 0; }
+.cpl-row-txt div { font-size: 15px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cpl-row-txt span { display: block; font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cpl-add-btn { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,.6); background: transparent; color: var(--text-primary); display: grid; place-items: center; font-size: 18px; cursor: pointer; }
+.cpl-add-btn.done { border-color: var(--accent-primary); background: var(--accent-primary); color: var(--on-accent); }
+
+/* Écran « Ajouter à cette playlist » */
+.cpl-add { position: fixed; inset: 0; z-index: 10032; display: flex; flex-direction: column; background: var(--bg-primary); transform: translateY(100%); visibility: hidden; transition: transform .3s var(--ease-out), visibility 0s .3s; }
+.cpl-add.open { transform: none; visibility: visible; transition: transform .3s var(--ease-out); }
+.cpl-add-head { display: flex; align-items: center; gap: 8px; padding: calc(8px + var(--safe-top)) 8px 8px; }
+.cpl-add-head button { width: 44px; height: 44px; border: 0; background: none; color: var(--text-primary); font-size: 24px; display: grid; place-items: center; cursor: pointer; }
+.cpl-add-head h2 { flex: 1; margin: 0; font-size: 16px; font-weight: 700; text-align: center; padding-right: 44px; }
+.cpl-add-form { display: flex; align-items: center; gap: 8px; margin: 4px 16px 12px; padding: 0 12px; height: 44px; border-radius: 6px; background: var(--bg-elevated); }
+.cpl-add-form i { color: var(--text-secondary); font-size: 20px; }
+.cpl-add-form input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text-primary); font-family: inherit; font-size: 15px; outline: none; }
+.cpl-add-body { flex: 1; overflow-y: auto; padding-bottom: calc(16px + var(--safe-bottom)); }
+.cpl-add-body .cpl-msg { padding: 32px 16px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+/* Titres du parcours en police de texte, comme Spotify (pas la police d'affiche). */
+.cpl-name h2, .cpl-empty h3, .cpl-recos h4, .cpl-add-head h2 { font-family: inherit; }
+body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visible par-dessus l'écran d'ajout */
+@media (prefers-reduced-motion: reduce) { .cpl-overlay, .cpl-sheet, .cpl-name, .cpl-add { transition: none !important; } }
+</style>
+<div class="cpl-overlay" id="cplSheet" onclick="if(event.target===this)closeCreateSheet()">
+  <div class="cpl-sheet" role="dialog" aria-modal="true" aria-label="Créer">
+    <button class="cpl-item" onclick="openNamePlaylist()">
+      <span class="cpl-item-ico"><i class="ti ti-music"></i></span>
+      <span class="cpl-item-txt"><strong>Playlist</strong><span>Créez une playlist de titres.</span></span>
+    </button>
+  </div>
+</div>
+<div class="cpl-name" id="cplName" role="dialog" aria-modal="true" aria-labelledby="cplNameTitle">
+  <h2 id="cplNameTitle">Donnez un nom à votre playlist</h2>
+  <input type="text" id="cplNameInput" autocomplete="off" maxlength="100" aria-labelledby="cplNameTitle"
+         onkeydown="if(event.key==='Enter'){event.preventDefault();submitNamePlaylist();}">
+  <div class="cpl-name-actions">
+    <button class="cpl-pill ghost" onclick="closeNamePlaylist()">Annuler</button>
+    <button class="cpl-pill go" onclick="submitNamePlaylist()">Créer</button>
+  </div>
+</div>
+<div class="cpl-add" id="cplAdd" role="dialog" aria-modal="true" aria-labelledby="cplAddTitle">
+  <div class="cpl-add-head">
+    <button onclick="closeAddToPlaylistScreen()" aria-label="Fermer"><i class="ti ti-arrow-left"></i></button>
+    <h2 id="cplAddTitle">Ajouter à cette playlist</h2>
+  </div>
+  <form class="cpl-add-form" onsubmit="event.preventDefault();cplSearch(this.q.value)">
+    <i class="ti ti-search"></i>
+    <input name="q" type="search" enterkeyhint="search" placeholder="Rechercher" autocomplete="off">
+  </form>
+  <div class="cpl-add-body" id="cplAddBody"></div>
 </div>
 
 <!-- ── SPOTIFY IMPORT MODAL ── -->
@@ -4012,6 +4378,7 @@ body.player-hidden .app { height: 100vh; }
       <div class="player-artist" id="playerArtist">-</div>
       <span id="offlineBadge" style="display:none;margin-left:8px;font-size:10px;background:#4CAF50;color:#fff;padding:2px 6px;border-radius:4px"><i class="ti ti-wifi-off"></i> Offline</span>
     </div>
+    <button class="player-device" onclick="event.stopPropagation();openAudioOutputPicker()" title="Appareils disponibles" aria-label="Appareils disponibles"><i class="ti ti-device-speaker"></i></button>
     <button class="player-like" id="playerLike" onclick="event.stopPropagation()"><i class="ti ti-heart"></i></button>
   </div>
 
@@ -4053,6 +4420,503 @@ body.player-hidden .app { height: 100vh; }
   </div>
 </div>
 
+<!-- ACCUEIL/BIBLIOTHÈQUE façon Spotify -->
+<style>
+@media (max-width: 768px) {
+  /* Marges latérales de 16, comme toutes les vues Spotify. */
+  .main[data-view="home"] .mobile-home-filters,
+  .main[data-home-filter] .mobile-home-filters {
+    padding-left: calc(16px + var(--safe-left)); padding-right: calc(16px + var(--safe-right));
+    gap: 8px; background: transparent; transition: background-color .2s var(--ease-out);
+  }
+  /* La barre de puces reste en haut ; elle prend le fond dès qu'on défile. */
+  .main .mobile-home-filters.is-scrolled { background: var(--bg-primary); }
+  .mobile-home-filters .mobile-home-avatar { width: 32px; height: 32px; }
+  /* Mesures relevées sur l'appli Spotify du téléphone de Nina (1 dp ≈ 1 px). */
+  .mobile-home-filters .mobile-home-filter {
+    min-height: 32px; height: 32px; padding: 0 16px;
+    font: 400 13px/32px 'StyreneA', sans-serif;
+  }
+  .mobile-home-filters .mobile-home-filter:not(.active) { background: #333; color: #fff; }
+
+  /* Grille de raccourcis : 8 cases de 48 de haut, image de 48 collée à gauche. */
+  .main[data-view="home"] .mobile-quick-grid { padding: 0 16px; gap: 8px; }
+  .mobile-quick-grid .mobile-quick-card { height: 48px; border-radius: 4px; background: #2a2a2a; }
+  .mobile-quick-grid .mobile-quick-card:active { background: #3a3a3a; }
+  .mobile-quick-card .mobile-quick-cover { width: 48px; height: 48px; flex-basis: 48px; border-radius: 0; }
+  .mobile-quick-card .mobile-quick-label { padding: 0 8px; font-size: 13px; font-weight: 700; line-height: 1.25; }
+
+  /* Sections : titre 22, cartes 168, écart 16. */
+  .main[data-view="home"] #homeExtras .home-section { padding-left: 16px; margin: 32px 0; }
+  .main[data-view="home"] #homeExtras .home-section .section-title { margin: 0 0 12px; font-size: 22px; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
+  .main[data-view="home"] #homeExtras .home-track-row,
+  .main[data-view="home"] #homeExtras .home-card-row { gap: 16px; padding-right: 16px; }
+  .main[data-view="home"] #homeExtras .home-track-card,
+  .main[data-view="home"] #homeExtras .home-radio-card { width: 168px; flex: 0 0 168px; }
+  .main[data-view="home"] #homeExtras .htc-cover { width: 168px; height: 168px; border-radius: 4px; margin-bottom: 8px; }
+  .main[data-view="home"] #homeExtras .htc-title { font-size: 13px; font-weight: 500; }
+  .main[data-view="home"] #homeExtras .htc-artist {
+    margin-top: 4px; font-size: 13px; color: #b3b3b3;
+    white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .main[data-view="home"] #homeExtras .hrc-name { margin-top: 8px; font-size: 13px; font-weight: 500; text-align: left; }
+
+  /* Barre du bas : fond quasi noir (#030303 relevé sur le téléphone), onglet actif blanc et plein. */
+  #mobileBottomNav.mobile-bottom-nav {
+    background: #030303;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  #mobileBottomNav .mbn-item { gap: 4px; color: #b3b3b3; font-size: 10.5px; font-weight: 500; }
+  #mobileBottomNav .mbn-item i { font-size: 24px; color: inherit; transform: translateY(1.5px); }
+  #mobileBottomNav .mbn-item.active { color: #fff; font-weight: 700; }
+  /* Relevé Spotify : libellés 3 px plus bas que les nôtres (décalage visuel seul, sans toucher la mise en page). */
+  #mobileBottomNav .mbn-item span { transform: translateY(2.5px); }
+  /* Tabler n'a pas de version pleine pour tous : un trait épaissit l'icône active. */
+  #mobileBottomNav .mbn-item.active i { -webkit-text-stroke: .6px currentColor; }
+  #mobileBottomNav .mbn-item.active[data-page="home"] i { -webkit-text-stroke: 0; }
+
+  /* Bibliothèque : mêmes marges de 16, avatar 32. */
+  .main[data-view="library"] .content { padding-left: 16px; padding-right: 16px; padding-top: 0; }
+  /* Fond uni #121212 comme Spotify, sans le dégradé #1f1f1f → #141414 de .main. */
+  .main[data-view="library"] { background: var(--bg-primary); }
+  /* L'en-tête de 48 commence juste sous la barre d'état, comme sur Spotify. */
+  #libraryView { padding-top: var(--safe-top); }
+  #libraryView .mobile-page-head .mobile-page-avatar { width: 32px; height: 32px; flex-basis: 32px; }
+  /* Relevé sur le téléphone : rangée de puces et « Récents » de 48 (6 d'écart),
+     lignes au pas de 80, texte à 88 du bord (pochette 64 à x 12 + 12), épingle de 12. */
+  #libraryView .library-filter-bar { min-height: 48px; padding: 8px; }
+  #libraryView .library-sort-row { min-height: 48px; padding: 0; margin-top: 6px; }
+  #libraryView .mobile-library-item { gap: 12px; }
+  #libraryView .grid .mobile-library-item { gap: 13px; }
+  #libraryView .lib-pinned { font-size: 12px; }
+}
+
+/* Carte radio de l'accueil, comme sur l'appli : aplat pastel, photo ronde,
+   « RADIO » en haut à droite, nom de l'artiste en très gros en bas à gauche. */
+.rc-cover {
+  position: relative; width: 100%; aspect-ratio: 1; overflow: hidden;
+  border-radius: 4px; background: var(--rc-color, #7ee0d0); color: #121212;
+}
+.rc-logo { position: absolute; z-index: 3; top: 7%; left: 7%; width: 11%; height: auto; }
+.rc-tag {
+  position: absolute; z-index: 3; top: 7.5%; right: 7%;
+  font: 800 9px/1 'StyreneA', sans-serif; letter-spacing: .14em; text-transform: uppercase;
+}
+.rc-photo {
+  position: absolute; z-index: 2; left: 50%; top: 46%; width: 52%; aspect-ratio: 1;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: rgba(0, 0, 0, .12) center / cover no-repeat; box-shadow: 0 0 0 3px var(--rc-color, #7ee0d0);
+  display: grid; place-items: center; font-size: 30px;
+}
+.rc-name {
+  position: absolute; z-index: 3; left: 7%; right: 3%; bottom: 6%;
+  font: 800 22px/1.05 'StyreneA', sans-serif; letter-spacing: -.02em; white-space: nowrap; overflow: hidden;
+}
+</style>
+<script>
+// Barre de puces de l'accueil : fond plein dès 8 px de défilement.
+(() => {
+  const scroller = document.getElementById('mainContent');
+  const bar = document.querySelector('.mobile-home-filters');
+  if (!scroller || !bar) return;
+  scroller.addEventListener('scroll', () => bar.classList.toggle('is-scrolled', scroller.scrollTop > 8), { passive: true });
+})();
+</script>
+
+<!-- ARTISTE/ALBUM façon Spotify -->
+<style>
+/* Commun aux deux pages (toutes largeurs) : actions, puces, cartes « Artiste ». */
+.sp-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sp-actions-left, .sp-actions-right { display: flex; align-items: center; gap: 8px; }
+.sp-icon {
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--text-secondary); font-size: 24px; display: grid; place-items: center;
+}
+.sp-icon.active { color: var(--accent-primary); }
+.sp-actions .track-more { width: 44px; height: 44px; font-size: 24px; color: var(--text-secondary); }
+.sp-chips { display: flex; gap: 8px; margin: 2px 0 14px; overflow-x: auto; scrollbar-width: none; }
+.sp-chips::-webkit-scrollbar { display: none; }
+.sp-chip {
+  flex: 0 0 auto; height: 32px; padding: 0 12px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, .1); color: var(--text-primary); font-size: 14px;
+}
+.sp-chip.active { background: var(--accent-primary); color: var(--on-accent); }
+.discovery-sub { margin-top: 2px; font-size: 13px; color: var(--text-secondary); text-align: left; }
+.album-hero-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+.album-hero-sub, .sp-sticky, .sp-back-top { display: none; }
+/* Auditeurs sous la photo (et non plus posés dessus), comme sur l'appli. */
+.sp-listeners { padding: 12px 24px 0; font-size: 14px; color: var(--text-secondary); }
+
+/* Ordinateur : lecture d'abord, comme sur le lecteur web (lecture, aléatoire, Suivre, ⋯). */
+@media (min-width: 769px) {
+  .sp-actions { justify-content: flex-start; gap: 16px; }
+  .sp-actions-right { order: -1; flex-direction: row-reverse; gap: 16px; }
+}
+
+@media (max-width: 768px) {
+  .main[data-view="artist"] .topbar, .main[data-view="album"] .topbar { display: none; }
+  #artistView, #albumView { --sp-color: #333; margin: -8px -12px 0; padding-bottom: 140px; }
+
+  /* Bouton retour rond posé sur l'en-tête, puis barre collante au défilement. */
+  .sp-back {
+    width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border: 0; border-radius: 50%;
+    background: transparent; color: #fff; font-size: 26px; display: grid; place-items: center;
+  }
+  .sp-back.sp-back-top {
+    display: grid; position: absolute; z-index: 3; left: 12px; top: calc(12px + var(--safe-top));
+    width: 36px; height: 36px; flex-basis: 36px; font-size: 22px; background: rgba(0, 0, 0, .5);
+    transition: opacity .2s;
+  }
+  .sp-sticky {
+    display: flex; position: sticky; top: 0; z-index: 30; align-items: center; gap: 8px;
+    height: calc(56px + var(--safe-top)); margin-bottom: calc(-56px - var(--safe-top));
+    padding: var(--safe-top) 12px 0 8px;
+    background: color-mix(in srgb, var(--sp-color) 55%, #121212);
+    opacity: 0; pointer-events: none; transition: opacity .2s var(--ease-out);
+  }
+  .sp-scrolled .sp-sticky { opacity: 1; pointer-events: auto; }
+  .sp-scrolled .sp-back-top { opacity: 0; }
+  .sp-sticky-title { flex: 1; min-width: 0; font: 700 16px/1.2 'StyreneA', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sp-play.play-big, .sp-play {
+    width: 52px; height: 52px; min-width: 52px; padding: 0; border: 0; border-radius: 50%;
+    background: var(--accent-primary); color: var(--on-accent); font-size: 24px; display: grid; place-items: center;
+  }
+  .sp-play.sp-play-sm { width: 44px; height: 44px; min-width: 44px; font-size: 20px; }
+
+  .sp-actions { min-height: 72px; padding: 6px 16px; }
+  .sp-actions-right { gap: 4px; }
+  #artistView .artist-follow-btn {
+    height: 32px; padding: 0 16px; border: 1px solid #7c7c7c; border-radius: 999px;
+    background: transparent; color: var(--text-primary); font: 700 13px/1 'StyreneA', sans-serif;
+  }
+  #artistView .artist-follow-btn.following { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+  /* ── Artiste : photo pleine largeur, nom posé dessus ── */
+  #artistView .artist-hero { height: 300px; margin: 0; padding: 0 16px 14px; }
+  #artistView .artist-hero::after {
+    background: linear-gradient(180deg, rgba(0, 0, 0, .15) 0%, transparent 35%, rgba(0, 0, 0, .55) 80%, var(--bg-primary) 100%);
+  }
+  #artistView .artist-verified { display: flex; gap: 6px; margin: 0; font-size: 13px; font-weight: 700; color: #fff; }
+  #artistView .artist-verified i { font-size: 18px; color: var(--accent-primary); }
+  #artistView .artist-hero-name { font: 800 40px/1.05 'StyreneA', sans-serif; letter-spacing: -.03em; margin: 0 0 10px; text-shadow: none; }
+  #artistView .sp-listeners { padding: 8px 16px 0; font-size: 14px; font-weight: 400; color: var(--text-secondary); }
+  #artistView .artist-section { padding: 4px 16px 8px; }
+  #artistView .artist-section-title { font: 700 22px/1.2 'StyreneA', sans-serif; margin: 16px 0 12px; }
+
+  /* Populaires : lignes de 64, pochette 48, pas de durée. */
+  #artistView .artist-track {
+    grid-template-columns: 20px 48px minmax(0, 1fr) auto; gap: 12px;
+    min-height: 64px; padding: 8px 0; border-radius: 0;
+  }
+  #artistView .artist-track-rank { font-size: 14px; color: var(--text-secondary); }
+  #artistView .artist-track-thumb { width: 48px; height: 48px; border-radius: 4px; }
+  #artistView .artist-track-title { font-size: 16px; font-weight: 400; }
+  #artistView .artist-track .album-track-sub { font-size: 13px; color: var(--text-secondary); }
+  #artistView .artist-track-dur { display: none; }
+
+  /* Discographie et « Les fans aiment aussi » : rangées horizontales de 150. */
+  #artistView .artist-disco-grid {
+    display: flex; gap: 16px; overflow-x: auto; scrollbar-width: none;
+    margin-right: -16px; padding-right: 16px; grid-template-columns: none;
+  }
+  #artistView .artist-disco-grid::-webkit-scrollbar { display: none; }
+  #artistView .album-card { flex: 0 0 150px; width: 150px; }
+  #artistView .album-cover { width: 150px; height: 150px; border-radius: 4px; }
+  #artistView .album-name { font-size: 14px; font-weight: 500; margin-top: 8px; }
+  #artistView .album-year { font-size: 13px; color: var(--text-secondary); }
+  #artistView .discovery-row { gap: 16px; margin-right: -16px; padding-right: 16px; }
+  #artistView .discovery-card, #artistView .discovery-skeleton-card { flex: 0 0 150px; width: 150px; height: auto; }
+  #artistView .discovery-avatar, #artistView .discovery-fallback, #artistView .discovery-skeleton-avatar { width: 150px; height: 150px; flex-basis: 150px; border-radius: 50%; }
+  #artistView .discovery-name { margin-top: 8px; font: 700 14px/1.25 'StyreneA', sans-serif; text-align: left; }
+
+  /* ── Album : pochette 240 centrée, textes à gauche ── */
+  #albumView .album-hero {
+    position: relative; flex-direction: column; align-items: stretch; gap: 16px;
+    text-align: left; padding: calc(52px + var(--safe-top)) 16px 0;
+  }
+  #albumView .album-hero-cover {
+    align-self: center; width: min(240px, 62vw); height: auto; aspect-ratio: 1; flex-basis: auto;
+    border-radius: 4px; box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  }
+  #albumView .album-hero-kind { display: none; }
+  #albumView .album-hero-title { font: 700 24px/1.15 'StyreneA', sans-serif; letter-spacing: -.01em; margin: 0 0 8px; text-wrap: balance; }
+  #albumView .album-hero-cover { width: min(248px, 64vw); }
+  #albumView .album-hero-meta { justify-content: flex-start; gap: 8px; font-size: 14px; font-weight: 700; }
+  #albumView .album-hero-avatar { width: 20px; height: 20px; }
+  #albumView .album-hero-meta .sep, #albumView .album-hero-meta .dim { display: none; }
+  #albumView .album-hero-sub { display: block; margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
+  #albumView .album-tracklist { padding: 0 4px 0 16px; }
+  #albumView .album-track {
+    grid-template-columns: minmax(0, 1fr) auto; gap: 12px;
+    min-height: 64px; padding: 8px 0; border-radius: 0;
+  }
+  #albumView .album-track-num, #albumView .album-track-dur { display: none; }
+  #albumView .album-track-title { font-size: 16px; font-weight: 400; }
+  #albumView .album-track.playing .album-track-title { color: var(--accent-primary); }
+  #albumView .album-track-sub { font-size: 14px; color: var(--text-secondary); }
+  #albumView .album-explicit {
+    display: inline-grid; place-items: center; height: 15px; min-width: 15px; padding: 0 3px; margin-right: 6px;
+    border-radius: 2px; background: #b3b3b3; color: #121212; font: 700 10px/1 'StyreneA', sans-serif; vertical-align: 1px;
+  }
+  #albumView .album-hero-footer { padding: 16px 16px 40px; }
+}
+</style>
+
+<!-- PAGE RADIO façon Spotify -->
+<style>
+/* Pleine largeur : on annule la marge du conteneur des pages. */
+.radio-page {
+  --rp-color: #7ee0d0;
+  margin: -8px -24px 0;
+  padding-bottom: 140px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rp-color) 55%, #121212) 300px, color-mix(in srgb, var(--rp-color) 18%, var(--bg-primary)) 450px, var(--bg-primary) 560px);
+}
+@media (max-width: 768px) {
+  .radio-page { margin: -8px -12px 0; }
+  .main[data-view="radio"] .topbar { display: none; }
+}
+
+.rp-back {
+  width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: #fff; font-size: 26px; display: grid; place-items: center;
+}
+/* En-tête collant : occupe 0 de hauteur (marge négative) et apparaît en fondu. */
+.rp-sticky {
+  position: sticky; top: 0; z-index: 30;
+  height: calc(56px + var(--safe-top)); margin-bottom: calc(-56px - var(--safe-top));
+  padding: var(--safe-top) 12px 0 8px;
+  display: flex; align-items: center; gap: 8px;
+  background: color-mix(in srgb, var(--rp-color) 32%, #121212);
+  opacity: 0; pointer-events: none; transition: opacity .2s var(--ease-out);
+}
+.radio-page.rp-scrolled .rp-sticky { opacity: 1; pointer-events: auto; }
+.radio-page.rp-scrolled .rp-back-top { opacity: 0; }
+.rp-sticky-title { flex: 1; min-width: 0; font: 700 16px/1.2 'StyreneA', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Spotify mobile (relevé sur téléphone) : la radio n'a pas de pochette
+   centrée mais un BANDEAU pleine largeur — aplat pastel, trois grandes photos
+   rondes — et le titre en très gros posé sur son bas. */
+.rp-hero { position: relative; }
+.rp-back-top {
+  position: absolute; z-index: 4; left: 12px; top: calc(12px + var(--safe-top));
+  background: rgba(0, 0, 0, .22); transition: opacity .2s;
+}
+
+/* La pochette elle-même. */
+.rp-cover {
+  position: relative; height: calc(min(300px, 78vw) + var(--safe-top)); overflow: hidden;
+  background: var(--rp-color); color: #121212;
+}
+/* Fondu du bas du bandeau vers la teinte de la page, sous le titre. */
+.rp-cover::after {
+  content: ''; position: absolute; inset: 45% 0 0; z-index: 3;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--rp-color) 55%, #121212));
+}
+.rp-cover-logo, .rp-cover-tag, .rp-cover-name { display: none; }
+.rp-cover-photo, .rp-cover-side {
+  position: absolute; aspect-ratio: 1; border-radius: 50%;
+  background: rgba(0, 0, 0, .12) center / cover no-repeat;
+}
+.rp-cover-photo {
+  z-index: 2; left: 50%; top: calc(54% + var(--safe-top) / 2); width: 64%; max-width: 300px;
+  transform: translate(-50%, -50%); box-shadow: 0 0 0 4px var(--rp-color);
+  display: grid; place-items: center; font-size: 56px;
+}
+.rp-cover-side { z-index: 1; top: calc(52% + var(--safe-top) / 2); width: 44%; max-width: 210px; transform: translateY(-50%); }
+.rp-cover-side.left { left: -14%; }
+.rp-cover-side.right { right: -14%; }
+
+/* Titre en très gros posé sur le bas du bandeau, puis textes à gauche. */
+.rp-meta { position: relative; z-index: 5; display: grid; gap: 8px; margin-top: -92px; padding: 0 16px; }
+.rp-title {
+  margin: 0 0 8px; font: 800 clamp(32px, 10vw, 44px)/1.02 'StyreneA', sans-serif; letter-spacing: -.03em;
+  text-wrap: balance; color: #fff; text-shadow: 0 1px 12px rgba(0, 0, 0, .25);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rp-desc {
+  margin: 0; font-size: 14px; line-height: 1.35; color: var(--text-secondary);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rp-desc:empty { display: none; }
+.rp-owner { display: flex; align-items: center; gap: 6px; margin-top: 2px; font: 700 13px/1 'StyreneA', sans-serif; color: var(--text-primary); }
+.rp-owner img { width: 20px; height: 20px; padding: 2px; border-radius: 50%; background: #fff; object-fit: contain; }
+.rp-info { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.rp-actions { display: flex; align-items: center; justify-content: space-between; min-height: 72px; padding: 6px 16px 6px 6px; }
+.rp-actions-left, .rp-actions-right { display: flex; align-items: center; gap: 2px; }
+.rp-icon {
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--text-secondary); font-size: 24px; display: grid; place-items: center;
+}
+.rp-icon.active { color: var(--accent-primary); }
+.rp-play {
+  width: 56px; height: 56px; flex: 0 0 56px; margin-left: 8px; padding: 0; border: 0; border-radius: 50%;
+  background: var(--accent-primary); color: var(--on-accent); font-size: 26px; display: grid; place-items: center;
+}
+.rp-play.rp-play-sm { width: 44px; height: 44px; flex-basis: 44px; font-size: 20px; }
+
+/* Lignes de titres : pochette 48, titre 16, artiste 14, pas de numéro ni durée. */
+.rp-tracks { padding: 0 4px 0 16px; }
+.rp-row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 0; cursor: pointer; border-radius: 4px; }
+.rp-row:active { background: rgba(255, 255, 255, .07); }
+.rp-row-thumb { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 4px; overflow: hidden; background: var(--bg-elevated); }
+.rp-row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rp-row-info { flex: 1; min-width: 0; }
+.rp-row-title { font-size: 16px; line-height: 1.3; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-row.playing .rp-row-title { color: var(--accent-primary); }
+.rp-row-artist { margin-top: 2px; font-size: 14px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-empty { padding: 32px 16px; text-align: center; color: var(--text-secondary); }
+
+/* Petit égaliseur animé devant le titre en cours. */
+.rp-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; margin-right: 8px; vertical-align: -1px; }
+.rp-eq i { width: 3px; height: 100%; background: var(--accent-primary); transform-origin: bottom; animation: rpEq .9s ease-in-out infinite alternate; }
+.rp-eq i:nth-child(2) { animation-delay: -.3s; }
+.rp-eq i:nth-child(3) { animation-delay: -.6s; }
+@keyframes rpEq { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .rp-eq i { animation: none; } }
+
+/* Feuille « Réglages de la radio ». */
+.rp-sheet-overlay {
+  position: fixed; inset: 0; z-index: 10030; display: flex; align-items: flex-end;
+  background: rgba(0, 0, 0, .58); opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.rp-sheet-overlay.open { opacity: 1; pointer-events: auto; }
+.rp-sheet {
+  width: 100%; padding: 10px 20px calc(24px + var(--safe-bottom)); border-radius: 16px 16px 0 0;
+  background: var(--bg-elevated); transform: translateY(100%); transition: transform .28s cubic-bezier(.3, 0, 0, 1);
+}
+.rp-sheet-overlay.open .rp-sheet { transform: none; }
+.rp-sheet-handle { width: 36px; height: 4px; margin: 0 auto 16px; border-radius: 4px; background: #666; }
+.rp-sheet-title { margin: 0 0 16px; font: 700 16px/1.2 'StyreneA', sans-serif; }
+.rp-sheet-note { margin: 8px 0 12px; font-size: 13px; color: var(--text-secondary); }
+.rp-sheet-item { width: 100%; min-height: 52px; padding: 0; border: 0; background: none; color: var(--text-primary); display: flex; align-items: center; gap: 16px; font-size: 16px; text-align: left; }
+.rp-sheet-item i { font-size: 24px; color: var(--text-secondary); }
+</style>
+
+<!-- LECTEUR façon Spotify (mobile). Préfixe :root pour passer devant les blocs
+     plus bas dans le fichier (base du lecteur, FINITIONS) sans !important. -->
+<style>
+/* Bouton « appareils » du mini-lecteur : mobile seulement (le bureau l'a à droite). */
+.player-device { display: none; }
+@media (max-width: 768px) {
+  /* ── Mini-lecteur flottant : 56 px, marges 8, teinte de la pochette ── */
+  :root .player {
+    left: 8px; right: 8px; height: 56px; padding: 8px 8px 10px;
+    border-radius: 6px;
+    background: rgb(var(--np-mini-rgb, 42, 42, 42));
+    transition: background-color .4s ease;
+    overflow: hidden;
+  }
+  :root .player-left { gap: 8px; }
+  :root .player-cover, :root .player-cover img { width: 40px; height: 40px; border-radius: 4px; }
+  :root .player-info { transition: transform .2s cubic-bezier(.3,0,0,1), opacity .2s; }
+  :root .player-title { font-size: 13px; font-weight: 700; color: #fff; }
+  :root .player-artist { font-size: 12px; color: #ffffffb3; margin-top: 1px; }
+  :root .player-like, :root .player-device {
+    width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border: 0; background: none;
+    display: grid; place-items: center; font-size: 24px; color: #fff;
+  }
+  :root #prevBtn, :root #nextBtn { display: none; }
+  :root .controls { gap: 0; }
+  /* Lecture : icône seule, sans rond blanc. */
+  :root .ctrl-btn.play {
+    width: 40px; height: 40px; background: none; box-shadow: none; color: #fff; border-radius: 0;
+  }
+  :root .ctrl-btn.play i { font-size: 26px; }
+  /* Barre de progression de 2 px, dans la carte, au ras du bas. */
+  :root .progress-row { left: 8px; right: 8px; bottom: 0; height: 2px; }
+  :root .bar { height: 2px; border-radius: 1px; background: rgba(255, 255, 255, .3); }
+  :root .bar-fill { background: #fff; border-radius: 1px; }
+
+  /* ── Plein écran : pochette carrée dans le flux, dégradé de sa couleur ── */
+  :root #now-playing-overlay {
+    display: flex; flex-direction: column; align-items: stretch;
+    padding: var(--safe-top) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left));
+    overflow-x: hidden; overflow-y: auto;
+    background: linear-gradient(180deg, rgb(var(--np-ambient-rgb, 42, 42, 42)) 0%, #121212 78%);
+    opacity: 1; transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.3, 0, 0, 1);
+  }
+  :root #now-playing-overlay.open { transform: translateY(0); }
+
+  :root .np-top-actions {
+    position: static; order: 1; width: auto;
+    margin: 4px -12px 0; display: flex; align-items: center; justify-content: space-between;
+  }
+  :root .np-top-actions .icon-btn { width: 44px; height: 44px; font-size: 26px; }
+  :root .np-context {
+    flex: 1; min-width: 0; max-width: none; text-align: center;
+    font: 700 13px/1.25 'StyreneA', sans-serif; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  :root .np-context::before {
+    content: 'En lecture depuis'; display: block;
+    font-size: 11px; font-weight: 400; letter-spacing: .1em; text-transform: uppercase; color: #ffffffb3;
+  }
+
+  :root .np-artwork-wrap {
+    position: relative; inset: auto; z-index: auto; order: 2;
+    width: 100%; height: auto; aspect-ratio: 1; max-width: 100%;
+    margin: 28px 0 32px; border-radius: 8px; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  }
+  :root .np-artwork-wrap::after { content: none; }
+  :root .np-artwork, :root .np-artwork-placeholder { width: 100%; height: 100%; border-radius: 8px; object-fit: cover; }
+
+  :root .np-player-sheet { position: static; order: 3; }
+  /* syncNowPlaying pose display:block en style inline : seul !important passe devant. */
+  :root .np-mini-artwork { display: none !important; }
+  :root .np-info-row { margin-bottom: 20px; gap: 16px; }
+  :root .np-title { margin: 0 0 4px; font: 700 20px/1.2 'StyreneA', sans-serif; letter-spacing: -.01em; color: #fff; }
+  :root .np-artist { font-size: 16px; color: #b3b3b3; }
+  /* Un seul bouton à droite : le cœur. « Ne plus recommander » reste dans ⋯. */
+  :root .np-feedback-btn:not(.add) { display: none; }
+  :root .np-feedback-btn.add { width: 48px; height: 48px; border: 0; border-radius: 0; font-size: 28px; color: #fff; }
+  :root .np-feedback-btn.add.active { color: var(--accent-primary); }
+
+  /* Barre 4 px : piste #ffffff4d, partie lue blanche (--np-pct posé en JS). */
+  /* La barre déborde de la colonne : x8 → x404 sur un écran de 412 (relevé). */
+  :root .np-progress-wrap { margin: 0 -16px 12px; width: auto; }
+  :root .np-time-row { padding: 0 16px; }
+  :root .np-progress {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(to right, #fff var(--np-pct, 0%), #ffffff4d var(--np-pct, 0%));
+  }
+  :root .np-progress::-webkit-slider-thumb { width: 12px; height: 12px; background: #fff; }
+  :root .np-time-row { margin-top: 6px; font-size: 12px; color: #b3b3b3; font-variant-numeric: tabular-nums; }
+
+  :root .np-controls { margin: 0 -8px 16px; justify-content: space-between; }
+  :root .np-ctrl { width: 48px; height: 48px; font-size: 36px; color: #fff; position: relative; }
+  :root .np-ctrl-secondary { width: 40px; height: 40px; font-size: 24px; color: #fff; }
+  :root .np-ctrl.active { color: var(--accent-primary); }
+  /* Point de 4 px sous un bouton actif (aléatoire, répétition). */
+  :root .np-ctrl.active::after {
+    content: ''; position: absolute; left: 50%; bottom: 4px; width: 4px; height: 4px;
+    margin-left: -2px; border-radius: 50%; background: currentColor;
+  }
+  :root .np-ctrl-lg { width: 64px; height: 64px; background: #fff; color: #000; font-size: 28px; border-radius: 50%; }
+
+  /* Bas : appareils à gauche, partage et file à droite. */
+  :root .np-bottom-bar { display: flex; justify-content: flex-start; gap: 4px; margin: 0 -10px 20px; }
+  :root .np-bottom-bar .np-bottom-btn:nth-child(2) { margin-left: auto; }
+  :root .np-bottom-btn { width: 44px; height: 44px; font-size: 22px; color: #fff; }
+
+  :root .np-lyrics-card { border-radius: 8px; }
+
+  /* Menu ⋯ du lecteur : feuille #1f1f1f rayon 12, lignes de 56 (relevé). */
+  :root .np-sheet { background: #1f1f1f; border-radius: 12px 12px 0 0; }
+  :root .np-option { min-height: 56px; font-size: 15px; }
+  :root .np-option i { font-size: 24px; }
+
+  /* Égaliseur et Transitions : seulement dans le menu ⋯ du lecteur. */
+  :root .player-right [onclick="openTransitions()"],
+  :root .player-right [onclick="openEqualizer()"] { display: none; }
+}
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  :root #now-playing-overlay { transition: none; }
+}
+</style>
+
 <!-- NOW PLAYING OVERLAY -->
 <style>
 /* La couleur ambiante est enregistrée pour pouvoir être ANIMÉE : une custom
@@ -4060,10 +4924,10 @@ body.player-hidden .app { height: 100vh; }
    chaque changement de piste. Si @property n'est pas supporté, la couleur
    s'applique quand même — seule la transition est perdue. */
 @property --np-ambient {
-  syntax: '<color>'; inherits: false; initial-value: #080C12;
+  syntax: '<color>'; inherits: false; initial-value: #121212;
 }
 @property --np-ambient-deep {
-  syntax: '<color>'; inherits: false; initial-value: #080C12;
+  syntax: '<color>'; inherits: false; initial-value: #121212;
 }
 
 #now-playing-overlay {
@@ -4074,7 +4938,7 @@ body.player-hidden .app { height: 100vh; }
      JS plutôt qu'avec color-mix() : le WebView Android embarqué n'est pas
      garanti assez récent. */
   --np-ambient: var(--bg-primary);
-  --np-ambient-deep: #080C12;
+  --np-ambient-deep: #121212;
   background: linear-gradient(180deg, var(--np-ambient) 0%, var(--np-ambient-deep) 62%);
   z-index: 9999;
   flex-direction: column;
@@ -4645,7 +5509,7 @@ body.player-hidden .app { height: 100vh; }
   .np-ctrl-lg { width: 72px; height: 72px; font-size: 42px; }
   .np-bottom-bar { justify-content: space-between; gap: 0; margin: 0 0 16px; }
   .np-bottom-btn { width: 44px; height: 44px; padding: 0; color: #fff; font-size: 21px; }
-  .np-lyrics-card { width: 100%; height: 76px; padding: 18px; border: 0; border-radius: 16px 16px 0 0; background: rgb(var(--np-ambient-rgb, 31,40,54)); color: #fff; display: flex; justify-content: space-between; font: 800 16px/1 'StyreneA', sans-serif; }
+  .np-lyrics-card { width: 100%; height: 76px; padding: 18px; border: 0; border-radius: 16px 16px 0 0; background: rgb(var(--np-ambient-rgb, 42,42,42)); color: #fff; display: flex; justify-content: space-between; font: 800 16px/1 'StyreneA', sans-serif; }
   #np-similar, .np-actions { display: none !important; }
   .np-sheet-overlay { position: fixed; inset: 0; z-index: 10020; display: flex; align-items: flex-end; background: rgba(0,0,0,.58); opacity: 0; pointer-events: none; transition: opacity .2s; }
   .np-sheet-overlay.open { opacity: 1; pointer-events: auto; }
@@ -4659,8 +5523,8 @@ body.player-hidden .app { height: 100vh; }
   .np-option { width: 100%; min-height: 52px; padding: 0; border: 0; background: none; color: #fff; display: flex; align-items: center; gap: 16px; text-align: left; font: 500 14px/1 'StyreneA', sans-serif; }
   .np-option i { width: 24px; font-size: 22px; color: var(--text-secondary); }
   /* --np-ambient est enregistrée en inherits:false : un enfant ne la voit pas.
-     La variante -rgb, non enregistrée, hérite ; repli = --bg-elevated (31,40,54). */
-  .lyrics-sheet { background: rgb(var(--np-ambient-rgb, 31,40,54)); color: #fff; }
+     La variante -rgb, non enregistrée, hérite ; repli = --bg-elevated (42,42,42). */
+  .lyrics-sheet { background: rgb(var(--np-ambient-rgb, 42,42,42)); color: #fff; }
   .lyrics-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
   .lyrics-head button { width: 42px; height: 42px; border: 0; border-radius: 50%; background: rgba(0,0,0,.2); color: #fff; font-size: 22px; }
   #lyricsContent { white-space: pre-wrap; font-size: 19px; font-weight: 700; line-height: 1.6; }
@@ -4709,28 +5573,39 @@ body.player-hidden .app { height: 100vh; }
 :root {
   --r-object: 4px;      /* pochettes, tuiles : des objets, presque carrés */
   --r-control: 8px;     /* champs, menus, mini-lecteur, toast */
-  --press-scale: 0.96;
-  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --press-scale: 0.96;  /* réservé aux gros boutons lecture ronds */
+  --press-dim: brightness(0.8); /* appui façon Spotify : on fonce, on ne rétrécit pas */
+  --ease-out: cubic-bezier(0.3, 0, 0, 1); /* courbe « productive » de Spotify */
+}
+
+/* Emplacements d'image en chargement : gris fixe, sans pulsation (Spotify). */
+.discovery-skeleton-avatar, .discovery-skeleton-line, .skeleton {
+  animation: none; background: var(--skeleton);
 }
 
 /* Les contrôles de formulaire n'héritaient pas de la police : Roboto sur Android. */
 button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
 
 /* ── Appui : réponse immédiate, retour en douceur ─────────────────────
+   Comme Spotify, l'élément appuyé fonce au lieu de rétrécir ; seuls les gros
+   boutons lecture ronds gardent un léger rétrécissement.
    :where() garde la spécificité à 0 : un composant qui a déjà son propre
-   transform (centrage, animation) n'est jamais cassé. */
+   filtre ou transform n'est jamais cassé. */
 :where(button, [role="button"], .mbn-item, .mobile-quick-card, .home-track-card,
        .home-radio-card, .explore-genre-card, .pl-card, .playlist-card, .album-card,
        .discovery-card, .artist-related-card, .bubble-card, .cat-card, .search-chip,
        .lib-chip, .mobile-home-filter, .smart-card, .np-sim-card) {
-  transition: transform 0.22s var(--ease-out), opacity 0.22s var(--ease-out), background-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
+  transition: filter 0.15s var(--ease-out), opacity 0.2s var(--ease-out), background-color 0.15s var(--ease-out), color 0.15s var(--ease-out);
 }
 :where(button, [role="button"], .mbn-item, .mobile-quick-card, .home-track-card,
        .home-radio-card, .explore-genre-card, .pl-card, .playlist-card, .album-card,
        .discovery-card, .artist-related-card, .bubble-card, .cat-card, .search-chip,
        .lib-chip, .mobile-home-filter, .smart-card, .np-sim-card):active {
-  transform: scale(var(--press-scale));
+  filter: var(--press-dim);
   transition-duration: 0s;
+}
+:where(.play-big, .rp-play, .np-ctrl-lg, .ctrl-btn.play):active {
+  transform: scale(var(--press-scale));
 }
 /* Lignes pleine largeur : un rétrécissement y paraît bancal, on les éclaire. */
 :where(.result-item, .track, .pl-track-row, .artist-track, .album-track, .home-track-row,
@@ -4762,10 +5637,17 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   .section-title,
   .main[data-view="home"] .section-title,
   .search-explore h2, .mobile-section-head h2, .artist-section-title {
-    font-family: 'StyreneA', sans-serif; font-weight: 700;
-    font-size: 20px; line-height: 1.2; letter-spacing: -0.01em;
+    font-family: 'Albert Sans', sans-serif; font-weight: 700;
+    font-size: 22px; line-height: 1.2; letter-spacing: 0;
   }
-  .detail-title, .artist-hero-name, .mobile-page-head h1 { letter-spacing: -0.01em; }
+  .detail-title, .artist-hero-name { letter-spacing: -0.01em; }
+  /* Titres de page (Rechercher, Bibliothèque…) : police de texte en gras, comme
+     Spotify, et non la police d'affiche très grasse. */
+  .mobile-page-head h1,
+  #searchExplore .mobile-page-head h1,
+  #libraryView .mobile-page-head h1 {
+    font-family: 'Albert Sans', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: 0;
+  }
   .detail-type, .artist-hero-meta {
     text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500;
     color: var(--text-secondary);
@@ -4781,6 +5663,27 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
   /* Les quatre puces tiennent sur l'écran : plus de barre qui saute au toucher. */
   .mobile-home-filters { gap: 6px; }
   .mobile-home-filter { font-weight: 500; padding: 0 14px; }
+
+  /* ── Graisse : Albert Sans encre 15 à 25 % de moins que la police de Spotify
+     à corps égal (relevé ECARTS.md). Police variable : on monte d'un cran les
+     titres, puces et titres de ligne. Graisse seule, aucune cote touchée. ── */
+  .mobile-page-head h1,
+  #searchExplore .mobile-page-head h1,
+  #libraryView .mobile-page-head h1,
+  #libraryView.mobile-library-view .mobile-page-head > h1 { font-weight: 900; }
+  .section-title, .main[data-view="home"] .section-title,
+  .main[data-view="home"] #homeExtras .home-section .section-title,
+  .search-explore h2, .mobile-section-head h2, .artist-section-title,
+  #artistView .artist-section-title, .albums-section-title { font-weight: 800; }
+  .mobile-home-filter, .lib-chip, #libraryView .lib-chip,
+  .search-chip, .sr-chips .search-chip { font-weight: 600; }
+  #searchResults .sr-chips .search-chip { font-weight: 500; }
+  #libraryView .mobile-library-copy strong,
+  #libraryView .grid .mobile-library-copy strong,
+  .htc-title, .main[data-view="home"] .htc-title,
+  .main[data-view="home"] #homeExtras .htc-title, .main[data-view="home"] #homeExtras .hrc-name,
+  .result-title, #searchResults .search-results-list .result-title, #searchResults .mb-name,
+  .pl-track-name, .artist-track-title, .album-track-title, .mobile-quick-label, .discovery-name { font-weight: 650; }
 
   /* Accueil allégé : les genres vivent dans Recherche, les tendances et les
      mix automatiques ajoutaient trois rangées de plus que personne n'atteignait. */
@@ -4815,34 +5718,24 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
 
   /* Résultats de recherche : la barre du haut est masquée sur cette vue, le
      contenu doit donc dégager lui-même la barre d'état. */
-  .main[data-view="search"] #searchResults { padding-top: calc(12px + var(--safe-top)); }
-
-  /* ── Recherche : champ dans la palette, genres en photo ── */
-  .explore-search { background: var(--bg-elevated); color: var(--text-primary); border-radius: var(--r-control); }
-  .explore-search input { color: var(--text-primary); font-weight: 500; }
-  .explore-search input::placeholder { color: var(--text-secondary); }
-  .explore-search-go { background: var(--accent-primary); color: var(--on-accent); }
-  .explore-search-mic { color: var(--text-secondary); }
-  .explore-search-go, .explore-search-mic { flex-basis: 44px; width: 44px; height: 44px; }
-  .explore-genre-grid { gap: 8px; }
-  .explore-genre-card {
-    min-height: 0; aspect-ratio: 16 / 10; border-radius: var(--r-object);
-    background-color: var(--bg-elevated); background-size: cover; background-position: center 25%;
-    font-weight: 700; font-size: 16px;
-  }
+  /* (dégagement assuré par .sr-head ; styles Recherche regroupés sous #searchExplore) */
 
   /* ── Objets : un seul arrondi ── */
   .result-item, .result-thumb, .htc-cover, .mobile-quick-card, .mobile-quick-cover,
   .pl-track-thumb, .artist-track-thumb, .mobile-library-cover:not(.artist),
   .pl-card-cover, .album-card img, .detail-cover, .cat-card { border-radius: var(--r-object); }
-  /* Toast : dans les marges, au-dessus du mini-lecteur, texte qui passe à la ligne. */
+  /* Toast façon Spotify : pastille blanche centrée, juste au-dessus du
+     mini-lecteur, texte qui passe à la ligne. */
   .toast {
     border-radius: var(--r-control);
-    left: 16px; right: 16px; width: auto; max-width: none;
+    left: 8px; right: 8px; width: fit-content; max-width: min(384px, calc(100% - 16px)); margin: 0 auto;
     transform: translateY(20px);
     bottom: calc(140px + var(--safe-bottom));
+    padding: 8px 24px; background: #fff; color: #121212;
+    font-size: 14px; font-weight: 500; text-align: center; justify-content: center;
     white-space: normal; line-height: 1.35;
   }
+  .toast i { color: #121212 !important; }
   .toast.show { transform: translateY(0); }
   body.player-hidden .toast { bottom: calc(80px + var(--safe-bottom)); }
 
@@ -4947,10 +5840,11 @@ button, input, textarea, select { font: inherit; color: inherit; letter-spacing:
     <button class="np-option" onclick="openCurrentArtist()"><i class="ti ti-user"></i>Afficher l’artiste</button>
     <button class="np-option" onclick="startCurrentArtistRadio()"><i class="ti ti-radio"></i>Lancer la radio de l’artiste</button>
     <button class="np-option" onclick="closeNowPlayingOptions();openQueueManager()"><i class="ti ti-list"></i>Ouvrir la file d’attente</button>
+    <button class="np-option" onclick="closeNowPlayingOptions();shareCurrentTrack()"><i class="ti ti-share-3"></i>Partager</button>
+    <!-- Réglages de lecture regroupés en bas, comme Spotify (Paramètres › Lecture). -->
     <button class="np-option" onclick="closeNowPlayingOptions();openSleepTimer()"><i class="ti ti-moon"></i>Minuterie d’arrêt</button>
     <button class="np-option" onclick="closeNowPlayingOptions();openTransitions()"><i class="ti ti-arrow-merge"></i>Transitions</button>
     <button class="np-option" onclick="closeNowPlayingOptions();openEqualizer()"><i class="ti ti-adjustments-horizontal"></i>Égaliseur</button>
-    <button class="np-option" onclick="closeNowPlayingOptions();shareCurrentTrack()"><i class="ti ti-share-3"></i>Partager</button>
   </div>
 </div>
 
@@ -5576,6 +6470,43 @@ async function resolveAndPlay(index) {
   }
 }
 
+// En-tête des résultats façon Spotify : champ rappelant la requête (un appui y
+// ramène pour la modifier — rien n'est relancé à la frappe) et puces de filtre.
+function searchResultsHead(query) {
+  const chips = [['tracks','Titres'],['albums','Albums'],['artists','Artistes']];
+  return `
+    <div class="sr-head">
+      <div class="sr-head-row">
+        <button type="button" class="sr-head-cancel" onclick="cancelSearchResults()" aria-label="Annuler"><i class="ti ti-arrow-left"></i></button>
+        <button type="button" class="sr-head-search" onclick="openSearchHome()"><span>${esc(query)}</span></button>
+        <button type="button" class="sr-head-clear" onclick="clearSearchQuery()" aria-label="Effacer la recherche"><i class="ti ti-circle-x-filled"></i></button>
+      </div>
+      <div class="sr-chips"><button type="button" class="sr-chip-clear" onclick="setSearchFilter('')" aria-label="Effacer la sélection du filtre"><i class="ti ti-x"></i></button>${chips.map(([f, label]) => `<button type="button" class="search-chip" data-f="${f}" onclick="setSearchFilter('${f}')">${label}</button>`).join('')}</div>
+    </div>`;
+}
+// Puce rappuyée = retour à « tout », comme sur Spotify.
+function setSearchFilter(f) {
+  const el = document.getElementById('searchResults');
+  el.dataset.filter = el.dataset.filter === f ? '' : f;
+  el.querySelectorAll('.sr-chips .search-chip').forEach(c => c.classList.toggle('active', c.dataset.f === el.dataset.filter));
+  // Filtre actif : comme Spotify, seules la croix et la puce choisie restent.
+  el.querySelector('.sr-chips')?.classList.toggle('filtered', !!el.dataset.filter);
+  document.getElementById('mainContent')?.scrollTo({ top: 0 });
+}
+// Croix du champ : vide la requête et rouvre le champ, clavier sorti. Rien n'est
+// relancé tant que l'utilisateur ne valide pas.
+function clearSearchQuery() {
+  const ex = document.getElementById('exploreSearchInput');
+  if (ex) { ex.value = ''; exploreInputChanged(''); }
+  openSearchHome();
+}
+function cancelSearchResults() {
+  const ex = document.getElementById('exploreSearchInput');
+  if (ex) { ex.value = ''; exploreInputChanged(''); }
+  searchInput.value = '';
+  resetSearchView();
+}
+
 async function doSearch(query) {
   if (!query.trim()) return;
 
@@ -5587,8 +6518,9 @@ async function doSearch(query) {
   const resultsEl = document.getElementById('searchResults');
   resultsEl.style.display = 'block';
   resultsEl.style.background = ''; // reset dégradé hero précédent
+  resultsEl.dataset.filter = '';
   // Skeleton loading pour éviter le saut de contenu
-  resultsEl.innerHTML = renderSearchSkeleton();
+  resultsEl.innerHTML = searchResultsHead(query) + renderSearchSkeleton();
 
   try {
     // Métadonnées officielles Deezer (artiste/titre/album/pochette/durée)
@@ -5601,12 +6533,12 @@ async function doSearch(query) {
       // titres non vérifiés.
       S.queue = [];
       // Impasse évitée : on rappelle ce qui a été cherché et on propose une suite.
-      resultsEl.innerHTML = `
+      resultsEl.innerHTML = searchResultsHead(query) + `
         <div style="padding:48px 24px;text-align:center">
           <i class="ti ti-mood-empty" style="font-size:40px;color:var(--dark-gray)"></i>
           <p style="margin:14px 0 6px;font-size:17px;font-weight:700">Aucun résultat pour « ${esc(query)} »</p>
           <p style="margin:0 0 20px;color:var(--gray);font-size:14px">Vérifie l'orthographe, ou cherche seulement le nom de l'artiste.</p>
-          <button class="search-retry-btn" onclick="document.getElementById('searchInput').focus()">Modifier ma recherche</button>
+          <button class="search-retry-btn" onclick="openSearchHome()">Modifier ma recherche</button>
         </div>`;
       return;
     }
@@ -5622,7 +6554,7 @@ async function doSearch(query) {
       meta: m
     }));
 
-    resultsEl.innerHTML = `
+    resultsEl.innerHTML = searchResultsHead(query) + `
       <div class="search-results-list" id="srList">
         <div class="list-header">
           <span></span><span>Titre / Artiste</span><span>Album</span>
@@ -5721,13 +6653,21 @@ function renderDeezerArtistCard(data) {
         ${dz.picture ? `<img src="${esc(dz.picture)}" alt="${esc(data.name)}" onerror="this.style.display='none'">` : ''}
         <div class="mb-avatar-shine"></div>
       </div>
-      <div class="mb-artist-info">
-        <div class="mb-type">Artiste${meta ? ' · ' + meta : ''}</div>
+      <div class="mb-artist-info" title="${esc(meta)}">
+        <div class="mb-type">Artiste</div>
         <div class="mb-name">${esc(data.name)}</div>
         <div class="mb-disambig">Voir la discographie</div>
       </div>
+      <button type="button" class="sr-follow${isFollowingArtist(data.name) ? ' following' : ''}" onclick="event.stopPropagation();toggleFollowFromSearch(this,'${attrEnc(data.name)}')">${isFollowingArtist(data.name) ? 'Abonné' : 'S\'abonner'}</button>
     </div>
   `;
+}
+function toggleFollowFromSearch(btn, enc) {
+  const name = decodeURIComponent(enc);
+  toggleFollowArtist(name);
+  const on = isFollowingArtist(name);
+  btn.classList.toggle('following', on);
+  btn.textContent = on ? 'Abonné' : 'S\'abonner';
 }
 
 // --- Albums MusicBrainz ---
@@ -6147,6 +7087,7 @@ function updatePlayButton() {
     btn.dataset.playState = state;
     btn.innerHTML = `<i class="ti ti-player-${state}-filled"></i>`;
   });
+  if (typeof syncRadioPlayButtons === 'function') syncRadioPlayButtons();
 }
 
 // Fin de parcours : rien ne joue et rien ne pourra jouer. Sans ce point de
@@ -7591,7 +8532,7 @@ const PAGE_ENTER = {
   back: [{ opacity: 0, transform: 'translateX(-28px)' }, { opacity: 1, transform: 'none' }],
   tab:  [{ opacity: 0, transform: 'translateY(8px)' },  { opacity: 1, transform: 'none' }],
 };
-const EASE_OUT = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+const EASE_OUT = 'cubic-bezier(0.3, 0, 0, 1)'; // = --ease-out, courbe de Spotify
 let _navKind = 'push';
 
 function animateIn(el, frames, duration) {
@@ -7600,7 +8541,7 @@ function animateIn(el, frames, duration) {
   el.animate(frames, { duration, easing: EASE_OUT });
 }
 function animatePageIn(kind) {
-  animateIn(document.getElementById('mainContent'), PAGE_ENTER[kind] || PAGE_ENTER.push, kind === 'tab' ? 200 : 280);
+  animateIn(document.getElementById('mainContent'), PAGE_ENTER[kind] || PAGE_ENTER.push, kind === 'tab' ? 200 : 250);
 }
 // Contenu filtré (bibliothèque, puces d'accueil) : la liste se renouvelle
 // en fondu court au lieu de sauter d'un coup.
@@ -7699,6 +8640,8 @@ const SEARCH_GENRES = [
   ['Rock','rock music','Arctic Monkeys'],['Jazz','jazz music','Nina Simone'],
   ['Chanson','chanson française','Stromae'],['Chill','lofi chill music','Nujabes']
 ];
+// Aplats des tuiles « Parcourir tout » (palette des catégories Spotify).
+const SEARCH_GENRE_COLORS=['#DC148C','#E13300','#8D67AB','#0D73EC','#E8115B','#148A08','#BA5D07','#477D95','#1E3264','#27856A'];
 function getRecentSearches(){ return lsParse('sevenz_recent_searches',[]); }
 function saveRecentSearch(query){ const q=query.trim(); if(!q)return; const list=getRecentSearches().filter(x=>x.toLowerCase()!==q.toLowerCase()); localStorage.setItem('sevenz_recent_searches',JSON.stringify([q,...list].slice(0,8))); }
 function clearRecentSearches(){ localStorage.removeItem('sevenz_recent_searches'); renderSearchExplore(); }
@@ -7707,7 +8650,31 @@ function updateRecentSearchesVisibility(){
   const section=document.getElementById('searchRecentSection');
   if(!input||!section) return;
   const interacting=document.activeElement===input||section.contains(document.activeElement);
-  section.style.display=interacting&&!input.value.trim()&&getRecentSearches().length?'block':'none';
+  const typed=!!input.value.trim(), hasRecent=getRecentSearches().length>0;
+  section.style.display=interacting&&!typed&&hasRecent?'block':'none';
+  // Champ actif = écran « recherche » de Spotify : en-tête et genres s'effacent,
+  // le champ passe en sombre avec « Annuler ». Rien n'est cherché pendant la frappe.
+  document.getElementById('searchExplore')?.classList.toggle('is-focused',interacting);
+  const hint=document.getElementById('searchFocusHint');
+  if(hint){
+    hint.innerHTML=!interacting||(!typed&&hasRecent)?'':typed
+      ?'<p>Appuie sur <b>Rechercher</b> pour lancer la recherche</p>'
+      :'<strong>Écoute ce que tu aimes</strong><p>Cherche des artistes, des titres, des albums.</p>';
+  }
+}
+function cancelExploreSearch(){
+  const input=document.getElementById('exploreSearchInput');
+  if(!input) return;
+  input.value=''; exploreInputChanged(''); input.blur();
+  setTimeout(updateRecentSearchesVisibility,0);
+}
+function pickRecentSearch(i){
+  const q=getRecentSearches()[i]; if(q) submitSearch(q);
+}
+function removeRecentSearch(i){
+  const list=getRecentSearches(); list.splice(i,1);
+  localStorage.setItem('sevenz_recent_searches',JSON.stringify(list));
+  renderSearchExplore();
 }
 // Frappe côté mobile : on n'affiche/masque que le bouton de validation.
 // Aucune recherche n'est déclenchée ici — c'est tout l'objet du correctif.
@@ -7747,16 +8714,17 @@ function runExploreSearch(query){
 }
 function renderSearchExplore(){
   const recent=getRecentSearches();
-  document.getElementById('searchRecentChips').innerHTML=recent.map(q=>`<button class="search-chip" onclick="runExploreSearch(decodeURIComponent('${attrEnc(q)}'))">${esc(q)}</button>`).join('');
+  // mousedown sans focus : le champ reste actif, la liste ne se replie pas sous le doigt.
+  document.getElementById('searchRecentChips').innerHTML=recent.map((q,i)=>`<div class="search-recent-item"><button type="button" class="sri-main" onmousedown="event.preventDefault()" onclick="pickRecentSearch(${i})"><span class="sri-icon"><i class="ti ti-search"></i></span><span class="sri-text">${esc(q)}</span></button><button type="button" class="sri-remove" onmousedown="event.preventDefault()" onclick="removeRecentSearch(${i})" aria-label="Retirer « ${esc(q)} »"><i class="ti ti-x"></i></button></div>`).join('');
   updateRecentSearchesVisibility();
   const grid=document.getElementById('searchGenreGrid');
   if(!grid.children.length){
-    grid.innerHTML=SEARCH_GENRES.map(([name,query,artist])=>`<button class="explore-genre-card" data-artist="${esc(artist)}" onclick="runExploreSearch(decodeURIComponent('${encodeURIComponent(query)}'))"><span>${esc(name)}</span></button>`).join('');
+    grid.innerHTML=SEARCH_GENRES.map(([name,query,artist],i)=>`<button class="explore-genre-card" style="--tile:${SEARCH_GENRE_COLORS[i%SEARCH_GENRE_COLORS.length]}" data-artist="${esc(artist)}" onclick="runExploreSearch(decodeURIComponent('${encodeURIComponent(query)}'))"><span>${esc(name)}</span><img class="egc-art" alt="" hidden></button>`).join('');
     hydrateGenrePhotos(grid);
   }
 }
-// Chaque genre porte la photo d'un artiste emblématique (Deezer), au lieu
-// d'un aplat de couleur : c'est la musique qui illustre, pas un dégradé.
+// Chaque tuile (aplat de couleur, comme Spotify) porte, inclinée dans le coin,
+// la photo d'un artiste emblématique du genre (Deezer).
 async function hydrateGenrePhotos(grid){
   let pics={};
   try{ pics=JSON.parse(sessionStorage.getItem('sevenz_genre_pics')||'{}'); }catch(_){}
@@ -7770,8 +8738,8 @@ async function hydrateGenrePhotos(grid){
     }catch(_){ /* sans photo : fond neutre */ }
   }
   grid.querySelectorAll('.explore-genre-card').forEach(card=>{
-    const url=pics[card.dataset.artist];
-    if(url) card.style.backgroundImage=`url('${cssUrl(url)}')`;
+    const url=pics[card.dataset.artist], img=card.querySelector('.egc-art');
+    if(url&&img){ img.src=url; img.hidden=false; }
   });
 }
 // ════════════════════════════════════════════════════════════
@@ -7909,27 +8877,84 @@ function consumeVoiceIntent(){
   if (bestScore < 0.5) { showToast('Choisis le bon titre dans la liste', 'info'); return; }
   resolveAndPlay(best);
 }
-let libraryFilter='all', librarySort='recent';
-function setLibraryFilter(filter){ if(filter===libraryFilter)return; tapFeedback(); libraryFilter=filter; renderLibraryView(filter); animateSwap(document.getElementById('libraryBody')); }
-function cycleLibrarySort(){ librarySort=librarySort==='recent'?'name':'recent'; document.getElementById('librarySortLabel').textContent=librarySort==='recent'?'Récents':'Alphabétique'; renderLibraryView(); }
-function toggleLibrarySearch(){ const input=document.getElementById('librarySearchInput'); input.classList.toggle('open'); if(input.classList.contains('open'))input.focus(); }
-function libraryPins(){ return new Set(lsParse('sevenz_library_pinned',[])); }
-function toggleLibraryPin(key){ const pins=libraryPins(); pins.has(key)?pins.delete(key):pins.add(key); localStorage.setItem('sevenz_library_pinned',JSON.stringify([...pins])); renderLibraryView(); }
+// Bibliothèque calquée sur « Your Library » de Spotify : puces exclusives avec
+// croix, tri en feuille, liste ou grille, « Titres likés » épinglé, actions à
+// l'appui long (aucun bouton sur les lignes).
+let libraryFilter='all';
+let librarySort=(()=>{try{return localStorage.getItem('sevenz_library_sort')||'recent'}catch(e){return 'recent'}})();
+let libraryLayout=(()=>{try{return localStorage.getItem('sevenz_library_layout')||'list'}catch(e){return 'list'}})();
+const LIBRARY_SORTS={recent:'Récents',added:'Ajoutés récemment',name:'Alphabétique',creator:'Créateur'};
+let _libItems=[], _libPressTimer=null, _libPressFired=false;
+function setLibraryFilter(filter){ if(filter===libraryFilter)filter='all'; tapFeedback(); libraryFilter=filter; renderLibraryView(filter); animateSwap(document.getElementById('libraryBody')); }
+function cycleLibrarySort(){ openLibrarySortSheet(); }
+function setLibrarySort(s){ librarySort=s; try{localStorage.setItem('sevenz_library_sort',s)}catch(e){} renderLibraryView(); }
+function openLibrarySortSheet(){ _openSheet({cls:'lib-sheet lib-sort-sheet',label:'Trier par',icon:'ti-arrows-down-up',title:'Trier par',items:Object.entries(LIBRARY_SORTS).map(([k,l])=>({icon:k===librarySort?'ti-check':'',label:l,on:k===librarySort,run:()=>setLibrarySort(k)}))}); }
+function toggleLibraryLayout(){ libraryLayout=libraryLayout==='grid'?'list':'grid'; try{localStorage.setItem('sevenz_library_layout',libraryLayout)}catch(e){} tapFeedback(); renderLibraryView(); }
+function toggleLibrarySearch(){ const input=document.getElementById('librarySearchInput'); input.classList.toggle('open'); if(input.classList.contains('open'))input.focus(); else if(input.value){input.value='';renderLibraryView();} }
+// « Titres likés » est épinglé tant que l'utilisateur ne l'a pas retiré.
+function libraryPins(){ return new Set(lsParse('sevenz_library_pinned',['liked'])); }
+function toggleLibraryPin(key){ const pins=libraryPins(); const was=pins.has(key); was?pins.delete(key):pins.add(key); localStorage.setItem('sevenz_library_pinned',JSON.stringify([...pins])); renderLibraryView(); showToast(was?'Désépinglé':'Épinglé','success'); }
+function libPressStart(el){ _libPressFired=false; clearTimeout(_libPressTimer); _libPressTimer=setTimeout(()=>{_libPressFired=true; openLibraryItemMenu(+el.dataset.i);},500); }
+function libPressEnd(){ clearTimeout(_libPressTimer); }
+function libPressConsumed(){ const f=_libPressFired; _libPressFired=false; return f; }
+function openLibraryItemMenu(i){
+  const item=_libItems[i]; if(!item)return;
+  const pinned=libraryPins().has(item.key), artist=item.type==='artist', following=artist&&isFollowingArtist(item.name);
+  // Mêmes libellés et même ordre que l'appui long de Spotify, limités à ce que SEVENZ sait faire.
+  const pl=item.type==='playlist'?item.pl:null, what=artist?'l’artiste':item.type==='album'?'l’album':'la playlist';
+  const sharePl=()=>{ const text=`Écoute "${pl.name}" sur SEVENZ ! ${(pl.tracks||[]).length} titres`; if(navigator.share)navigator.share({title:pl.name,text}).catch(()=>{}); else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>showToast('Playlist copiée')); else showToast('Partage non disponible'); };
+  _openSheet({cls:'lib-sheet',label:`Options pour ${item.name}`,cover:item.type==='liked'?'':item.thumb,round:artist,icon:item.type==='liked'?'ti-heart-filled':artist?'ti-user':'ti-music',title:item.name,sub:pl?item.meta.replace(/^Playlist • (?!\d+ titres?$)(.+)$/,'par $1 • Playlist'):item.meta,items:[
+    pl&&{icon:'ti-share',label:'Partager',run:sharePl},
+    pl&&{icon:'ti-circle-plus',label:'Ajouter à cette playlist',run:()=>openAddToPlaylistScreen(pl.id)},
+    pl&&{icon:'ti-pencil',label:'Nom et informations',run:()=>openEditModal(pl.id)},
+    pl&&{icon:'ti-trash',label:'Supprimer la playlist',run:()=>confirmDelete(pl.id).then(()=>renderLibraryView())},
+    {icon:pinned?'ti-pinned-off':'ti-pin',label:`${pinned?'Désépingler':'Épingler'} ${what}`,on:pinned,run:()=>toggleLibraryPin(item.key)},
+    artist&&(following?{icon:'ti-user-check',label:'Ne plus suivre',on:true,run:()=>{toggleFollowArtist(item.name);renderLibraryView();}}:{icon:'ti-user-plus',label:'Suivre',run:()=>{toggleFollowArtist(item.name);renderLibraryView();}}),
+    artist&&{icon:'ti-broadcast',label:'Lancer la radio de l’artiste',run:()=>startRadio(item.name,radioSeedTitleForArtist(item.name))},
+  ]});
+}
 function renderLibraryView(filter=libraryFilter){
+  if(!['all','playlists','artists','albums'].includes(filter))filter='all';
   libraryFilter=filter;
-  document.querySelectorAll('#libraryView .lib-chip').forEach(btn=>btn.classList.toggle('active',btn.dataset.filter===filter));
-  const query=(document.getElementById('librarySearchInput').value||'').toLowerCase();
-  const pins=libraryPins(), history=lsParse('sevenz_history',[]), artists=[] , seen=new Set();
-  history.forEach(t=>{if(t.channel&&!seen.has(t.channel)){seen.add(t.channel);artists.push({name:t.channel,thumb:t.thumb})}});
-  const albums=[]; [...S.favorites,...history].forEach(t=>{if(t.album&&!albums.some(a=>a.name===t.album))albums.push({name:t.album,artist:t.channel,thumb:t.thumb})});
+  document.querySelectorAll('#libraryView .lib-chip[data-filter]').forEach(btn=>btn.classList.toggle('active',btn.dataset.filter===filter));
+  document.getElementById('libraryFilterBar')?.classList.toggle('filtered',filter!=='all');
+  document.getElementById('librarySortLabel').textContent=LIBRARY_SORTS[librarySort]||'Récents';
+  const grid=libraryLayout==='grid', toggle=document.getElementById('libraryViewToggle');
+  if(toggle){ toggle.innerHTML=`<i class="ti ti-${grid?'list':'layout-grid'}"></i>`; toggle.setAttribute('aria-label',grid?'Afficher en liste':'Afficher en grille'); }
+  const query=(document.getElementById('librarySearchInput').value||'').trim().toLowerCase();
+  const pins=libraryPins(), history=lsParse('sevenz_history',[]);
+  // Récence = dernière écoute (historique, du plus récent au plus ancien).
+  const lastPlayed=pred=>{ for(const h of history) if(pred(h)) return h.playedAt||1; return 0; };
+  const artists=[], seen=new Set();
+  history.forEach(t=>{const n=cleanArtistName(t.channel);if(t.channel&&!seen.has(n)){seen.add(n);artists.push({name:n,thumb:t.thumb})}});
+  lsParse('sevenz_followed_artists',[]).forEach(n=>{if(n&&!seen.has(n)){seen.add(n);const t=[...S.favorites,...history].find(x=>x.channel===n||cleanArtistName(x.channel)===n);artists.push({name:n,thumb:t?.thumb||''})}});
+  const albums=[]; [...S.favorites,...history].forEach(t=>{if(t.album&&!albums.some(a=>a.name===t.album))albums.push({name:t.album,artist:cleanArtistName(t.channel),thumb:t.thumb})});
+  const me=(typeof _currentUser!=='undefined'&&_currentUser)?(_currentUser.displayName?.split(' ')[0]||_currentUser.email?.split('@')[0]||''):'';
   let items=[];
-  if(filter==='all'||filter==='tracks')items.push(...S.favorites.map((t,i)=>({type:'track',key:`track:${t.id}`,name:t.title,meta:`Titre · ${t.channel||''}`,thumb:t.thumb,track:t,idx:i,action:`playLibraryFavorite(${i})`})));
-  if(filter==='all'||filter==='playlists')items.push(...S.playlists.map(p=>({type:'playlist',key:`playlist:${p.id}`,name:p.name,meta:`Playlist · ${(p.tracks||[]).length} titres`,thumb:p.coverImage||playlistArtworks(p)[0]||'',action:`openPlaylist('${p.id}')`})));
-  if(filter==='all'||filter==='artists')items.push(...artists.map(a=>({type:'artist',key:`artist:${a.name}`,name:a.name,meta:'Artiste',thumb:a.thumb,action:`openArtistEncoded('${attrEnc(a.name)}')`})));
-  if(filter==='all'||filter==='albums')items.push(...albums.map(a=>({type:'album',key:`album:${a.name}`,name:a.name,meta:`Album · ${a.artist||''}`,thumb:a.thumb,action:`runExploreSearch(decodeURIComponent('${attrEnc(a.name+' '+(a.artist||''))}'))`})));
+  if(filter==='all'||filter==='playlists'){
+    items.push({type:'liked',key:'liked',name:'Titres likés',meta:`Playlist • ${S.favorites.length} titre${S.favorites.length>1?'s':''}`,thumb:'',recent:Infinity,added:Infinity,action:`navigateTo('liked')`});
+    items.push(...S.playlists.map(p=>{const ids=new Set((p.tracks||[]).map(t=>t&&t.id));const n=(p.tracks||[]).length;return{type:'playlist',key:`playlist:${p.id}`,name:p.name,meta:`Playlist • ${me||`${n} titre${n>1?'s':''}`}`,thumb:p.coverImage||'',pl:p,recent:Math.max(p.updatedAt||p.createdAt||0,lastPlayed(h=>ids.has(h.id))),added:p.createdAt||0,action:`openPlaylist('${p.id}')`}}));
+  }
+  if(filter==='all'||filter==='artists')items.push(...artists.map(a=>({type:'artist',key:`artist:${a.name}`,name:a.name,meta:'Artiste',thumb:a.thumb,recent:lastPlayed(h=>cleanArtistName(h.channel)===a.name),added:0,action:`openArtistEncoded('${attrEnc(a.name)}')`})));
+  if(filter==='all'||filter==='albums')items.push(...albums.map(a=>({type:'album',key:`album:${a.name}`,name:a.name,meta:`Album • ${a.artist||''}`,thumb:a.thumb,recent:lastPlayed(h=>h.album===a.name),added:0,action:`runExploreSearch(decodeURIComponent('${attrEnc(a.name+' '+(a.artist||''))}'))`})));
   items=items.filter(i=>!query||`${i.name} ${i.meta}`.toLowerCase().includes(query));
-  if(librarySort==='name')items.sort((a,b)=>a.name.localeCompare(b.name)); else items.sort((a,b)=>(pins.has(b.key)?1:0)-(pins.has(a.key)?1:0));
-  document.getElementById('libraryBody').innerHTML=items.length?items.map(item=>`<div class="mobile-library-item" onclick="${item.action}"><div class="mobile-library-cover ${item.type==='artist'?'artist':''}" style="${item.thumb?`background-image:url('${cssUrl(item.thumb)}')`:''}">${item.thumb?'':`<i class="ti ti-${item.type==='artist'?'user':item.type==='playlist'?'playlist':'music'}"></i>`}</div><div class="mobile-library-copy"><strong>${esc(item.name)}</strong><span>${esc(item.meta)}</span></div><button class="library-pin ${pins.has(item.key)?'active':''}" onclick="event.stopPropagation();toggleLibraryPin(decodeURIComponent('${attrEnc(item.key)}'))" aria-label="Épingler"><i class="ti ti-pin"></i></button>${item.type==='track'?trackMenuBtn(item.track,{context:'library',index:item.idx}):item.type==='artist'?artistMenuBtn(item.name,{thumb:item.thumb}):''}</div>`).join(''):'<div class="empty-state">Aucun contenu dans cette catégorie</div>';
+  const creator=i=>i.type==='album'?i.meta.replace(/^Album • /,''):i.type==='artist'?i.name:me;
+  const cmp=librarySort==='name'?(a,b)=>a.name.localeCompare(b.name,'fr'):librarySort==='creator'?(a,b)=>creator(a).localeCompare(creator(b),'fr')||a.name.localeCompare(b.name,'fr'):librarySort==='added'?(a,b)=>b.added-a.added:(a,b)=>b.recent-a.recent;
+  items.sort((a,b)=>((pins.has(b.key)?1:0)-(pins.has(a.key)?1:0))||cmp(a,b));
+  _libItems=items;
+  const cover=item=>{
+    if(item.type==='liked')return `<div class="mobile-library-cover liked"><i class="ti ti-heart-filled"></i></div>`;
+    if(item.type==='playlist'&&!item.thumb)return `<div class="mobile-library-cover">${playlistCoverInner(item.pl,'<i class="ti ti-music"></i>')}</div>`;
+    return `<div class="mobile-library-cover ${item.type==='artist'?'artist':''}" style="${item.thumb?`background-image:url('${cssUrl(item.thumb)}')`:''}">${item.thumb?'':`<i class="ti ti-${item.type==='artist'?'user':'disc'}"></i>`}</div>`;
+  };
+  const body=document.getElementById('libraryBody');
+  body.classList.toggle('grid',grid);
+  const addRow=(filter==='all'||filter==='artists')&&!query?`<div class="mobile-library-item lib-add" onclick="navigateTo('search')"><div class="mobile-library-cover artist add"><i class="ti ti-plus"></i></div><div class="mobile-library-copy"><strong>Ajouter des artistes</strong></div></div>`:'';
+  const real=items.filter(i=>i.type!=='liked');
+  body.innerHTML=(items.length?items.map((item,i)=>`<div class="mobile-library-item" data-i="${i}" onclick="if(libPressConsumed())return;${item.action}" oncontextmenu="event.preventDefault();openLibraryItemMenu(+this.dataset.i)" ontouchstart="libPressStart(this)" ontouchmove="libPressEnd()" ontouchend="libPressEnd()" ontouchcancel="libPressEnd()">${cover(item)}<div class="mobile-library-copy"><strong>${esc(item.name)}</strong><span>${pins.has(item.key)?'<i class="ti ti-pin-filled lib-pinned" aria-label="Épinglé"></i>':''}<em>${esc(filter==='all'?item.meta:item.meta.replace(/^(Playlist|Album) • /,''))}</em></span></div></div>`).join(''):'')
+    +(!real.length&&filter!=='all'&&filter!=='playlists'?`<div class="empty-state">${query?'Aucun résultat dans ta bibliothèque':filter==='artists'?'Les artistes que tu écoutes ou suis apparaîtront ici':'Les albums que tu écoutes apparaîtront ici'}</div>`:'')
+    +(query&&!items.length&&(filter==='all'||filter==='playlists')?'<div class="empty-state">Aucun résultat dans ta bibliothèque</div>':'')
+    +addRow;
 }
 function playLibraryFavorite(index){ S.queue=S.favorites.map(t=>({...t})); S.currentIndex=index; playTrack(index); }
 function openArtistEncoded(name){ openArtistPage(cleanArtistName(decodeURIComponent(name))); }
@@ -8786,11 +9811,14 @@ let _ambientToken = 0;
 function applyNowPlayingAmbient(track) {
   const overlay = document.getElementById('now-playing-overlay');
   if (!overlay) return;
+  // Le mini-lecteur prend la même teinte que le plein écran (façon Spotify).
+  const mini = document.querySelector('.player');
   const reset = () => {
     overlay.style.removeProperty('--np-ambient');
     overlay.style.removeProperty('--np-ambient-deep');
     overlay.style.removeProperty('--np-ambient-rgb');
     overlay.style.removeProperty('--np-deep-rgb');
+    mini?.style.removeProperty('--np-mini-rgb');
   };
   const src = track ? (hqThumb(track.id) || track.thumb || '') : '';
   const token = ++_ambientToken;
@@ -8804,6 +9832,7 @@ function applyNowPlayingAmbient(track) {
     overlay.style.setProperty('--np-ambient-deep', pair.deep);
     overlay.style.setProperty('--np-ambient-rgb', pair.topRgb);
     overlay.style.setProperty('--np-deep-rgb', pair.deepRgb);
+    mini?.style.setProperty('--np-mini-rgb', pair.topRgb);
   });
 }
 
@@ -9037,10 +10066,74 @@ function renderDiscoSection(artistName, list, title, id) {
     </div>`;
 }
 
+// Discographie façon Spotify : une seule section, des puces pour changer de liste.
+let _discoTab = 'popular';
+function discoTabList(key) {
+  if (key === 'albums') return _artistDisco.albums || [];
+  if (key === 'singles') return _artistDisco.singles || [];
+  // « Sorties populaires » : nouveautés d'abord, sinon albums puis singles.
+  const rel = _artistDisco.releases || [];
+  return rel.length ? rel : [...(_artistDisco.albums || []), ...(_artistDisco.singles || [])];
+}
+let _discoTabArtist = null;
+function renderDiscoTabs(data) {
+  _artistDisco.releases = data.releases || [];
+  // Nouvel artiste : on repart sur « Sorties populaires ».
+  if (_discoTabArtist !== data.name) { _discoTabArtist = data.name; _discoTab = 'popular'; }
+  const tabs = [['popular', 'Sorties populaires'], ['albums', 'Albums'], ['singles', 'Singles et EP']]
+    .filter(([k]) => discoTabList(k).length);
+  if (!tabs.length) return '';
+  if (!tabs.some(([k]) => k === _discoTab)) _discoTab = tabs[0][0];
+  return `
+    <div class="artist-section" id="artistDiscoSection">
+      <div class="artist-section-head">
+        <h2 class="artist-section-title">Discographie</h2>
+        <button class="artist-see-all" onclick="expandDisco('discoTab')">Tout afficher</button>
+      </div>
+      <div class="sp-chips">${tabs.map(([k, label]) =>
+        `<button class="sp-chip${k === _discoTab ? ' active' : ''}" onclick="setArtistDiscoTab('${k}')">${label}</button>`).join('')}</div>
+      <div class="artist-disco-grid" id="discoTab">${discoTabList(_discoTab).slice(0, 8).map(al => albumCardHtml(data.name, al)).join('')}</div>
+    </div>`;
+}
+function setArtistDiscoTab(key) {
+  _discoTab = key;
+  const grid = document.getElementById('discoTab');
+  if (!grid) return;
+  grid.innerHTML = discoTabList(key).slice(0, 8).map(al => albumCardHtml(_currentArtistName, al)).join('');
+  grid.scrollLeft = 0;
+  document.querySelectorAll('#artistDiscoSection .sp-chip').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('onclick') === `setArtistDiscoTab('${key}')`));
+}
+
+// Aléatoire depuis une page (artiste, album) : active le mode puis lance un titre au hasard.
+function playListShuffled(list, playFn) {
+  if (!list || !list.length) return;
+  if (!S.shuffle) toggleShuffle();
+  playFn(Math.floor(Math.random() * list.length));
+}
+
+// En-tête collant des pages artiste et album : apparaît quand le haut est passé.
+let _spStickyBound = false;
+function bindSpStickyHeader() {
+  if (_spStickyBound) return;
+  const scroller = document.getElementById('mainContent');
+  if (!scroller) return;
+  _spStickyBound = true;
+  scroller.addEventListener('scroll', () => {
+    const v = _currentView();
+    if (v !== 'artist' && v !== 'album') return;
+    const view = document.getElementById(v === 'artist' ? 'artistView' : 'albumView');
+    const hero = view?.querySelector('.sp-hero');
+    if (!hero) return;
+    view.classList.toggle('sp-scrolled', hero.getBoundingClientRect().bottom < 90);
+  }, { passive: true });
+}
+
 function expandDisco(id) {
   const grid = document.getElementById(id);
   if (!grid) return;
-  const list = id === 'discoAlbums' ? _artistDisco.albums : _artistDisco.singles;
+  const list = id === 'discoTab' ? discoTabList(_discoTab)
+    : id === 'discoAlbums' ? _artistDisco.albums : _artistDisco.singles;
   grid.innerHTML = list.map(al => albumCardHtml(_currentArtistName, al)).join('');
   const btn = grid.parentElement?.querySelector('.artist-see-all');
   if (btn) btn.remove();
@@ -9089,34 +10182,48 @@ function renderArtistPage(view, data, opts = {}) {
       ${trackMenuBtn({ id: t.id || null, title: t.title, channel: t.channel || data.name, thumb: t.thumb || '', album: t.album || '', meta: t.meta, duration: t.duration || null }, { context: 'artist', index: i })}
     </div>`).join('');
 
+  // Lecture façon Spotify : en-tête collant + bouton retour posé sur la photo,
+  // « Suivre » et ⋯ à gauche, aléatoire et lecture à droite.
   view.innerHTML = `
-    <div class="artist-hero" id="artistHero">
+    <div class="sp-sticky">
+      <button class="sp-back" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
+      <span class="sp-sticky-title">${esc(data.name)}</span>
+      <button class="sp-play sp-play-sm" onclick="playArtistTrack(0)" aria-label="Lire ${esc(data.name)}"><i class="ti ti-player-play-filled"></i></button>
+    </div>
+    <div class="artist-hero sp-hero" id="artistHero">
+      <button class="sp-back sp-back-top" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
       <div class="artist-hero-bg" style="${heroImg ? `background-image:url('${cssUrl(heroImg)}')` : ''}"></div>
       <div class="artist-hero-content">
-        ${(dz || a) ? '<div class="artist-verified"><i class="ti ti-rosette-discount-check-filled"></i> Artiste vérifié</div>' : ''}
         <h1 class="artist-hero-name">${esc(data.name)}</h1>
-        <div class="artist-hero-meta">${[type, country, listeners].filter(Boolean).join(' · ')}</div>
+        ${(dz || a) ? '<div class="artist-verified"><i class="ti ti-rosette-discount-check-filled"></i> Profil vérifié</div>' : ''}
       </div>
     </div>
-    <div class="artist-actions">
-      <button class="play-big" onclick="playArtistTrack(0)" title="Lecture"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:block;width:1em;height:1em"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86Z"/></svg></button>
-      <button class="artist-follow-btn${following ? ' following' : ''}" id="artistFollowBtn" onclick="toggleFollowArtistCurrent()">${following ? 'Suivi' : 'Suivre'}</button>
+    <div class="artist-hero-meta sp-listeners">${[type, country, listeners].filter(Boolean).join(' · ')}</div>
+    <div class="artist-actions sp-actions">
+      <div class="sp-actions-left">
+        <button class="artist-follow-btn${following ? ' following' : ''}" id="artistFollowBtn" onclick="toggleFollowArtistCurrent()">${following ? 'Suivi' : 'Suivre'}</button>
+        ${artistMenuBtn(data.name)}
+      </div>
+      <div class="sp-actions-right">
+        <button class="sp-icon${S.shuffle ? ' active' : ''}" onclick="playListShuffled(_artistTracks, playArtistTrack)" aria-label="Lecture aléatoire"><i class="ti ti-arrows-shuffle"></i></button>
+        <button class="play-big sp-play" onclick="playArtistTrack(0)" title="Lecture"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:block;width:1em;height:1em"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86Z"/></svg></button>
+      </div>
     </div>
     ${top ? `<div class="artist-section"><h2 class="artist-section-title">Populaires</h2><div class="artist-tracks">${top}</div></div>` : ''}
-    ${renderDiscoSection(data.name, data.releases, 'Nouveautés', 'discoNewReleases')}
-    ${renderDiscoSection(data.name, data.albums, 'Albums', 'discoAlbums')}
-    ${renderDiscoSection(data.name, data.singles, 'Singles et EP', 'discoSingles')}
+    ${renderDiscoTabs(data)}
     <div id="artistSimilarSection" class="artist-section">
-      <h2 class="artist-section-title">Artistes proches</h2>
+      <h2 class="artist-section-title">Les fans aiment aussi</h2>
       <div id="artistSimilarRow">${renderSimilarSkeleton()}</div>
     </div>
   `;
 
   loadArtistSimilar(data.name);
+  bindSpStickyHeader();
 
   if (heroImg) getDominantColor(heroImg).then(c => {
     const hero = document.getElementById('artistHero');
     if (hero && c) hero.style.setProperty('--artist-accent', c);
+    if (c && view.isConnected) view.style.setProperty('--sp-color', c);
   });
   if (opts.keepScroll) return;
   const content = document.getElementById('mainContent');
@@ -9202,29 +10309,49 @@ function renderAlbumPage(view, data) {
       </div>`;
   }).join('');
 
+  // Photo ronde de l'artiste devant son nom, si on la connaît déjà (page
+  // artiste visitée ou radio) : pas de requête de plus juste pour elle.
+  const artistPic = data.artist?.picture || (typeof radioArtistPhoto === 'function' ? radioArtistPhoto(artistName) : '');
   view.innerHTML = `
-    <div class="album-hero">
+    <div class="sp-sticky">
+      <button class="sp-back" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
+      <span class="sp-sticky-title">${esc(al.title || '')}</span>
+      <button class="sp-play sp-play-sm" onclick="playAlbumTrack(0)" aria-label="Lire l'album"><i class="ti ti-player-play-filled"></i></button>
+    </div>
+    <div class="album-hero sp-hero">
+      <button class="sp-back sp-back-top" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
       <div class="album-hero-cover">${al.cover ? `<img src="${esc(al.cover)}" alt="">` : '<div class="album-cover-fallback"><i class="ti ti-vinyl" style="font-size:48px"></i></div>'}</div>
       <div class="album-hero-info">
         <div class="album-hero-kind">${kind}</div>
         <h1 class="album-hero-title">${esc(al.title || '')}</h1>
         <div class="album-hero-meta">
+          ${artistPic ? `<img class="album-hero-avatar" src="${esc(artistPic)}" alt="">` : ''}
           ${artistLinkInline(artistName)}
           ${meta.map(m => `<span class="sep">·</span><span class="dim">${esc(m)}</span>`).join('')}
         </div>
+        <div class="album-hero-sub">${[kind, al.year].filter(Boolean).map(esc).join(' • ')}</div>
       </div>
     </div>
-    <div class="album-actions">
-      <button class="play-big" onclick="playAlbumTrack(0)" title="Lecture"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:block;width:1em;height:1em"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86Z"/></svg></button>
-      <button class="artist-follow-btn" onclick="openArtistEncoded('${attrEnc(artistName)}')">Voir l'artiste</button>
+    <div class="album-actions sp-actions">
+      <div class="sp-actions-left">
+        ${artistName ? artistMenuBtn(artistName) : ''}
+      </div>
+      <div class="sp-actions-right">
+        <button class="sp-icon${S.shuffle ? ' active' : ''}" onclick="playListShuffled(_albumTracks, playAlbumTrack)" aria-label="Lecture aléatoire"><i class="ti ti-arrows-shuffle"></i></button>
+        <button class="play-big sp-play" onclick="playAlbumTrack(0)" title="Lecture"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:block;width:1em;height:1em"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86a1 1 0 0 0-1.5.86Z"/></svg></button>
+      </div>
     </div>
     <div class="album-tracklist">${rows || '<div class="empty-state" style="padding:40px"><i class="ti ti-music"></i><h3>Tracklist indisponible</h3></div>'}</div>
     ${al.label || al.releaseDate ? `<div class="album-hero-footer">${[formatReleaseDate(al.releaseDate), al.label].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
   `;
 
   if (al.cover) getDominantColor(al.cover).then(c => {
-    if (c && document.getElementById('albumView') === view) view.style.background = `linear-gradient(180deg, ${c} 0%, var(--bg-primary) 460px)`;
+    if (c && document.getElementById('albumView') === view) {
+      view.style.background = `linear-gradient(180deg, ${c} 0%, var(--bg-primary) 460px)`;
+      view.style.setProperty('--sp-color', c);
+    }
   });
+  bindSpStickyHeader();
   const content = document.getElementById('mainContent');
   if (content) content.scrollTop = 0;
 }
@@ -9246,6 +10373,12 @@ function _openPlaylistDirect(id) {
   document.getElementById('detailTitle').textContent = pl.name;
   const infoEl = document.getElementById('detailInfo');
   infoEl.innerHTML = `${pl.tracks.length} titre${pl.tracks.length!==1?'s':''}`;
+  // Ligne propriétaire (mobile, comme Spotify) : seulement pour mes playlists.
+  if (!pl.smart && (!pl.ownerId || pl.ownerId === _currentUser?.uid)) {
+    const who = _currentUser?.displayName || (_currentUser?.email || '').split('@')[0] || 'Vous';
+    const av = _currentUser?.photoURL ? `<img src="${esc(_currentUser.photoURL)}" alt="">` : esc(who.charAt(0).toUpperCase());
+    infoEl.insertAdjacentHTML('afterbegin', `<div class="pl-owner"><span class="pl-owner-av">${av}</span><span>${esc(who)}</span></div>`);
+  }
   if (pl.description) infoEl.innerHTML += `<div class="detail-desc">${esc(pl.description)}</div>`;
   if (pl.tags?.length) infoEl.innerHTML += `<div class="detail-tags">${pl.tags.map(t=>`<span class="detail-tag">${esc(t)}</span>`).join('')}</div>`;
 
@@ -9283,11 +10416,20 @@ function _openPlaylistDirect(id) {
       detailEl.style.background = '';
     }
   }
+  // Playlist neuve (ni photo ni titre) : carré gris et note, sur un voile gris,
+  // comme la page vide de Spotify — pas le dégradé coloré de repli.
+  const isEmpty = pl.tracks.length === 0;
+  detailEl.classList.toggle('cpl-is-empty', isEmpty);
+  if (isEmpty && !pl.coverImage) {
+    coverEl.className = 'detail-cover cpl-cover-empty';
+    coverEl.innerHTML = '<i class="ti ti-music"></i>';
+    detailEl.style.background = 'linear-gradient(180deg, #3d3d3d 0%, var(--bg-primary) 420px)';
+  }
 
   document.getElementById('detailTracklist').innerHTML = `
     <div class="list-head"><span>#</span><span>Titre</span><span class="r">Durée</span><span></span></div>
     ${pl.tracks.length === 0
-      ? `<div class="empty-state" style="padding:40px"><i class="ti ti-music"></i><h3>Playlist vide</h3><p>Ajoute des musiques depuis la recherche</p></div>`
+      ? `<div class="cpl-empty"><h3>Commençons à créer votre playlist</h3><button class="cpl-pill light" onclick="openAddToPlaylistScreen('${id}')">Ajouter à cette playlist</button></div>`
       : pl.tracks.map((t,i) => `
         <div class="track${S.currentTrack?.id===t.id?' playing':''}" onclick="if(this.classList.contains('swiped')){event.stopPropagation();this.classList.remove('swiped');return;}playFromPlaylist('${id}',${i})">
           <div class="t-idx"><span class="t-num">${i+1}</span><i class="ti ti-player-play-filled t-play-icon"></i></div>
@@ -9297,7 +10439,9 @@ function _openPlaylistDirect(id) {
           </div>
           <div class="t-dur${t.duration?'':' dur-pending'}" data-dur-id="${t.id||''}">${t.duration?formatTime(t.duration):''}</div>
           ${trackMenuBtn(t, { context: 'playlist', playlistId: id, index: i })}
-        </div>`).join('')}`;
+        </div>`).join('')}
+    ${pl.smart ? '' : '<div id="cplRecos"></div>'}`;
+  if (!pl.smart) cplLoadRecos(id, document.getElementById('cplRecos'));
 
   document.getElementById('detailPlay').onclick = () => playPlaylist(id);
   const dlBtn = document.getElementById('detailDownloadBtn');
@@ -9425,7 +10569,8 @@ async function confirmDelete(id) {
   savePlaylists();
   renderPlaylistGrid();
   renderSidebarPlaylists();
-  if (S.currentPlaylistId === id) showPlaylistsView();
+  // Mobile : retour à la Bibliothèque, pas à l'ancienne page « Mes Playlists ».
+  if (S.currentPlaylistId === id) { if (window.matchMedia('(max-width: 768px)').matches) navigateTo('library'); else showPlaylistsView(); }
 }
 function confirmDeletePlaylist() { if (S.currentPlaylistId) confirmDelete(S.currentPlaylistId); }
 
@@ -9651,7 +10796,129 @@ function hideNameSuggestions() {
   if (box) { box.hidden = true; box.innerHTML = ''; }
 }
 
+// ── Créer une playlist, parcours mobile calqué sur Spotify ──────────
+// Sur mobile, « + » ouvre la feuille « Créer » puis l'écran de nommage ; le
+// grand formulaire (photo, description, tags) reste celui de « Modifier » et
+// du bureau.
+const CPL_MOBILE = window.matchMedia('(max-width: 768px)');
+const _cplRows = { page: [], screen: [] };   // titres affichés, par source, référencés par index
+
+function openCreateSheet() {
+  // L'onglet « Créer » devient un ✕ blanc : un second appui referme la carte.
+  if (document.getElementById('cplSheet').classList.contains('open')) { closeCreateSheet(); return; }
+  document.getElementById('cplSheet').classList.add('open');
+  const tab = document.getElementById('mbnCreate');
+  if (tab) { tab.classList.add('cpl-x'); tab.querySelector('i').className = 'ti ti-x'; }
+}
+function closeCreateSheet() {
+  document.getElementById('cplSheet').classList.remove('open');
+  const tab = document.getElementById('mbnCreate');
+  if (tab) { tab.classList.remove('cpl-x'); tab.querySelector('i').className = 'ti ti-plus'; }
+}
+// Les autres onglets restent actifs au-dessus du voile : les toucher ferme la carte.
+document.getElementById('mobileBottomNav')?.addEventListener('click', e => {
+  if (!e.target.closest('#mbnCreate') && document.getElementById('cplSheet')?.classList.contains('open')) closeCreateSheet();
+}, true);
+function cplDefaultName() {
+  // Spotify : « Ma playlist nº N » (indicateur ordinal U+00BA + espace insécable),
+  // N = nombre de playlists + 1, sans doublon (ancienne graphie « n° » comprise).
+  let n = S.playlists.length + 1;
+  const taken = new Set(S.playlists.map(p => (p.name || '').toLowerCase().replace(/n[°º]\s/, 'nº ')));
+  while (taken.has(`ma playlist nº ${n}`)) n++;
+  return `Ma playlist nº\u00a0${n}`;
+}
+function openNamePlaylist() {
+  closeCreateSheet();
+  const screen = document.getElementById('cplName');
+  const input = document.getElementById('cplNameInput');
+  input.value = cplDefaultName();
+  screen.classList.add('open');
+  // Nom présélectionné : taper le remplace, comme dans Spotify.
+  setTimeout(() => { input.focus(); input.select(); }, 60);
+}
+function closeNamePlaylist() {
+  const input = document.getElementById('cplNameInput');
+  input.blur();
+  document.getElementById('cplName').classList.remove('open');
+}
+function submitNamePlaylist() {
+  const input = document.getElementById('cplNameInput');
+  const name = input.value.trim() || cplDefaultName();
+  const now = Date.now(), uid = _currentUser?.uid || null;
+  const id = now.toString();
+  S.playlists.unshift({id,name,description:'',tags:[],coverImage:null,tracks:[],createdAt:now,updatedAt:now,ownerId:uid,members:uid?{[uid]:'owner'}:{},isShared:false,shareCode:null});
+  savePlaylists(); renderPlaylistGrid(); renderSidebarPlaylists();
+  closeNamePlaylist();
+  openPlaylist(id);
+}
+
+function cplRowHtml(t, i, plId, src) {
+  const pl = S.playlists.find(p => p.id === plId);
+  const done = !!pl?.tracks.some(x => x.id === t.id);
+  return `<div class="cpl-row"><div class="cpl-row-thumb" style="${t.thumb ? `background-image:url('${cssUrl(t.thumb)}')` : ''}"></div>
+    <div class="cpl-row-txt"><div>${esc(t.title)}</div><span>${esc(_trackArtist(t))}</span></div>
+    <button class="cpl-add-btn${done ? ' done' : ''}" onclick="cplAddTrack('${plId}','${src}',${i},this)" aria-label="${done ? 'Déjà ajouté' : 'Ajouter à la playlist'}"><i class="ti ti-${done ? 'check' : 'plus'}"></i></button></div>`;
+}
+function cplAddTrack(plId, src, i, btn) {
+  const pl = S.playlists.find(p => p.id === plId), t = _cplRows[src]?.[i];
+  if (!pl || !t || pl.tracks.some(x => x.id === t.id)) return;
+  pl.tracks.push({id:t.id,title:t.title,channel:t.channel,thumb:t.thumb,duration:t.duration||null,addedBy:_currentUser?{uid:_currentUser.uid,name:_currentUser.displayName||_currentUser.email||'Membre'}:null,addedAt:Date.now()});
+  pl.updatedAt = Date.now();
+  savePlaylists(); renderSidebarPlaylists();
+  if (btn) { btn.classList.add('done'); btn.innerHTML = '<i class="ti ti-check"></i>'; btn.setAttribute('aria-label', 'Déjà ajouté'); }
+  showToast(`Ajouté à « ${pl.name} »`);
+  // La page de la playlist se remplit au fil des ajouts (le titre quitte les
+  // recos pour la liste, comme chez Spotify).
+  if (S.currentPlaylistId === plId) _openPlaylistDirect(plId);
+}
+// Titres recommandés : tirés des artistes les plus écoutés (comme « Basé sur
+// tes écoutes »). Rien d'écouté encore → pas de section, plutôt qu'une liste
+// au hasard.
+async function cplLoadRecos(plId, target) {
+  const artist = getTopArtists(1)[0];
+  if (!artist || !target) return;
+  const tracks = (await fetchSmartTracks(artist, 10)).slice(0, 8);
+  if (!tracks.length || !target.isConnected || S.currentPlaylistId !== plId) return;
+  _cplRows.page = tracks;
+  target.innerHTML = `<div class="cpl-recos"><h4>Titres recommandés</h4><p>Basés sur tes écoutes</p>${tracks.map((t, i) => cplRowHtml(t, i, plId, 'page')).join('')}</div>`;
+}
+function openAddToPlaylistScreen(plId) {
+  const screen = document.getElementById('cplAdd');
+  screen.dataset.pl = plId;
+  screen.querySelector('input').value = '';
+  const body = document.getElementById('cplAddBody');
+  body.innerHTML = '<div class="cpl-msg">Recherchez un titre ou un artiste, puis validez.</div>';
+  screen.classList.add('open');
+  const artist = getTopArtists(1)[0];
+  if (artist) fetchSmartTracks(artist, 12).then(tracks => {
+    if (!tracks.length || !screen.classList.contains('open') || screen.querySelector('input').value) return;
+    _cplRows.screen = tracks;
+    body.innerHTML = `<div class="cpl-recos" style="padding-top:8px"><h4>Recommandés</h4><p>Basés sur tes écoutes</p>${tracks.map((t, i) => cplRowHtml(t, i, plId, 'screen')).join('')}</div>`;
+  });
+}
+function closeAddToPlaylistScreen() {
+  const screen = document.getElementById('cplAdd');
+  screen.querySelector('input').blur();
+  screen.classList.remove('open');
+  if (S.currentPlaylistId === screen.dataset.pl) _openPlaylistDirect(screen.dataset.pl);
+}
+// Recherche validée explicitement (Entrée / loupe du clavier), jamais à la frappe.
+async function cplSearch(q) {
+  q = (q || '').trim(); if (!q) return;
+  const screen = document.getElementById('cplAdd'), plId = screen.dataset.pl;
+  const body = document.getElementById('cplAddBody');
+  screen.querySelector('input').blur();
+  body.innerHTML = '<div class="cpl-msg"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i></div>';
+  const tracks = await fetchSmartTracks(q, 15);
+  if (screen.querySelector('input').value.trim() !== q) return;
+  _cplRows.screen = tracks;
+  body.innerHTML = tracks.length
+    ? tracks.map((t, i) => cplRowHtml(t, i, plId, 'screen')).join('')
+    : '<div class="cpl-msg">Aucun résultat. Vérifiez l’orthographe ou essayez d’autres mots.</div>';
+}
+
 function openCreateModal() {
+  if (CPL_MOBILE.matches) { openCreateSheet(); return; }
   resetModalState(); S.modalMode='create'; S.modalTargetId=null;
   document.getElementById('modalTitle').textContent='Nouvelle Playlist';
   document.getElementById('modalSubmit').textContent='Créer';
@@ -10192,7 +11459,7 @@ function renderBubbles(tracks, gridId) {
         <button class="bubble-play"><i class="ti ti-player-play-filled"></i></button>
       </div>
       <div class="bubble-title">${esc(t.title)}</div>
-      <div class="bubble-sub"><i class="ti ti-microphone-2"></i> ${esc(t.channel)}</div>
+      <div class="bubble-sub"><i class="ti ti-microphone-2"></i> ${esc(cleanArtistName(t.channel))}</div>
     </div>
   `).join('');
   grid.querySelectorAll('.bubble-card').forEach(card => {
@@ -10591,6 +11858,7 @@ async function loadArtistSimilar(name) {
     return `<div class="discovery-card" role="button" tabindex="0" onclick="openArtistEncoded('${attrEnc(s.name)}')">
       <div class="discovery-avatar">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy">` : `<div class="discovery-fallback">${esc(s.name.charAt(0).toUpperCase())}</div>`}</div>
       <div class="discovery-name">${esc(s.name)}</div>
+      <div class="discovery-sub">Artiste</div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -10695,7 +11963,7 @@ function renderDiscoveryCard(t, i) {
         <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
         <button class="disco-play"><i class="ti ti-player-play-filled"></i></button>
       </div>
-      <div class="disco-artist">${esc(t._discoveredArtist || t.channel)}</div>
+      <div class="disco-artist">${esc(t._discoveredArtist || cleanArtistName(t.channel))}</div>
       <div class="disco-track">${esc(t._trackName || t.title)}</div>
       <div class="disco-badge"><i class="ti ti-sparkles"></i> Parce que tu écoutes ${esc(t._basedOn)}</div>
     </div>`;
@@ -10863,36 +12131,143 @@ function getOldFavorites() {
 // ── Mode radio infini ────────────────────────────────────────────
 // Garde par référence : si un autre code réassigne S.queue (= nouveau
 // contexte de lecture), la référence change et la radio se coupe d'elle-même.
+// Pochette radio façon Spotify : aplat vif propre à l'artiste, photo ronde au
+// centre flanquée de deux voisins, « RADIO » en haut, nom en gros en bas.
+// Couleur tirée d'une palette fixe par hachage du nom : stable d'une ouverture
+// à l'autre et sans dépendre du CORS des photos.
+const RADIO_COLORS = ['#7ee0d0', '#f59ccf', '#f4d35e', '#9db7f5', '#f7a072', '#b9e37a', '#c9a7f2'];
+function radioColor(name) {
+  let h = 0;
+  for (const c of String(name || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return RADIO_COLORS[h % RADIO_COLORS.length];
+}
+
+function radioArtistPhoto(name) {
+  const cached = _artistCache[name] || artistStoreGet(name)?.data;
+  return cached?.deezer?.picture || '';
+}
+
+// Photo de l'artiste-graine : affichée si déjà connue, sinon cherchée une fois
+// en arrière-plan (même source que la page artiste) puis la pochette se complète.
+const _radioPhotoPending = new Set();
+function ensureRadioPhoto(name) {
+  if (!name || radioArtistPhoto(name) || _radioPhotoPending.has(name)) return;
+  _radioPhotoPending.add(name);
+  fetchArtistData(name).then(d => {
+    if (!d?.deezer) return;
+    _artistCache[name] = d;
+    artistStorePut(name, d);
+    if (_currentView() === 'radio') renderRadioView();
+  }).catch(() => {}).finally(() => _radioPhotoPending.delete(name));
+}
+
+function radioDuration(tracks) {
+  const sec = tracks.reduce((s, t) => s + (Number(t.duration) || 0), 0);
+  if (!sec) return '';
+  const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+  return h ? `environ ${h} h ${m ? String(m).padStart(2, '0') : ''}`.trim() : `environ ${m} min`;
+}
+
 function renderRadioView() {
   const view = document.getElementById('radioView');
   if (!view) return;
   const active = S.radioMode && S.queue === S._radioQueueRef;
   const seed = S.radioSeed?.artist || S.currentTrack?.channel || 'ton écoute';
-  const cover = document.getElementById('radioCover');
-  const coverTrack = active && (S.currentTrack || S.queue[0]);
-  cover.innerHTML = coverTrack?.thumb ? `<img src="${esc(coverTrack.thumb)}" alt="">` : '<i class="ti ti-radio"></i>';
-  document.getElementById('radioTitle').textContent = `Radio de ${seed}`;
-  document.getElementById('radioInfo').textContent = active ? `${S.queue.length} titre${S.queue.length !== 1 ? 's' : ''}` : 'Cette radio n’est plus active';
+  const color = radioColor(seed);
+  view.style.setProperty('--rp-color', color);
+
+  // Voisins de la pochette : pochettes de deux autres artistes de la file.
+  const others = [];
+  if (active) for (const t of S.queue) {
+    if (t.channel && t.channel !== seed && t.thumb && !others.some(o => o.channel === t.channel)) others.push(t);
+    if (others.length === 2) break;
+  }
+  const photo = radioArtistPhoto(seed) || (active && (S.queue.find(t => t.channel === seed)?.thumb || S.queue[0]?.thumb)) || '';
+  ensureRadioPhoto(seed);
+  const side = (t, cls) => t ? `<span class="rp-cover-side ${cls}" style="background-image:url('${cssUrl(t.thumb)}')"></span>` : '';
+  document.getElementById('radioCover').innerHTML = `
+    <img class="rp-cover-logo" src="logo-sevenz-sfond.png" alt="">
+    <span class="rp-cover-tag">Radio</span>
+    ${side(others[0], 'left')}${side(others[1], 'right')}
+    <span class="rp-cover-photo"${photo ? ` style="background-image:url('${cssUrl(photo)}')"` : ''}>${photo ? '' : '<i class="ti ti-radio"></i>'}</span>
+    <span class="rp-cover-name">${esc(seed)}</span>`;
+
+  const title = `Radio ${seed}`;
+  document.getElementById('radioTitle').textContent = title;
+  document.getElementById('radioStickyTitle').textContent = title;
+  const names = [];
+  if (active) for (const t of S.queue) {
+    if (t.channel && t.channel !== seed && !names.includes(t.channel)) names.push(t.channel);
+    if (names.length === 3) break;
+  }
+  // Comme Spotify : « Avec X, Y, Z et bien d'autres artistes » quand la file en
+  // contient davantage.
+  const more = active && new Set(S.queue.map(t => t.channel).filter(c => c && c !== seed)).size > names.length;
+  document.getElementById('radioDesc').textContent = !names.length ? ''
+    : more ? `Avec ${names.join(', ')} et bien d'autres artistes`
+    : `Avec ${names.length > 1 ? names.slice(0, -1).join(', ') + ' et ' + names[names.length - 1] : names[0]}`;
+  document.getElementById('radioInfo').textContent = active
+    ? [`${S.queue.length} titre${S.queue.length !== 1 ? 's' : ''}`, radioDuration(S.queue)].filter(Boolean).join(' · ')
+    : 'Cette radio n’est plus active';
+  document.getElementById('radioShuffleBtn')?.classList.toggle('active', !!S.shuffle);
+  syncRadioPlayButtons();
   const adventure = document.getElementById('radioAdventure');
   if (adventure) adventure.value = String(S.radioAdventurousness ?? 0.35);
+
   const rows = active ? S.queue.map((t, i) => `
-    <div class="pl-track-row${i === S.currentIndex ? ' playing' : ''}" onclick="playTrack(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playTrack(${i})}" role="button" tabindex="0">
-      <div class="pl-track-num">${i + 1}</div>
-      <div class="pl-track-thumb"><img src="${esc(t.thumb || '')}" alt="" onerror="this.parentElement.style.background='var(--card)';this.remove()"></div>
-      <div class="pl-track-info">
-        <div class="pl-track-name">${esc(t.title || '')}</div>
-        <div class="pl-track-artist">${t.channel ? artistLinkInline(t.channel) : ''}</div>
+    <div class="rp-row${i === S.currentIndex ? ' playing' : ''}" onclick="playTrack(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();playTrack(${i})}" role="button" tabindex="0">
+      <div class="rp-row-thumb"><img src="${esc(t.thumb || '')}" alt="" loading="lazy" onerror="this.remove()"></div>
+      <div class="rp-row-info">
+        <div class="rp-row-title">${i === S.currentIndex ? '<span class="rp-eq" aria-hidden="true"><i></i><i></i><i></i></span>' : ''}${esc(t.title || '')}</div>
+        <div class="rp-row-artist">${t.channel ? artistLinkInline(t.channel) : ''}</div>
       </div>
-      <div class="pl-track-dur">${t.duration ? formatTime(t.duration) : ''}</div>
       ${trackMenuBtn(t, { context: 'radio', index: i })}
     </div>`).join('') : '';
   const tracklist = document.getElementById('radioTracklist');
-  tracklist.innerHTML = rows || `<div style="text-align:center;padding:40px;color:var(--gray)">${active ? 'Préparation de la radio…' : 'Lance une nouvelle radio pour afficher sa sélection.'}</div>`;
-  if (active && _radioFetching) tracklist.insertAdjacentHTML('beforeend', '<div style="text-align:center;padding:16px;color:var(--gray)">La radio s’enrichit…</div>');
-  if (active && view.dataset.playingIndex !== String(S.currentIndex)) {
-    view.dataset.playingIndex = String(S.currentIndex);
-    requestAnimationFrame(() => tracklist.querySelector('.playing')?.scrollIntoView({ block: 'nearest' }));
-  }
+  tracklist.innerHTML = rows || `<div class="rp-empty">${active ? 'Préparation de la radio…' : 'Lance une nouvelle radio pour afficher sa sélection.'}</div>`;
+  if (active && _radioFetching) tracklist.insertAdjacentHTML('beforeend', '<div class="rp-empty">La radio s’enrichit…</div>');
+  bindRadioStickyHeader();
+}
+
+// Bouton lecture de la radio : pause si la radio joue, sinon lecture/reprise.
+function radioIsPlaying() {
+  return S.radioMode && S.queue === S._radioQueueRef && !!S.currentTrack && S.isPlaying;
+}
+function toggleRadioPlay() {
+  if (radioIsPlaying()) togglePlay();
+  else playOrResumeRadio();
+}
+function syncRadioPlayButtons() {
+  const state = radioIsPlaying() ? 'pause' : 'play';
+  document.querySelectorAll('[data-radio-play]').forEach(btn => {
+    if (btn.dataset.playState === state) return;
+    btn.dataset.playState = state;
+    btn.innerHTML = `<i class="ti ti-player-${state}-filled"></i>`;
+  });
+}
+
+// En-tête collant : apparaît en fondu quand la pochette est passée sous le haut.
+let _radioStickyBound = false;
+function bindRadioStickyHeader() {
+  if (_radioStickyBound) return;
+  const scroller = document.getElementById('mainContent');
+  if (!scroller) return;
+  _radioStickyBound = true;
+  scroller.addEventListener('scroll', () => {
+    if (_currentView() !== 'radio') return;
+    const view = document.getElementById('radioView');
+    const cover = document.getElementById('radioCover');
+    if (!view || !cover) return;
+    const passed = cover.getBoundingClientRect().bottom < 80;
+    view.classList.toggle('rp-scrolled', passed);
+  }, { passive: true });
+}
+
+function openRadioSettings() {
+  document.getElementById('radioSettings')?.classList.add('open');
+}
+function closeRadioSettings() {
+  document.getElementById('radioSettings')?.classList.remove('open');
 }
 
 function playOrResumeRadio() {
@@ -11128,16 +12503,18 @@ function homeTrackCard(t, i, which) {
     </div>`;
 }
 
+// Carte radio : même pochette que la page radio (aplat vif, photo ronde,
+// « RADIO », nom en gros), en 150 px. La photo d'artiste arrive ensuite
+// (hydrateRadioPhotos) ; en attendant, la pochette du titre fait l'affaire.
 function homeRadioCard(r, i) {
-  const initial = (r.name || '?').trim().charAt(0).toUpperCase();
-  const bg = r.thumb
-    ? `background-image:url('${cssUrl(r.thumb)}');background-size:cover;background-position:center;`
-    : `background:${radioGradient(r.name)};`;
+  const photo = radioArtistPhoto(r.name) || r.thumb || '';
   return `
     <div class="home-radio-card" onclick="startRadioByIndex(${i})" data-radio-name="${esc(r.name)}">
-      <div class="hrc-cover" style="${bg}">
-        ${r.thumb ? '' : `<span class="hrc-initial">${initial}</span>`}
-        <span class="hrc-waves"><i class="ti ti-radio"></i></span>
+      <div class="rc-cover" style="--rc-color:${radioColor(r.name)}">
+        <img class="rc-logo" src="logo-sevenz-sfond.png" alt="">
+        <span class="rc-tag">Radio</span>
+        <span class="rc-photo"${photo ? ` style="background-image:url('${cssUrl(photo)}')"` : ''}>${photo ? '' : '<i class="ti ti-radio"></i>'}</span>
+        <span class="rc-name">${esc(r.name)}</span>
       </div>
       <div class="hrc-name">Radio ${esc(r.name)}</div>
     </div>`;
@@ -11163,24 +12540,26 @@ function loadHomeExtras() {
   S._recents = recents;
   S._radios = radios;
   S._oldFavs = oldFavs;
-  // Les 4 raccourcis de l'accueil sont les titres qu'on relance le plus.
-  prewarmTracks(recents, 4);
+  // Grille de 8 raccourcis comme Spotify : 2 entrées fixes + 6 titres récents,
+  // ceux qu'on relance le plus, préparés d'avance pour un départ immédiat.
+  const QUICK_RECENTS = 6;
+  prewarmTracks(recents, QUICK_RECENTS);
 
   const quickCards = [
     mobileQuickCard('Titres likés', "navigateTo('liked')", S.favorites[0]?.thumb || '', 'ti-heart-filled'),
     mobileQuickCard('Mes playlists', "navigateTo('playlists')", S.playlists[0]?.coverImage || '', 'ti-playlist')
   ];
-  recents.slice(0, 4).forEach((track, i) => {
+  recents.slice(0, QUICK_RECENTS).forEach((track, i) => {
     quickCards.push(mobileQuickCard(track.title, `playFromList('recents', ${i})`, track.thumb || ''));
   });
 
   let html = `<div class="mobile-quick-grid">${quickCards.join('')}</div>`;
 
-  // Les 4 premiers sont déjà dans la grille du haut : on ne les répète pas.
-  if (recents.length > 4) {
+  // Les premiers sont déjà dans la grille du haut : on ne les répète pas.
+  if (recents.length > QUICK_RECENTS) {
     html += `<section class="home-section">
       <h2 class="section-title">Écoutés récemment</h2>
-      <div class="home-track-row">${recents.slice(4).map((t, i) => homeTrackCard(t, i + 4, 'recents')).join('')}</div>
+      <div class="home-track-row">${recents.slice(QUICK_RECENTS).map((t, i) => homeTrackCard(t, i + QUICK_RECENTS, 'recents')).join('')}</div>
     </section>`;
   }
 
@@ -11227,12 +12606,10 @@ async function hydrateRadioPhotos(radios) {
     document.querySelectorAll('.home-radio-card[data-radio-name]').forEach(card => {
       const pic = parNom.get(card.dataset.radioName);
       if (!pic) return;
-      const cover = card.querySelector('.hrc-cover');
-      if (!cover) return;
-      cover.style.backgroundImage = `url('${cssUrl(pic)}')`;
-      cover.style.backgroundSize = 'cover';
-      cover.style.backgroundPosition = 'center';
-      cover.querySelector('.hrc-initial')?.remove();
+      const photo = card.querySelector('.rc-photo');
+      if (!photo) return;
+      photo.style.backgroundImage = `url('${cssUrl(pic)}')`;
+      photo.innerHTML = '';
     });
   } catch (e) {
     console.warn('[home] photos radios indisponibles', e.message);
@@ -11283,10 +12660,9 @@ function playFromList(which, i) {
     if (page === 'home') {
       navigateTo('home');
     } else if (page === 'search') {
+      // Comme Spotify : l'onglet ouvre « Parcourir » sans focus ni clavier ;
+      // le champ ne s'active qu'au toucher (ou au second appui sur l'onglet).
       navigateTo('search');
-      const mobileSearch = document.getElementById('exploreSearchInput');
-      const desktopSearch = document.getElementById('searchInput');
-      (mobileSearch || desktopSearch)?.focus();
     } else if (page === 'library') {
       navigateTo('library');
     }
@@ -11890,6 +13266,7 @@ document.addEventListener('DOMContentLoaded', initMobileGestures);
 
 // Swipe-down pour fermer l'overlay Now Playing
 document.addEventListener('DOMContentLoaded', () => window.initNowPlayingSwipe?.());
+document.addEventListener('DOMContentLoaded', () => window.initMiniPlayerSwipe?.());
 
 // Afficher l'onboarding aux nouveaux visiteurs même sans connexion Firebase.
 // initOnboarding() s'auto-protège via le flag `sevenz_onboarded`, donc c'est
@@ -12121,13 +13498,13 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
   <div class="mbn-item" data-page="search">
     <i class="ti ti-search"></i>
-    <span>Recherche</span>
+    <span>Rechercher</span>
   </div>
   <div class="mbn-item" data-page="library">
     <i class="ti ti-library"></i>
     <span>Bibliothèque</span>
   </div>
-  <div class="mbn-item" onclick="openCreateModal()">
+  <div class="mbn-item" id="mbnCreate" onclick="openCreateModal()">
     <i class="ti ti-plus"></i>
     <span>Créer</span>
   </div>
@@ -12216,6 +13593,11 @@ function closeTopLayer() {
     // Menu « ⋯ » (z-index 10040) : au-dessus de tout le reste, y compris du
     // lecteur plein écran, de Transitions et du panneau de file d'attente.
     ['trackSheet',          'open',   () => closeTrackMenu()],
+    // Parcours « Créer une playlist » (z-index 10030-10032).
+    ['cplAdd',              'open',   () => closeAddToPlaylistScreen()],
+    ['cplName',             'open',   () => closeNamePlaylist()],
+    ['cplSheet',            'open',   () => closeCreateSheet()],
+    ['radioSettings',       'open',   () => closeRadioSettings()],
     // En tête : .tr-overlay est plein écran opaque à z-index 10001, donc
     // au-dessus du Now Playing. Absent d'ici, le retour fermait la couche du
     // DESSOUS pendant que Transitions restait affiché. Le marqueur est 'open'
@@ -12499,13 +13881,14 @@ function _sheetEl() {
   return el;
 }
 
-function _openSheet({ label, cover, round, icon, title, sub, items }) {
+function _openSheet({ label, cover, round, icon, title, sub, items, cls }) {
   if (typeof closeLikedTrackMenu === 'function') closeLikedTrackMenu();
   document.getElementById('npOptionsOverlay')?.classList.remove('open');
   const el = _sheetEl();
   const sheet = el.firstElementChild;
   const list = items.filter(Boolean);
   _sheetActions = list.map(it => it.run);
+  sheet.className = 'tsheet' + (cls ? ' ' + cls : '');
   sheet.setAttribute('aria-label', label);
   sheet.innerHTML = `
     <div class="tsheet-handle"></div>
@@ -12864,7 +14247,7 @@ async function openLyricsPanel() {
   if (!track) return;
   const overlay = document.getElementById('lyricsOverlay');
   const content = document.getElementById('lyricsContent');
-  document.getElementById('lyricsTrack').textContent = `${decodeEntities(track.title)} — ${decodeEntities(track.channel)}`;
+  document.getElementById('lyricsTrack').textContent = `${decodeEntities(track.title)} — ${decodeEntities(cleanArtistName(track.channel))}`;
   overlay.classList.add('open');
   const key = `${track.channel || ''}|${track.title || ''}`;
   if (lyricsCache.has(key)) {
@@ -13100,7 +14483,7 @@ function updateNowPlayingPanel() {
   if (t) {
     art.innerHTML = t.thumb ? `<img src="${esc(t.thumb)}" alt="">` : '<i class="ti ti-music"></i>';
     titleEl.textContent = decodeEntities(t.title) || '—';
-    artistEl.textContent = t.channel || '';
+    artistEl.textContent = cleanArtistName(t.channel);
     if (t.thumb) applyDominantColor(t.thumb);
   } else {
     art.innerHTML = '<i class="ti ti-music"></i>';
@@ -13116,7 +14499,7 @@ function updateNowPlayingPanel() {
         <div class="np-q-cover">${tr.thumb ? `<img src="${esc(tr.thumb)}" alt="">` : ''}</div>
         <div class="np-q-info">
           <div class="np-q-title">${esc(tr.title || '')}</div>
-          <div class="np-q-artist">${esc(tr.channel || '')}</div>
+          <div class="np-q-artist">${esc(cleanArtistName(tr.channel))}</div>
         </div>
         ${trackMenuBtn(tr, { context: 'queue', index: S.currentIndex + 1 + i })}
       </div>`).join('');
@@ -13185,7 +14568,7 @@ function openQueueManager() {
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:${i === S.currentIndex ? '600' : '400'};color:${i === S.currentIndex ? 'var(--accent-primary)' : '#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div>
-        <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.channel || '')}</div>
+        <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cleanArtistName(t.channel))}</div>
       </div>
       ${i === S.currentIndex ? '<i class="ti ti-volume" style="color:var(--accent-primary);font-size:14px;flex-shrink:0"></i>' : ''}
       ${trackMenuBtn(t, { context: 'queue', index: i })}
@@ -13374,7 +14757,7 @@ function renderTransitionsBody() {
           <div class="tr-cover">${t.thumb ? `<img src="${esc(t.thumb)}" alt="">` : '<i class="ti ti-music"></i>'}</div>
           <div class="tr-meta">
             <div class="tr-tt">${esc(t.title)}</div>
-            <div class="tr-ta">${esc(t.channel || '')}</div>
+            <div class="tr-ta">${esc(cleanArtistName(t.channel))}</div>
           </div>
         </div>`;
       const link = idx < upcoming.length - 1 ? `
@@ -14403,9 +15786,13 @@ function openNowPlaying() {
 function closeNowPlaying() {
   const overlay = document.getElementById('now-playing-overlay');
   if (overlay) {
-    overlay.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
-    overlay.style.transform = 'translateY(40px)';
-    overlay.style.opacity = '0';
+    // Mobile : le lecteur redescend entièrement, sans fondu, comme Spotify.
+    const slide = window.matchMedia('(max-width: 768px)').matches;
+    overlay.style.transition = slide
+      ? 'transform 0.22s cubic-bezier(.8,0,1,1)'
+      : 'opacity 0.22s ease, transform 0.22s ease';
+    overlay.style.transform = slide ? 'translateY(100%)' : 'translateY(40px)';
+    if (!slide) overlay.style.opacity = '0';
     setTimeout(() => {
       overlay.classList.remove('open');
       overlay.style.transition = '';
@@ -14476,6 +15863,53 @@ function initNowPlayingSwipe() {
     el.addEventListener('touchend', end);
     el.addEventListener('touchcancel', end);
   });
+}
+
+// Mini-lecteur : glisser le titre à gauche = suivant, à droite = précédent
+// (comme Spotify). Le simple toucher continue d'ouvrir le plein écran : un
+// glissement réussi avale le clic qui suit.
+function initMiniPlayerSwipe() {
+  const bar = document.querySelector('.player');
+  const info = bar?.querySelector('.player-info');
+  if (!bar || !info || bar._miniSwipeBound) return;
+  bar._miniSwipeBound = true;
+  const threshold = 60;
+  let x0 = 0, y0 = 0, dx = 0, tracking = false, horizontal = false, swallowClick = false;
+
+  bar.addEventListener('touchstart', e => {
+    if (e.target.closest('button')) return;   // cœur, lecture : pas de geste
+    const t = e.touches[0];
+    x0 = t.clientX; y0 = t.clientY; dx = 0; tracking = true; horizontal = false;
+  }, { passive: true });
+
+  bar.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    const t = e.touches[0];
+    dx = t.clientX - x0;
+    if (!horizontal && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(t.clientY - y0)) horizontal = true;
+    if (!horizontal) return;
+    info.style.transition = 'none';
+    info.style.transform = `translateX(${dx * 0.6}px)`;
+    info.style.opacity = String(1 - Math.min(Math.abs(dx) / 200, 0.6));
+  }, { passive: true });
+
+  const end = () => {
+    if (!tracking) return;
+    tracking = false;
+    info.style.transition = 'transform .2s cubic-bezier(.3,0,0,1), opacity .2s';
+    info.style.transform = '';
+    info.style.opacity = '';
+    if (!horizontal || Math.abs(dx) < threshold) return;
+    swallowClick = true;
+    setTimeout(() => { swallowClick = false; }, 400);
+    if (dx < 0) skipNext(); else playPrev();
+  };
+  bar.addEventListener('touchend', end);
+  bar.addEventListener('touchcancel', end);
+  // Phase de capture sur la barre : stoppe le clic avant l'onclick de .player-left.
+  bar.addEventListener('click', e => {
+    if (swallowClick) { e.stopPropagation(); e.preventDefault(); swallowClick = false; }
+  }, true);
 }
 
 // Reconstruit l'URL d'une miniature YouTube en haute résolution à partir de l'ID vidéo.
@@ -14591,6 +16025,7 @@ let _npScrubbing = false;
 // le tampon audio et le redémarre — d'où un son haché.
 function npScrub(value) {
   _npScrubbing = true;
+  document.getElementById('np-progress')?.style.setProperty('--np-pct', (value / 10) + '%');
   if (!S.currentTrack) return;
   const duration = getPlayerDuration();
   if (!duration) return;
@@ -14624,7 +16059,11 @@ setInterval(async () => {
 
   const pct = (current / duration) * 1000;
   const progressEl = document.getElementById('np-progress');
-  if (progressEl) progressEl.value = pct;
+  if (progressEl) {
+    progressEl.value = pct;
+    // Partie lue en blanc : le curseur natif ne dessine pas de remplissage.
+    progressEl.style.setProperty('--np-pct', (pct / 10) + '%');
+  }
 
   document.getElementById('np-current-time').textContent = formatTime(current);
   document.getElementById('np-total-time').textContent = formatTime(duration);

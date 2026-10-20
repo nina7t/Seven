@@ -124,26 +124,30 @@ public class AudioPlayerPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("videoId manquant")
             return
         }
-        if engine.getPreloadedUrl(videoId: videoId) != nil {
-            call.resolve(["cached": true, "videoId": videoId])
-            return
+        // Le cache d'adresses vit sur le thread principal, comme le reste du moteur.
+        DispatchQueue.main.async {
+            if self.engine.getPreloadedUrl(videoId: videoId) != nil {
+                call.resolve(["cached": true, "videoId": videoId])
+                return
+            }
+            self.engine.preload(videoId: videoId) { _ in }
+            call.resolve(["preloading": true, "videoId": videoId])
         }
-        engine.preload(videoId: videoId) { _ in }
-        call.resolve(["preloading": true, "videoId": videoId])
     }
 
     @objc func getPreloadedUrl(_ call: CAPPluginCall) {
         let videoId = call.getString("videoId") ?? ""
-        if let url = engine.getPreloadedUrl(videoId: videoId) {
-            call.resolve(["videoId": videoId, "hasUrl": true, "url": url])
-        } else {
-            call.resolve(["videoId": videoId, "hasUrl": false])
+        DispatchQueue.main.async {
+            if let url = self.engine.getPreloadedUrl(videoId: videoId) {
+                call.resolve(["videoId": videoId, "hasUrl": true, "url": url])
+            } else {
+                call.resolve(["videoId": videoId, "hasUrl": false])
+            }
         }
     }
 
     @objc func clearPreloadCache(_ call: CAPPluginCall) {
-        engine.clearPreloadCache()
-        call.resolve()
+        DispatchQueue.main.async { self.engine.clearPreloadCache(); call.resolve() }
     }
 
     @objc func setUpcoming(_ call: CAPPluginCall) {
@@ -225,6 +229,10 @@ public class AudioPlayerPlugin: CAPPlugin, CAPBridgedPlugin {
                   let id = (first["id"] as? [String: Any])?["videoId"] as? String else {
                 call.reject("Aucun résultat")
                 return
+            }
+            // Comme sur Android (fetchAudio) : l'adresse audio est extraite dans la foulée.
+            if call.getBool("fetchAudio") == true {
+                DispatchQueue.main.async { self.engine.preload(videoId: id) { _ in } }
             }
             let snippet = first["snippet"] as? [String: Any] ?? [:]
             let thumbs = (snippet["thumbnails"] as? [String: Any])?["high"] as? [String: Any]

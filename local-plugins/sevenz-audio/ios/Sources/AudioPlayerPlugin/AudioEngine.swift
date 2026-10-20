@@ -20,7 +20,7 @@ struct UpcomingTrack {
     let thumb: String
 }
 
-private struct CachedUrl {
+private struct CachedUrl: Codable {
     let url: String
     let expiresAt: Date
 }
@@ -71,6 +71,9 @@ final class AudioEngine: NSObject {
     private var fadeTimer: Timer?
 
     private var urlCache: [String: CachedUrl] = [:]
+    /// Extractions en cours : un préchargement et un appui sur le même titre n'en lancent qu'une.
+    private var resolveWaiters: [String: [(String?, String?, String?) -> Void]] = [:]
+    private static let urlCacheKey = "sevenz_audio_urls_v1"
     private var upcoming: [UpcomingTrack] = []
 
     /// URL primaire + fallback proxy pour l'item courant et le prochain.
@@ -87,6 +90,7 @@ final class AudioEngine: NSObject {
 
     private override init() {
         super.init()
+        loadUrlCache()
         setupAudioObservers()
         setupRemoteCommands()
     }
@@ -222,7 +226,7 @@ final class AudioEngine: NSObject {
 
     func getPreloadedUrl(videoId: String) -> String? { cachedUrl(for: videoId) }
 
-    func clearPreloadCache() { urlCache.removeAll() }
+    func clearPreloadCache() { urlCache.removeAll(); saveUrlCache() }
 
     /// Prépare le prochain player pour le crossfade (action LOAD_NEXT).
     func loadNextTrack(videoId: String, title: String, artist: String, thumb: String,
@@ -587,6 +591,21 @@ final class AudioEngine: NSObject {
             ttl = max(0, ts - Date().timeIntervalSince1970 - urlSafetyMarginSec)
         }
         urlCache[videoId] = CachedUrl(url: url, expiresAt: Date().addingTimeInterval(ttl))
+        saveUrlCache()
+    }
+
+    /// Les adresses valent ~6 h : on les garde entre deux lancements de l'appli.
+    private func loadUrlCache() {
+        guard let data = UserDefaults.standard.data(forKey: AudioEngine.urlCacheKey),
+              let saved = try? JSONDecoder().decode([String: CachedUrl].self, from: data) else { return }
+        let now = Date()
+        urlCache = saved.filter { $0.value.expiresAt > now }
+    }
+
+    private func saveUrlCache() {
+        if let data = try? JSONEncoder().encode(urlCache) {
+            UserDefaults.standard.set(data, forKey: AudioEngine.urlCacheKey)
+        }
     }
 
     /// Résout videoId → (URL directe, URL proxy de secours, erreur).
@@ -595,6 +614,15 @@ final class AudioEngine: NSObject {
         if let cached = cachedUrl(for: videoId) {
             completion(cached, proxyFallback, nil)
             return
+        }
+        if resolveWaiters[videoId] != nil {
+            resolveWaiters[videoId]?.append(completion)
+            return
+        }
+        resolveWaiters[videoId] = [completion]
+        let completion: (String?, String?, String?) -> Void = { [weak self] primary, fallback, error in
+            let waiters = self?.resolveWaiters.removeValue(forKey: videoId) ?? []
+            waiters.forEach { $0(primary, fallback, error) }
         }
         // Extraction sur l'iPhone (IP résidentielle, comme NewPipe sur Android) ;
         // le serveur, bloqué par YouTube depuis l'hébergeur, ne sert plus que de secours.

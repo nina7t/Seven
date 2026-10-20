@@ -9,7 +9,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="sevenz">
-<link rel="apple-touch-icon" href="logo-sevenz-sfond.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="sevenz-icone-180-apple.png">
 <script src="config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -3759,7 +3761,7 @@ body.player-hidden .app { height: 100vh; }
   <aside class="sidebar">
     <div class="sidebar-head">
       <a href="#" class="sidebar-logo" onclick="showHome();return false;">
-        <img src="logo-sevenz-sfond.png" alt="SEVENZ">
+        <img src="sevenz-icone-192.png" alt="SEVENZ">
       </a>
     </div>
 
@@ -3803,7 +3805,7 @@ body.player-hidden .app { height: 100vh; }
         <button class="round-btn" id="navFwd" onclick="spaForward()" style="opacity:0.4"><i class="ti ti-chevron-right"></i></button>
       </div>
       <a href="#" class="mobile-logo" onclick="showHome();return false;">
-        <img src="logo-sevenz-sfond.png" alt="SEVENZ">
+        <img src="sevenz-icone-192.png" alt="SEVENZ">
       </a>
       <div class="search-box">
         <button type="button" class="search-go" onclick="submitSearch(document.getElementById('searchInput').value)" aria-label="Lancer la recherche" title="Lancer la recherche (Entrée)"><i class="ti ti-search"></i></button>
@@ -3843,7 +3845,7 @@ body.player-hidden .app { height: 100vh; }
     </div>
 
     <div class="mobile-home-filters" aria-label="Filtres de l’accueil">
-      <button class="mobile-home-avatar" onclick="handleUserBtnClick()" aria-label="Profil"><img src="logo-sevenz-sfond.png" alt=""></button>
+      <button class="mobile-home-avatar" onclick="handleUserBtnClick()" aria-label="Profil"><img src="sevenz-icone-192.png" alt=""></button>
       <button class="mobile-home-filter active" data-view="home" onclick="setHomeFilter('home')">Tout</button>
       <button class="mobile-home-filter" data-view="liked" onclick="setHomeFilter('liked')">Musique</button>
       <button class="mobile-home-filter" data-view="playlists" onclick="setHomeFilter('playlists')">Playlists</button>
@@ -3900,7 +3902,7 @@ body.player-hidden .app { height: 100vh; }
       <div class="search-results" id="searchResults"></div>
 
       <section class="search-explore" id="searchExplore">
-        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="logo-sevenz-sfond.png" alt="Profil"></button><h1>Rechercher</h1></div>
+        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Rechercher</h1></div>
         <div class="explore-search-row"><div class="explore-search"><i class="ti ti-search"></i><input id="exploreSearchInput" placeholder="Que souhaitez-vous écouter&#8239;?" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" oninput="exploreInputChanged(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitExploreSearch();}"><button type="button" class="explore-search-mic" id="exploreMicBtn" onclick="startVoiceSearch(this)" aria-label="Recherche vocale"><i class="ti ti-microphone"></i></button><button type="button" class="explore-search-go" id="exploreSearchGo" hidden onclick="submitExploreSearch()" aria-label="Lancer la recherche"><i class="ti ti-arrow-right"></i></button></div><button type="button" class="explore-search-cancel" onmousedown="event.preventDefault()" onclick="cancelExploreSearch()" aria-label="Annuler"><i class="ti ti-arrow-left"></i></button></div>
         <div class="search-recent" id="searchRecentSection"><h2>Récents</h2><div class="search-recent-list" id="searchRecentChips"></div><button type="button" class="search-recent-clear" onmousedown="event.preventDefault()" onclick="clearRecentSearches()">Effacer les recherches récentes</button></div>
         <div class="search-focus-hint" id="searchFocusHint"></div>
@@ -3971,14 +3973,14 @@ body.player-hidden .app { height: 100vh; }
         <div class="rp-hero">
           <button class="rp-back rp-back-top" onclick="spaBack()" aria-label="Retour"><i class="ti ti-chevron-left"></i></button>
           <div class="rp-cover" id="radioCover">
-            <div class="rp-cover-tag"><img src="logo-sevenz-sfond.png" alt=""><span>Radio</span></div>
+            <div class="rp-cover-tag"><img src="sevenz-icone-192.png" alt=""><span>Radio</span></div>
             <div class="rp-cover-photo" id="radioCoverPhoto"><i class="ti ti-radio"></i></div>
           </div>
         </div>
         <div class="rp-meta">
           <h1 class="rp-title" id="radioTitle">Radio</h1>
           <p class="rp-desc" id="radioDesc"></p>
-          <div class="rp-owner"><img src="logo-sevenz-sfond.png" alt=""><span>Conçue pour toi</span></div>
+          <div class="rp-owner"><img src="sevenz-icone-192.png" alt=""><span>Conçue pour toi</span></div>
           <div class="rp-info" id="radioInfo">0 titres</div>
         </div>
         <div class="rp-actions">
@@ -4040,7 +4042,7 @@ body.player-hidden .app { height: 100vh; }
       <div class="playlist-detail album-view" id="albumView"></div>
 
       <section class="mobile-library-view" id="libraryView">
-        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="logo-sevenz-sfond.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openCreateModal()" aria-label="Créer une playlist"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
+        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openCreateModal()" aria-label="Créer une playlist"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
         <input class="library-search-input" id="librarySearchInput" type="search" enterkeyhint="search" placeholder="Rechercher dans ta bibliothèque" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();renderLibraryView()}" oninput="if(!this.value)renderLibraryView()">
         <div class="library-filter-bar" id="libraryFilterBar">
           <button class="lib-chip lib-chip-clear" onclick="setLibraryFilter('all')" aria-label="Effacer la sélection du filtre"><i class="ti ti-x"></i></button>
@@ -12186,7 +12188,7 @@ function renderRadioView() {
   ensureRadioPhoto(seed);
   const side = (t, cls) => t ? `<span class="rp-cover-side ${cls}" style="background-image:url('${cssUrl(t.thumb)}')"></span>` : '';
   document.getElementById('radioCover').innerHTML = `
-    <img class="rp-cover-logo" src="logo-sevenz-sfond.png" alt="">
+    <img class="rp-cover-logo" src="sevenz-icone-192.png" alt="">
     <span class="rp-cover-tag">Radio</span>
     ${side(others[0], 'left')}${side(others[1], 'right')}
     <span class="rp-cover-photo"${photo ? ` style="background-image:url('${cssUrl(photo)}')"` : ''}>${photo ? '' : '<i class="ti ti-radio"></i>'}</span>
@@ -12511,7 +12513,7 @@ function homeRadioCard(r, i) {
   return `
     <div class="home-radio-card" onclick="startRadioByIndex(${i})" data-radio-name="${esc(r.name)}">
       <div class="rc-cover" style="--rc-color:${radioColor(r.name)}">
-        <img class="rc-logo" src="logo-sevenz-sfond.png" alt="">
+        <img class="rc-logo" src="sevenz-icone-192.png" alt="">
         <span class="rc-tag">Radio</span>
         <span class="rc-photo"${photo ? ` style="background-image:url('${cssUrl(photo)}')"` : ''}>${photo ? '' : '<i class="ti ti-radio"></i>'}</span>
         <span class="rc-name">${esc(r.name)}</span>
@@ -15605,7 +15607,7 @@ initFirebase();
 <div class="modal-overlay" id="authModal" style="display:none" onclick="if(event.target===this)closeAuthModal()">
   <div class="auth-box">
     <button class="modal-close" id="authCloseBtn" onclick="closeAuthModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--gray);font-size:22px;cursor:pointer;line-height:1">&times;</button>
-    <div class="auth-logo"><img src="logo-sevenz-sfond.png" alt="SEVENZ" style="height:52px;width:auto;object-fit:contain"></div>
+    <div class="auth-logo"><img src="sevenz-logo-blanc.svg" alt="SEVENZ" style="height:40px;width:auto;object-fit:contain"></div>
     <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Connexion</button>
       <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Inscription</button>

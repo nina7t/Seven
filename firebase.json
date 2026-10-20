@@ -10,7 +10,13 @@
       "build.js",
       "netlify.toml",
       "package-lock.json",
-      "config.example.js"
+      "config.example.js",
+      "**/*.apk",
+      "**/*.sh",
+      "android/**",
+      "ios/**",
+      "www/**",
+      "*.md"
     ],
     "rewrites": [
       {

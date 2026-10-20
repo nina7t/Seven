@@ -2,19 +2,19 @@
   "appId": "com.sevenz.app",
   "appName": "Sevenz",
   "webDir": "www",
-  "backgroundColor": "#080C12",
+  "backgroundColor": "#121212",
   "android": {
-    "backgroundColor": "#080C12",
+    "backgroundColor": "#121212",
     "allowMixedContent": true
   },
   "ios": {
-    "backgroundColor": "#080C12",
+    "backgroundColor": "#121212",
     "contentInset": "never"
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
-      "backgroundColor": "#080C12"
+      "backgroundColor": "#121212"
     },
     "SystemBars": {
       "insetsHandling": "css",

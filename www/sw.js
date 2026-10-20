@@ -1,9 +1,10 @@
-const CACHE_NAME = 'sevenz-v3';
+const CACHE_NAME = 'sevenz-v4';
 const ASSETS = [
   '/index.html',
   '/config.js',
   '/manifest.json',
-  '/logo-sevenz-sfond.png'
+  '/sevenz-icone-192.png',
+  '/favicon.svg'
 ];
 
 self.addEventListener('install', e => {

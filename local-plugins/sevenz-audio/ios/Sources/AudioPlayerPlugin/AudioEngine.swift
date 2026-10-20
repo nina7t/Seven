@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import YouTubeKit
 import MediaPlayer
 import UIKit
 
@@ -595,6 +596,38 @@ final class AudioEngine: NSObject {
             completion(cached, proxyFallback, nil)
             return
         }
+        // Extraction sur l'iPhone (IP résidentielle, comme NewPipe sur Android) ;
+        // le serveur, bloqué par YouTube depuis l'hébergeur, ne sert plus que de secours.
+        Task { [weak self] in
+            guard let self = self else { return }
+            if let local = await AudioEngine.extractLocally(videoId: videoId) {
+                DispatchQueue.main.async {
+                    self.storeUrl(local, for: videoId)
+                    completion(local, proxyFallback, nil)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.debug("[audio] extraction locale KO, repli serveur")
+                    self.resolveViaProxy(videoId: videoId, completion: completion)
+                }
+            }
+        }
+    }
+
+    /// Meilleur flux audio seul en m4a (AAC) : AVPlayer ne lit ni opus ni webm.
+    private static func extractLocally(videoId: String) async -> String? {
+        do {
+            let streams = try await YouTube(videoID: videoId, methods: [.local]).streams
+            let best = streams.filterAudioOnly()
+                .filter { $0.fileExtension == .m4a }
+                .highestAudioBitrateStream()
+            return best?.url.absoluteString
+        } catch {
+            return nil
+        }
+    }
+
+    private func resolveViaProxy(videoId: String, completion: @escaping (String?, String?, String?) -> Void) {
         guard let url = URL(string: "\(proxyBase)/stream/\(videoId)?format=m4a") else {
             completion(nil, nil, "Bad proxy URL")
             return

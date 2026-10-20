@@ -6229,6 +6229,7 @@ function updateProgress() {
 }
 
 function formatTime(s) {
+  if (!isFinite(s) || s < 0) return '0:00';
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
   return m + ':' + (sec < 10 ? '0' : '') + sec;
@@ -6321,6 +6322,7 @@ async function searchMetadata(query) {
   const data = await res.json();
   const results = data.results || [];
   _metaCache[key] = results;
+  const _metaKs = Object.keys(_metaCache); if (_metaKs.length > 500) delete _metaCache[_metaKs[0]];
   return results;
 }
 
@@ -6636,7 +6638,9 @@ async function searchMusicBrainzArtist(query) {
     );
     if (!res.ok) return (_mbCache[key] = null);
     const data = await res.json();
-    return (_mbCache[key] = data.artists?.[0] || null);
+    _mbCache[key] = data.artists?.[0] || null;
+    const _mbKs = Object.keys(_mbCache); if (_mbKs.length > 200) delete _mbCache[_mbKs[0]];
+    return _mbCache[key];
   } catch(e) { return (_mbCache[key] = null); }
 }
 
@@ -6788,7 +6792,7 @@ async function fetchDurations(ids) {
         if (sec) { _durCache[v.id] = sec; got = true; }
         const th = v.snippet?.thumbnails;
         const url = th?.medium?.url || th?.default?.url;
-        if (url) _thumbCache[v.id] = url;
+        if (url) { _thumbCache[v.id] = url; const _thKs = Object.keys(_thumbCache); if (_thKs.length > 500) delete _thumbCache[_thKs[0]]; }
       });
     } catch (e) { /* hors ligne : on retentera au prochain rendu */ }
   }
@@ -6870,7 +6874,7 @@ function createMetadataRow(meta, i) {
   return `
     <div class="result-item" data-index="${i}" style="cursor:pointer">
       <div class="result-thumb">
-        <img src="${meta.coverUrl || ''}" alt="" loading="lazy" onerror="this.parentElement.style.background='var(--card)'">
+        <img src="${esc(meta.coverUrl || '')}" alt="" loading="lazy" onerror="this.parentElement.style.background='var(--card)'">
       </div>
       <div class="result-info">
         <div class="result-title">${esc(meta.title)}</div>
@@ -8012,7 +8016,7 @@ function openPlaylistDetail(id) {
       <div class="pl-track-row${S.currentTrack?.id === t.id ? ' playing' : ''}" onclick="if(this.classList.contains('swiped')){event.stopPropagation();this.classList.remove('swiped');return;}playPlaylistTrack('${id}', ${i})">
         <div class="pl-track-num">${i + 1}</div>
         <div class="pl-track-thumb" data-thumb-id="${t.id || ''}">
-          <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+          <img src="${esc(t.thumb || '')}" alt="" onerror="this.parentElement.style.background='var(--card)'">
         </div>
         <div class="pl-track-info">
           <div class="pl-track-name">${esc(t.title)}</div>
@@ -8248,7 +8252,7 @@ function decodeEntities(s) {
 }
 
 function esc(s) {
-  return decodeEntities(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return decodeEntities(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function cssUrl(url) {
@@ -8888,7 +8892,7 @@ let libraryLayout=(()=>{try{return localStorage.getItem('sevenz_library_layout')
 const LIBRARY_SORTS={recent:'Récents',added:'Ajoutés récemment',name:'Alphabétique',creator:'Créateur'};
 let _libItems=[], _libPressTimer=null, _libPressFired=false;
 function setLibraryFilter(filter){ if(filter===libraryFilter)filter='all'; tapFeedback(); libraryFilter=filter; renderLibraryView(filter); animateSwap(document.getElementById('libraryBody')); }
-function cycleLibrarySort(){ openLibrarySortSheet(); }
+
 function setLibrarySort(s){ librarySort=s; try{localStorage.setItem('sevenz_library_sort',s)}catch(e){} renderLibraryView(); }
 function openLibrarySortSheet(){ _openSheet({cls:'lib-sheet lib-sort-sheet',label:'Trier par',icon:'ti-arrows-down-up',title:'Trier par',items:Object.entries(LIBRARY_SORTS).map(([k,l])=>({icon:k===librarySort?'ti-check':'',label:l,on:k===librarySort,run:()=>setLibrarySort(k)}))}); }
 function toggleLibraryLayout(){ libraryLayout=libraryLayout==='grid'?'list':'grid'; try{localStorage.setItem('sevenz_library_layout',libraryLayout)}catch(e){} tapFeedback(); renderLibraryView(); }
@@ -9035,7 +9039,7 @@ async function renderAlbumsView() {
     grid.innerHTML = tracks.map((t,i) => `
       <div class="bubble-card" onclick="playTrack(${i})">
         <div class="bubble-cover">
-          <img src="${t.thumb||''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+          <img src="${esc(t.thumb||'')}" alt="" onerror="this.parentElement.style.background='var(--card)'">
           <button class="bubble-play"><i class="ti ti-player-play-filled"></i></button>
         </div>
         <div class="bubble-title">${esc(t.title)}</div>
@@ -9076,10 +9080,10 @@ function savePlaylists() {
 
 // ── SPOTIFY IMPORT ─────────────────────────────────────────────────
 function getSpotifyToken() {
-  try { return localStorage.getItem('sevenz_spotify_token') || null; } catch(e) { return null; }
+  try { return sessionStorage.getItem('sevenz_spotify_token') || null; } catch(e) { return null; }
 }
 function setSpotifyToken(token) {
-  try { if (token) localStorage.setItem('sevenz_spotify_token', token); else localStorage.removeItem('sevenz_spotify_token'); } catch(e) {}
+  try { if (token) sessionStorage.setItem('sevenz_spotify_token', token); else sessionStorage.removeItem('sevenz_spotify_token'); } catch(e) {}
 }
 
 // Modale « lien public » : nom distinct, sinon la déclaration plus bas dans le
@@ -10009,6 +10013,7 @@ async function _openArtistDirect(params) {
     view.innerHTML = `<div class="artist-loading"><i class="ti ti-loader-2"></i> Chargement…</div>`;
     data = await fetchArtistData(name);
     _artistCache[name] = data;
+    const _arKs = Object.keys(_artistCache); if (_arKs.length > 200) delete _artistCache[_arKs[0]];
     artistStorePut(name, data);
   }
   renderArtistPage(view, data);
@@ -10265,6 +10270,7 @@ async function _openAlbumDirect(params) {
       if (!r.ok) throw new Error(`Album indisponible (${r.status})`);
       data = await r.json();
       _albumCache[id] = data;
+      const _alKs = Object.keys(_albumCache); if (_alKs.length > 200) delete _albumCache[_alKs[0]];
     } catch (e) {
       view.innerHTML = `<div class="empty-state" style="padding:60px 24px">
         <i class="ti ti-vinyl"></i><h3>Album indisponible</h3>
@@ -11056,8 +11062,6 @@ document.addEventListener('click', e => {
   }
 });
 
-// showLikedTracks → alias vers navigateTo
-function showLikedTracks() { navigateTo('liked'); }
 
 // Home nav restores the home view
 document.querySelector('.nav-item[data-page="home"]')?.addEventListener('click', function() {
@@ -11457,7 +11461,7 @@ function renderBubbles(tracks, gridId) {
   grid.innerHTML = tracks.map((t, i) => `
     <div class="bubble-card" data-grid="${gridId}" data-index="${i}">
       <div class="bubble-cover">
-        <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+        <img src="${esc(t.thumb || '')}" alt="" onerror="this.parentElement.style.background='var(--card)'">
         <button class="bubble-play"><i class="ti ti-player-play-filled"></i></button>
       </div>
       <div class="bubble-title">${esc(t.title)}</div>
@@ -11962,7 +11966,7 @@ function renderDiscoveryCard(t, i) {
   return `
     <div class="disco-card" onclick="playDiscovery(${i})">
       <div class="disco-cover">
-        <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+        <img src="${esc(t.thumb || '')}" alt="" onerror="this.parentElement.style.background='var(--card)'">
         <button class="disco-play"><i class="ti ti-player-play-filled"></i></button>
       </div>
       <div class="disco-artist">${esc(t._discoveredArtist || cleanArtistName(t.channel))}</div>
@@ -12473,7 +12477,7 @@ async function maybeExtendRadio() {
 
     more = more.filter(t => !existing.has(trackTitleKey(t.title)) && !(t.id && disliked.has(t.id)));
     // push() conserve la référence → la radio reste active
-    if (more.length && S.queue === S._radioQueueRef) S.queue.push(...more);
+    if (more.length && S.queue === S._radioQueueRef) { S.queue.push(...more); if (S.queue.length > 150) S.queue.splice(0, S.queue.length - 150); }
   } catch (e) {
     console.warn('[RADIO] extension échouée', e.message);
   } finally {
@@ -12497,7 +12501,7 @@ function homeTrackCard(t, i, which) {
   return `
     <div class="home-track-card" onclick="playFromList('${which}', ${i})">
       <div class="htc-cover">
-        <img src="${t.thumb || ''}" alt="" onerror="this.parentElement.style.background='var(--card)'">
+        <img src="${esc(t.thumb || '')}" alt="" onerror="this.parentElement.style.background='var(--card)'">
         <button class="htc-play"><i class="ti ti-player-play-filled"></i></button>
       </div>
       <div class="htc-title">${esc(t.title)}</div>
@@ -12683,7 +12687,7 @@ function playFromList(which, i) {
 
 // ── SPOTIFY IMPORT ────────────────────────────────────────────────────
 const SPOTIFY_CLIENT_ID = 'REMPLACE_PAR_TON_CLIENT_ID';
-const SPOTIFY_REDIRECT_URI = 'http://localhost:8080/spoti/';
+const SPOTIFY_REDIRECT_URI = window.location.origin + window.location.pathname;
 const SPOTIFY_SCOPES = 'playlist-read-private playlist-read-collaborative';
 
 function _spRandStr(len) {
@@ -12716,9 +12720,9 @@ async function spotifyLogin() {
 async function _spHandleCallback() {
   const p = new URLSearchParams(window.location.search);
   const code = p.get('code'), state = p.get('state'), error = p.get('error');
+  if (error) { showToast('Autorisation Spotify refusée : ' + error, 'error'); history.replaceState({}, '', window.location.pathname); return; }
   if (!code) return;
   window.history.replaceState({}, '', window.location.pathname);
-  if (error) { showToast('Autorisation Spotify refusée', 'error'); console.error('[Spotify]', error); return; }
   if (state !== sessionStorage.getItem('sp_state')) { showToast('Connexion Spotify interrompue, réessaie', 'error'); return; }
   const verifier = sessionStorage.getItem('sp_verifier');
   try {
@@ -12802,7 +12806,7 @@ function _renderSpPicker(playlists) {
           <input type="checkbox" class="sp-checkbox" value="${pl.id}"
             data-name="${esc(pl.name)}" data-total="${pl.tracks.total}" checked>
           <div class="sp-pl-thumb">
-            ${pl.images?.[0] ? `<img src="${pl.images[0].url}" alt="">` : `<i class="ti ti-playlist"></i>`}
+            ${pl.images?.[0] ? `<img src="${esc(pl.images[0].url)}" alt="">` : `<i class="ti ti-playlist"></i>`}
           </div>
           <div class="sp-pl-info">
             <div class="sp-pl-name">${esc(pl.name)}</div>
@@ -13423,7 +13427,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div id="spImportContent"></div>
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--bg-elevated);">
-      <p style="font-size:12px;color:var(--dark-gray);margin-bottom:10px">Alternative sans compte dev : exporte via <a href="https://exportify.net" target="_blank" style="color:var(--accent)">exportify.net</a> puis importe le CSV ici.</p>
+      <p style="font-size:12px;color:var(--dark-gray);margin-bottom:10px">Alternative sans compte dev : exporte via <a href="https://exportify.net" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">exportify.net</a> puis importe le CSV ici.</p>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <label class="sp-sel-btn" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
           <i class="ti ti-file-upload" style="font-size:15px"></i> Importer CSV(s) Exportify
@@ -13550,7 +13554,7 @@ async function loadCategoryImages() {
     }
 
     if (url) {
-      iconEl.innerHTML = `<img src="${url}" alt="" onerror="this.parentElement.innerHTML=''">`;
+      iconEl.innerHTML = `<img src="${esc(url)}" alt="" onerror="this.parentElement.innerHTML=''">`;
       iconEl.style.opacity = '1';
     }
   }));
@@ -13731,7 +13735,7 @@ function updateUserUI(user) {
     return;
   }
   if (user.photoURL) {
-    avatar.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    avatar.innerHTML = `<img src="${esc(user.photoURL)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
   } else {
     avatar.textContent = (user.displayName || user.email || '?')[0].toUpperCase();
   }
@@ -14280,6 +14284,7 @@ async function openLyricsPanel() {
     }
     if (!cached) throw new Error('not-found');
     lyricsCache.set(key, cached);
+    if (lyricsCache.size > 100) lyricsCache.delete(lyricsCache.keys().next().value);
     if (`${S.currentTrack?.channel || ''}|${S.currentTrack?.title || ''}` !== key) return;
     if (cached.type === 'synced') {
       renderSyncedLyrics(cached.lines);
@@ -15513,7 +15518,7 @@ function refreshProfileAvatar() {
   if (_profilePhotoBase64) {
     el.innerHTML = `<img src="${_profilePhotoBase64}" alt="">`;
   } else if (_currentUser?.photoURL) {
-    el.innerHTML = `<img src="${_currentUser.photoURL}" alt="">`;
+    el.innerHTML = `<img src="${esc(_currentUser.photoURL)}" alt="">`;
   } else {
     el.innerHTML = '<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:44px;height:44px"><circle cx="32" cy="22" r="12" fill="rgba(255,255,255,0.8)"/><path d="M8 56c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="rgba(255,255,255,0.8)"/></svg>';
   }

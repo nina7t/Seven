@@ -12,7 +12,10 @@
       "package-lock.json",
       "config.example.js",
       "**/*.apk",
+      "**/*.ipa",
       "**/*.sh",
+      "local-plugins/**",
+      "docs/**",
       "android/**",
       "ios/**",
       "www/**",
@@ -25,6 +28,14 @@
       }
     ],
     "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; img-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; font-src 'self' data:; media-src 'self' blob: https:; frame-src https://accounts.google.com;" }
+        ]
+      },
       {
         "source": "/sw.js",
         "headers": [

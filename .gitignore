@@ -15,3 +15,20 @@ server/node_modules/
 
 # État runtime du quota YouTube
 server/.quota.json
+
+# Binaires de build mobile — ne jamais commiter
+*.apk
+*.ipa
+*.dylib
+
+# Fichiers de config locale Android
+android/local.properties
+
+# Fichiers sensibles iOS
+ios/App/App/GoogleService-Info.plist
+
+# Outils de développement IA
+.opencode/
+
+# Fichiers macOS
+.DS_Store

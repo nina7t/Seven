@@ -151,7 +151,9 @@ process.on('unhandledRejection', e => console.error('[unhandledRejection]', e));
 const requestLog = new Map();
 const RATE_LIMIT_PER_MINUTE = 60; // 60 requêtes/minute par IP
 
-app.use(cors());
+const _corsOrigins = (process.env.APP_ORIGINS || 'https://localhost,capacitor://localhost,http://localhost:8888,https://sevenz-7beb7.web.app,https://sevenz-7beb7.firebaseapp.com')
+  .split(',').map(o => o.trim()).filter(Boolean);
+app.use(cors({ origin: _corsOrigins }));
 app.use(express.json());
 
 // Moteur radio à partir d'un titre (rateLimit est une déclaration de
@@ -1214,7 +1216,7 @@ app.post('/api/admin/clear-cache', (req, res) => {
   // Sans ADMIN_TOKEN défini, la route est désactivée pour éviter qu'un tiers
   // vide le cache à distance (déni de service / explosion de quota).
   const adminToken = process.env.ADMIN_TOKEN;
-  const provided = req.get('x-admin-token') || req.query.token;
+  const provided = req.headers['x-admin-token'];
   if (!adminToken || provided !== adminToken) {
     return res.status(403).json({ error: 'Non autorisé' });
   }

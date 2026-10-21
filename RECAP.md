@@ -1,9 +1,9 @@
 # 🎵 SEVENZ — RECAPITULATIF DU PROJET
 
-**Date du récap :** 19 septembre 2026  
-**Repo :** `nina7t/Seven`  
-**Stack :** Capacitor 8 + Node.js + AndrJe oid natif + Firebase  
-**App :** Lecteur musical YouTube-style (web + Android)
+**Date du récap :** 20 octobre 2026\
+**Repo :** `nina7t/Seven`\
+**Stack :** Capacitor 8 + Node.js + Android / iOS natifs + Firebase\
+**App :** Lecteur musical (web + Android + iOS)
 
 ---
 
@@ -230,6 +230,59 @@ clic via `resolveVideoId()` / `ensureVideoId()`. Une piste en attente a `id: nul
 ---
 
 ## 9. 📝 JOURNAL
+
+### 20 octobre 2026 — Refonte mobile, iOS, identité visuelle et sécurité
+
+#### Interface mobile façon Spotify
+
+- Refonte de l’accueil, de la recherche, de la bibliothèque, de la création de playlists et des pages artiste / album.
+- Accueil avec puces collantes, huit raccourcis et cartes radio ; vue radio avec bandeau pleine largeur et grand titre.
+- Mini-lecteur flottant teinté par la pochette et lecteur plein écran avec grande pochette ; accès à l’égaliseur et aux transitions depuis le menu.
+- Pages artiste / album avec photo ou pochette en tête, en-tête collant et discographie par onglets.
+- Gris neutres (`#121212`), accent vert, police Albert Sans embarquée, appuis qui foncent sans rétrécissement, squelettes fixes et toast blanc.
+- Ajustements fondés sur les mesures relevées dans l’application Spotify Android.
+
+#### Démarrage et lecture audio iOS
+
+- Correction du plantage au lancement lié à la configuration Firebase : déclaration de l’application et intégration de `GoogleService-Info.plist` au projet Xcode.
+- Extraction locale du flux audio m4a sur l’iPhone avec YouTubeKit pour contourner le blocage YouTube côté serveur ; serveur conservé en secours.
+- Correctifs complémentaires dans `AudioEngine.swift` et `AudioPlayerPlugin.swift`.
+- Le fichier Firebase iOS a ensuite été désindexé et ajouté au `.gitignore` : il reste à fournir localement pour les builds.
+
+#### Identité visuelle et ressources
+
+- Nouvelles icônes Sevenz, favicons SVG / PNG et icône Apple ; logo de l’interface mis à jour.
+- Splash screens Android / iOS renouvelés et icônes natives compressées.
+- Mise à jour des manifestes PWA, des service workers et des configurations de build.
+- APK debug et IPA mis à jour dans l’historique du jour, puis retirés du suivi Git lors du nettoyage.
+
+#### Audit sécurité et robustesse
+
+- CORS serveur restreint aux origines `APP_ORIGINS` ; token administrateur accepté uniquement dans un header, plus dans l’URL.
+- Échappement des URL d’images issues des API et des apostrophes dans `esc()` pour limiter les injections HTML.
+- Token Spotify déplacé de `localStorage` vers `sessionStorage`, traitement du refus OAuth corrigé et URI de redirection calculée depuis l’adresse courante.
+- Ajout de `rel="noopener noreferrer"` sur le lien Exportify et d’en-têtes de sécurité Firebase Hosting (CSP, `X-Frame-Options`, `X-Content-Type-Options`).
+- Retrait de `allowMixedContent` dans la configuration Capacitor.
+- File radio plafonnée à 150 entrées ; six caches bornés : métadonnées (500), MusicBrainz (200), miniatures (500), artistes (200), albums (200), paroles (100).
+- Protection de `formatTime()` contre `NaN` / `Infinity` et retrait des fonctions inutilisées `cycleLibrarySort` / `showLikedTracks`.
+- Nettoyage du suivi Git : APK, IPA, bibliothèques temporaires `.dylib`, configuration Firebase iOS et fichiers de mesure vides ; règles d’exclusion complétées.
+
+#### Modifications locales encore non commitées au moment du récap
+
+- Bibliothèque mobile : le bouton « + » ouvre un menu permettant de créer une playlist, d’importer depuis Spotify ou d’importer un CSV.
+- Ajout d’un accès direct à l’import CSV dans la bibliothèque desktop et ajustement du bouton de sélection des fichiers.
+- Import CSV : récupération des pochettes via Spotify oEmbed à partir des identifiants de titres, cache pendant le traitement, délai maximal de 10 secondes par requête et icône Sevenz de repli.
+- Affichage de la progression de récupération des pochettes et du nombre de pochettes introuvables dans le bilan d’import.
+- Connexion Google web : remplacement du parcours popup par une redirection systématique.
+- Ces changements sont présents dans `index.html` et `www/index.html` ; leur validation fonctionnelle reste à faire.
+
+#### Traçabilité et vérifications
+
+- Commits du jour : `3c81706` (interface mobile), `5d05e8` (Firebase / audio iOS), `26d0f5e` (icônes / splash screens / audio), `18eca7d` (audit sécurité).
+- Bilan reconstitué depuis l’historique Git et le diff local. Aucun nouveau test applicatif ni build natif exécuté pour cette mise à jour documentaire.
+- Les sections générales ci-dessus restent un état historique : cette entrée précise les évolutions du jour sans constituer un nouvel audit complet du projet.
+
+---
 
 ### 19 septembre 2026 — Radio Spotify-like, personnalisation réelle et recherche contextuelle
 

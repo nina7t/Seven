@@ -3568,6 +3568,12 @@ body.player-hidden .app { height: 100vh; }
 .sri-icon{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:4px;background:var(--bg-elevated);color:var(--text-secondary);font-size:22px}
 .sri-text{font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sri-remove{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border:0;background:none;color:var(--text-secondary);font-size:20px}
+.sri-lines{min-width:0;display:flex;flex-direction:column}
+.sri-sub{font-size:14px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sri-thumb{width:48px;height:48px;flex:0 0 48px;object-fit:cover;border-radius:4px;background:var(--bg-elevated)}
+.sri-thumb.round{border-radius:50%}
+.search-suggest{display:none}
+#searchExplore.is-focused .search-suggest:not(:empty){display:block}
 .search-recent-clear{display:block;margin:20px auto 0;padding:10px 16px;border:1px solid var(--text-secondary);border-radius:99px;background:none;color:var(--text-primary);font:700 14px/1 'StyreneA',sans-serif}
 .search-focus-hint{display:none;padding:56px 24px 0;text-align:center}
 #searchExplore.is-focused .search-focus-hint:not(:empty){display:block}
@@ -3781,6 +3787,8 @@ body.player-hidden .app { height: 100vh; }
         <button class="lib-filter" data-filter="playlists">Playlists</button>
       </div>
 
+      <button type="button" class="csv-import-btn" onclick="openCsvImportModal()">Importer mes fichiers CSV</button>
+
       <div class="lib-list" id="libList">
         <!-- Titres likés (fixe) -->
         <div class="lib-section-label">Récents</div>
@@ -3906,6 +3914,7 @@ body.player-hidden .app { height: 100vh; }
         <div class="explore-search-row"><div class="explore-search"><i class="ti ti-search"></i><input id="exploreSearchInput" placeholder="Que souhaitez-vous écouter&#8239;?" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" oninput="exploreInputChanged(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitExploreSearch();}"><button type="button" class="explore-search-mic" id="exploreMicBtn" onclick="startVoiceSearch(this)" aria-label="Recherche vocale"><i class="ti ti-microphone"></i></button><button type="button" class="explore-search-go" id="exploreSearchGo" hidden onclick="submitExploreSearch()" aria-label="Lancer la recherche"><i class="ti ti-arrow-right"></i></button></div><button type="button" class="explore-search-cancel" onmousedown="event.preventDefault()" onclick="cancelExploreSearch()" aria-label="Annuler"><i class="ti ti-arrow-left"></i></button></div>
         <div class="search-recent" id="searchRecentSection"><h2>Récents</h2><div class="search-recent-list" id="searchRecentChips"></div><button type="button" class="search-recent-clear" onmousedown="event.preventDefault()" onclick="clearRecentSearches()">Effacer les recherches récentes</button></div>
         <div class="search-focus-hint" id="searchFocusHint"></div>
+        <div class="search-suggest" id="searchSuggestList"></div>
         <div class="explore-genre-grid" id="searchGenreGrid"></div>
       </section>
 
@@ -4042,7 +4051,7 @@ body.player-hidden .app { height: 100vh; }
       <div class="playlist-detail album-view" id="albumView"></div>
 
       <section class="mobile-library-view" id="libraryView">
-        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openCreateModal()" aria-label="Créer une playlist"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
+        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openLibraryAddSheet()" aria-label="Ajouter"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
         <input class="library-search-input" id="librarySearchInput" type="search" enterkeyhint="search" placeholder="Rechercher dans ta bibliothèque" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();renderLibraryView()}" oninput="if(!this.value)renderLibraryView()">
         <div class="library-filter-bar" id="libraryFilterBar">
           <button class="lib-chip lib-chip-clear" onclick="setLibraryFilter('all')" aria-label="Effacer la sélection du filtre"><i class="ti ti-x"></i></button>
@@ -4320,7 +4329,7 @@ body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visi
     <h2 class="modal-title"><i class="ti ti-file-upload"></i> Importer des playlists CSV</h2>
     <p style="color:var(--gray);font-size:13px;margin-bottom:12px;">Sélectionne un ou plusieurs fichiers CSV exportés depuis Spotify. Chaque fichier devient une playlist — si une playlist porte déjà le même nom, elle est écrasée.</p>
     <input type="file" id="csvFileInput" accept=".csv" multiple style="display:none">
-    <button class="sp-import-btn" onclick="document.getElementById('csvFileInput').click()"><i class="ti ti-plus"></i> Choisir des fichiers CSV</button>
+    <button type="button" class="csv-import-btn" onclick="document.getElementById('csvFileInput').click()"><i class="ti ti-plus"></i> Choisir des fichiers CSV</button>
     <div class="csv-file-list" id="csvFileList"></div>
     <div class="spotify-progress" id="csvProgress">
       <div class="spotify-progress-bar" id="csvProgressBar"></div>
@@ -6511,6 +6520,12 @@ function cancelSearchResults() {
   resetSearchView();
 }
 
+// Métadonnée Deezer → item de file : id null tant que l'audio n'est pas résolu.
+// Partagé par doSearch (résultats) et par les suggestions pendant la frappe.
+function metaToQueueItem(m) {
+  return { id: null, title: m.title, channel: m.artist, thumb: m.coverUrl, duration: m.durationSec || null, album: m.album || '', meta: m };
+}
+
 async function doSearch(query) {
   if (!query.trim()) return;
 
@@ -6548,15 +6563,7 @@ async function doSearch(query) {
     }
 
     // File de lecture : id (videoId) volontairement null, résolu au clic.
-    S.queue = results.map(m => ({
-      id: null,
-      title: m.title,
-      channel: m.artist,
-      thumb: m.coverUrl,
-      duration: m.durationSec || null,
-      album: m.album || '',
-      meta: m
-    }));
+    S.queue = results.map(metaToQueueItem);
 
     resultsEl.innerHTML = searchResultsHead(query) + `
       <div class="search-results-list" id="srList">
@@ -8659,12 +8666,15 @@ function updateRecentSearchesVisibility(){
   const typed=!!input.value.trim(), hasRecent=getRecentSearches().length>0;
   section.style.display=interacting&&!typed&&hasRecent?'block':'none';
   // Champ actif = écran « recherche » de Spotify : en-tête et genres s'effacent,
-  // le champ passe en sombre avec « Annuler ». Rien n'est cherché pendant la frappe.
+  // le champ passe en sombre avec « Annuler ». Pendant la frappe, seules des
+  // suggestions sont cherchées (cf. exploreInputChanged) — la page de résultats
+  // complète attend toujours la validation.
   document.getElementById('searchExplore')?.classList.toggle('is-focused',interacting);
   const hint=document.getElementById('searchFocusHint');
   if(hint){
-    hint.innerHTML=!interacting||(!typed&&hasRecent)?'':typed
-      ?'<p>Appuie sur <b>Rechercher</b> pour lancer la recherche</p>'
+    // Texte tapé → la liste de suggestions prend le relais, le hint reste vide.
+    hint.innerHTML=!interacting||typed?'':hasRecent
+      ?''
       :'<strong>Écoute ce que tu aimes</strong><p>Cherche des artistes, des titres, des albums.</p>';
   }
 }
@@ -8683,16 +8693,114 @@ function removeRecentSearch(i){
   renderSearchExplore();
 }
 // Frappe côté mobile : on n'affiche/masque que le bouton de validation.
-// Aucune recherche n'est déclenchée ici — c'est tout l'objet du correctif.
+// La recherche complète attend toujours la validation ; seules des SUGGESTIONS
+// (entités Deezer classées côté serveur) sont demandées pendant la frappe.
+let _suggestToken=0;
+let _suggestItems=[];
+const _suggestCache=new Map(); // query (minuscules) -> items, 100 entrées max
+// Même normalisation que le norm() de server/search-suggest.js : minuscules,
+// sans accents, apostrophes supprimées, ponctuation -> espaces.
+function suggestNorm(s){
+  return (s||'').toLowerCase().normalize('NFD')
+    .replace(/[̀-ͯ]/g,'')
+    .replace(/['’`]/g,'')
+    .replace(/[^a-z0-9]+/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
 function exploreInputChanged(query){
   // Le micro reste toujours atteignable : le masquer dès qu'il y a du texte
   // obligerait à vider le champ pour redicter.
   const go=document.getElementById('exploreSearchGo');
-  if(go) go.hidden=!query.trim();
+  const q=query.trim();
+  if(go) go.hidden=!q;
+  // Pas de debounce : chaque frappe part tout de suite, le token écarte les
+  // réponses arrivées en retard et la liste affichée n'est pas vidée entre-temps.
+  _suggestToken++; // invalide toute réponse encore en vol
+  if(q.length<2){ _suggestItems=[]; renderSuggestList(); }
+  else fetchSuggestions(q);
   updateRecentSearchesVisibility();
 }
+async function fetchSuggestions(q){
+  const token=++_suggestToken;
+  const key=q.toLowerCase();
+  const hit=_suggestCache.get(key);
+  if(hit){ _suggestItems=hit; renderSuggestList(); return; }
+  // Réponse instantanée avant le réseau : filtre local de la suggestion déjà
+  // reçue pour le plus long préfixe de q présent en cache.
+  let prefixKey='';
+  for(const k of _suggestCache.keys()) if(k.length>prefixKey.length&&key.startsWith(k)) prefixKey=k;
+  if(prefixKey){
+    const t=suggestNorm(q);
+    const local=_suggestCache.get(prefixKey).filter(it=>{
+      const n=suggestNorm(it.type==='artist'?it.name:it.title);
+      const words=`${n} ${suggestNorm(it.artist||'')}`.trim().split(' ');
+      return n.startsWith(t)||words.some(w=>w.startsWith(t));
+    });
+    if(local.length){ _suggestItems=local; renderSuggestList(); }
+  }
+  try{
+    const res=await fetch(`${PROXY_URL}/suggest?q=${encodeURIComponent(q)}`,{signal:proxySignal()});
+    if(!res.ok) throw new Error('suggest '+res.status);
+    const data=await res.json();
+    if(token!==_suggestToken) return; // une frappe plus récente a pris le relais
+    const items=data.items||[];
+    _suggestCache.set(key,items);
+    if(_suggestCache.size>100) _suggestCache.delete(_suggestCache.keys().next().value);
+    _suggestItems=items;
+    renderSuggestList();
+  }catch(_){
+    // Silencieux : pas de toast pendant la frappe, on vide juste la liste.
+    if(token===_suggestToken){ _suggestItems=[]; renderSuggestList(); }
+  }
+}
+function renderSuggestList(){
+  const el=document.getElementById('searchSuggestList');
+  if(!el) return;
+  const q=(document.getElementById('exploreSearchInput')?.value||'').trim();
+  if(!_suggestItems.length||q.length<2){ el.innerHTML=''; return; }
+  el.innerHTML=_suggestItems.map((it,i)=>suggestRow(it,i)).join('')
+    +`<div class="search-recent-item"><button type="button" class="sri-main" onmousedown="event.preventDefault()" onclick="submitExploreSearch()"><span class="sri-icon"><i class="ti ti-search"></i></span><span class="sri-lines"><span class="sri-text">Voir tous les résultats pour « ${esc(q)} »</span></span></button></div>`;
+}
+function suggestRow(it,i){
+  const img=it.type==='artist'?it.picture:it.coverUrl;
+  const media=img
+    ?`<img class="sri-thumb${it.type==='artist'?' round':''}" src="${esc(img)}" alt="" loading="lazy">`
+    :`<span class="sri-icon"><i class="ti ti-${it.type==='artist'?'user':it.type==='album'?'disc':'music'}"></i></span>`;
+  const title=it.type==='artist'?it.name:it.title;
+  const sub=it.type==='artist'?'Artiste'
+    :it.type==='track'?`Titre • ${it.artist}`
+    :`${({album:'Album',single:'Single',ep:'EP'})[it.recordType]||'Album'} • ${it.artist}`;
+  return `<div class="search-recent-item"><button type="button" class="sri-main" onmousedown="event.preventDefault()" onclick="suggestTap(${i})">${media}<span class="sri-lines"><span class="sri-text">${esc(title)}</span><span class="sri-sub">${esc(sub)}</span></span></button></div>`;
+}
+function suggestTap(i){
+  const it=_suggestItems[i];
+  if(!it) return;
+  document.getElementById('exploreSearchInput')?.blur();
+  if(it.type==='artist'){
+    saveRecentSearch(it.name);
+    openArtistPage(it.name);
+  }else if(it.type==='album'){
+    saveRecentSearch(it.title);
+    openAlbum(it.id);
+  }else if(it.type==='track'){
+    saveRecentSearch(it.title);
+    const tracks=_suggestItems.filter(x=>x.type==='track');
+    S.queue=tracks.map(metaToQueueItem);
+    resolveAndPlay(tracks.indexOf(it));
+  }
+}
 const exploreSearchInput=document.getElementById('exploreSearchInput');
-exploreSearchInput?.addEventListener('focus',updateRecentSearchesVisibility);
+// Au focus, on réveille l'instance Render et on ouvre la connexion TLS avant la
+// première frappe (au plus un ping /health par minute, sans attendre la réponse).
+let _lastHealthPing=0;
+exploreSearchInput?.addEventListener('focus',()=>{
+  const now=Date.now();
+  if(now-_lastHealthPing>60000){
+    _lastHealthPing=now;
+    fetch(`${PROXY_URL}/health`,{signal:proxySignal()}).catch(()=>{});
+  }
+  updateRecentSearchesVisibility();
+});
 exploreSearchInput?.addEventListener('blur',()=>setTimeout(updateRecentSearchesVisibility,0));
 function submitExploreSearch(){ submitSearch(document.getElementById('exploreSearchInput')?.value); }
 // Onglet Recherche retouché depuis des résultats : on revient à l'écran de
@@ -8895,6 +9003,13 @@ function setLibraryFilter(filter){ if(filter===libraryFilter)filter='all'; tapFe
 
 function setLibrarySort(s){ librarySort=s; try{localStorage.setItem('sevenz_library_sort',s)}catch(e){} renderLibraryView(); }
 function openLibrarySortSheet(){ _openSheet({cls:'lib-sheet lib-sort-sheet',label:'Trier par',icon:'ti-arrows-down-up',title:'Trier par',items:Object.entries(LIBRARY_SORTS).map(([k,l])=>({icon:k===librarySort?'ti-check':'',label:l,on:k===librarySort,run:()=>setLibrarySort(k)}))}); }
+function openLibraryAddSheet() {
+  _openSheet({ cls: 'lib-sheet', label: 'Ajouter', icon: 'ti-plus', title: 'Ajouter', items: [
+    { icon: 'ti-playlist',      label: 'Créer une playlist',       run: () => openCreateModal() },
+    { icon: 'ti-brand-spotify', label: 'Importer depuis Spotify',  run: () => openSpotifyImportModal() },
+    { icon: 'ti-file-upload',   label: 'Importer un CSV',          run: () => openCsvImportModal() },
+  ]});
+}
 function toggleLibraryLayout(){ libraryLayout=libraryLayout==='grid'?'list':'grid'; try{localStorage.setItem('sevenz_library_layout',libraryLayout)}catch(e){} tapFeedback(); renderLibraryView(); }
 function toggleLibrarySearch(){ const input=document.getElementById('librarySearchInput'); input.classList.toggle('open'); if(input.classList.contains('open'))input.focus(); else if(input.value){input.value='';renderLibraryView();} }
 // « Titres likés » est épinglé tant que l'utilisateur ne l'a pas retiré.
@@ -9559,6 +9674,36 @@ function onCsvFileInputChange() {
   `).join('');
 }
 
+async function fillCsvCovers(tracks) {
+  const covers = new Map();
+  let missing = 0;
+  for (const track of tracks) {
+    track.thumb = track.meta.coverUrl = 'sevenz-icone-512.png';
+    const id = /^spotify:track:([a-zA-Z0-9]{22})$/.exec(track.meta?.sourceId || '')?.[1];
+    if (!id) { missing++; continue; }
+    if (!covers.has(id)) {
+      try {
+        const url = `https://open.spotify.com/track/${id}`;
+        const response = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`, {
+          credentials: 'omit', signal: AbortSignal.timeout(10000)
+        });
+        if (!response.ok) throw new Error(`Spotify ${response.status}`);
+        const data = await response.json();
+        const cover = new URL(data.thumbnail_url);
+        covers.set(id, cover.protocol === 'https:' ? cover.href : '');
+      } catch (e) {
+        covers.set(id, '');
+      }
+    }
+    const cover = covers.get(id);
+    if (cover) {
+      track.thumb = cover;
+      track.meta.coverUrl = cover;
+    } else missing++;
+  }
+  return missing;
+}
+
 async function importCsvFiles() {
   const input = document.getElementById('csvFileInput');
   const submit = document.getElementById('csvImportSubmit');
@@ -9573,7 +9718,7 @@ async function importCsvFiles() {
   progress.style.display = 'block';
   bar.style.width = '5%';
 
-  let importedTracks = 0;
+  let importedTracks = 0, missingCovers = 0;
   let created = 0, replaced = 0;
   for (let i = 0; i < files.length; i++) {
     const text = await files[i].text();
@@ -9604,6 +9749,9 @@ async function importCsvFiles() {
         }
       };
     }).filter(t => t.title);
+
+    submit.textContent = `Pochettes… ${i + 1}/${files.length}`;
+    missingCovers += await fillCsvCovers(tracks);
 
     // Même nom = on écrase. On garde l'id existant (référencé par
     // S.currentPlaylistId et par le stockage des covers) ainsi que la
@@ -9642,6 +9790,7 @@ async function importCsvFiles() {
   submit.disabled = false;
   submit.textContent = 'Importer';
   const parts = [];
+  if (missingCovers) parts.push(`${missingCovers} pochette(s) introuvable(s)`);
   if (created) parts.push(`${created} playlist${created > 1 ? 's' : ''} créée${created > 1 ? 's' : ''}`);
   if (replaced) parts.push(`${replaced} écrasée${replaced > 1 ? 's' : ''}`);
   showToast(`${parts.join(' · ')} · ${importedTracks} titre${importedTracks > 1 ? 's' : ''} importé${importedTracks > 1 ? 's' : ''}`);
@@ -15270,11 +15419,9 @@ async function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' }); // sinon Google reconnecte en silence le dernier compte
 
-    if (isEmbeddedWebView()) {
-      await _auth.signInWithRedirect(provider); // la page part : rien à faire ensuite
-      return;
-    }
-    await finishGoogleLogin(await _auth.signInWithPopup(provider));
+    // Popup bloqué par Chrome (cookies tiers) ou WebView : on passe toujours
+    // par une redirection sur le web. Plus fiable que signInWithPopup.
+    await _auth.signInWithRedirect(provider); // la page part : rien à faire ensuite
   } catch (e) {
     // Fermer la popup soi-même n'est pas une erreur : on ne l'affiche pas.
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request' || e.code === 'auth/user-cancelled') return;

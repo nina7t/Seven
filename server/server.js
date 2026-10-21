@@ -147,59 +147,66 @@ process.on('SIGTERM', () => { saveQuotaState(); process.exit(0); });
 // une seule requête malformée suffisait à tuer le processus.
 process.on('unhandledRejection', e => console.error('[unhandledRejection]', e));
 
-// Rate limiting simple
-const requestLog = new Map();
+// Rate limiting simple : chaque limiteur a sa propre file de timestamps.
+// /api/suggest tape à chaque frappe (une requête par lettre) : il a un quota
+// dédié pour ne pas déclencher le 429 du limiteur global.
 const RATE_LIMIT_PER_MINUTE = 60; // 60 requêtes/minute par IP
+const SUGGEST_RATE_LIMIT_PER_MINUTE = 300; // ~1 requête/lettre sans 429
+
+function makeRateLimit(limit) {
+  const requestLog = new Map();
+
+  // Nettoyage périodique de cette instance
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, times] of requestLog.entries()) {
+      const valid = times.filter(t => now - t < 60000);
+      if (valid.length === 0) requestLog.delete(ip);
+      else requestLog.set(ip, valid);
+    }
+  }, 60000);
+
+  // Middleware de rate limiting (exempté pour localhost)
+  return function rateLimit(req, res, next) {
+    const ip = req.ip || req.connection.remoteAddress || '';
+
+    // Exempter localhost (développement local)
+    // ::ffff:127.0.0.1 = format IPv6-mapped vu par Express quand le navigateur appelle localhost
+    if (ip.includes('127.0.0.1') || ip === '::1' || ip.includes('localhost')) {
+      return next();
+    }
+
+    const now = Date.now();
+    const windowStart = now - 60000; // 1 minute
+
+    if (!requestLog.has(ip)) {
+      requestLog.set(ip, []);
+    }
+
+    const requests = requestLog.get(ip).filter(time => time > windowStart);
+
+    if (requests.length >= limit) {
+      return res.status(429).json({
+        error: 'Trop de requêtes. Veuillez patienter une minute.',
+        retryAfter: 60
+      });
+    }
+
+    requests.push(now);
+    requestLog.set(ip, requests);
+    next();
+  };
+}
+
+const rateLimit = makeRateLimit(RATE_LIMIT_PER_MINUTE);
 
 const _corsOrigins = (process.env.APP_ORIGINS || 'https://localhost,capacitor://localhost,http://localhost:8888,https://sevenz-7beb7.web.app,https://sevenz-7beb7.firebaseapp.com')
   .split(',').map(o => o.trim()).filter(Boolean);
 app.use(cors({ origin: _corsOrigins }));
 app.use(express.json());
 
-// Moteur radio à partir d'un titre (rateLimit est une déclaration de
-// fonction, donc déjà disponible ici)
+// Moteur radio à partir d'un titre
 app.use('/api/radio', rateLimit, require('./discovery/routes/radio'));
-
-// Middleware de rate limiting (exempté pour localhost)
-function rateLimit(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress || '';
-
-  // Exempter localhost (développement local)
-  // ::ffff:127.0.0.1 = format IPv6-mapped vu par Express quand le navigateur appelle localhost
-  if (ip.includes('127.0.0.1') || ip === '::1' || ip.includes('localhost')) {
-    return next();
-  }
-
-  const now = Date.now();
-  const windowStart = now - 60000; // 1 minute
-
-  if (!requestLog.has(ip)) {
-    requestLog.set(ip, []);
-  }
-
-  const requests = requestLog.get(ip).filter(time => time > windowStart);
-
-  if (requests.length >= RATE_LIMIT_PER_MINUTE) {
-    return res.status(429).json({
-      error: 'Trop de requêtes. Veuillez patienter une minute.',
-      retryAfter: 60
-    });
-  }
-
-  requests.push(now);
-  requestLog.set(ip, requests);
-  next();
-}
-
-// Nettoyage périodique du rate limiting
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, times] of requestLog.entries()) {
-    const valid = times.filter(t => now - t < 60000);
-    if (valid.length === 0) requestLog.delete(ip);
-    else requestLog.set(ip, valid);
-  }
-}, 60000);
 
 // Route de santé avec monitoring quota
 app.get('/api/health', (req, res) => {
@@ -258,33 +265,9 @@ function normalizeMetadataText(text) {
 
 function durationSecToMs(sec) { return (sec || 0) * 1000; }
 
-function msToDurationSec(ms) {
-  if (!ms || ms <= 0) return null;
-  return Math.round(ms / 1000);
-}
-
-function deezerCoverUrl(small, medium, big, xl) {
-  return xl || big || medium || small || null;
-}
-
-function mapDeezerTrackToResult(track) {
-  return {
-    artist: track.artist?.name || '',
-    title: track.title || '',
-    album: track.album?.title || '',
-    durationSec: msToDurationSec(track.duration * 1000) || track.duration || 0,
-    coverUrl: deezerCoverUrl(
-      track.album?.cover,
-      track.album?.cover_medium,
-      track.album?.cover_big,
-      track.album?.cover_xl
-    ),
-    albumId: track.album?.id ? String(track.album.id) : null,
-    isrc: track.isrc || null,
-    source: 'deezer',
-    sourceId: String(track.id || '')
-  };
-}
+// mapDeezerTrackToResult (et ses helpers) vit dans search-suggest.js :
+// utilisé aussi bien par les suggestions que par les routes.
+const { mapDeezerTrackToResult, rankSuggestions, phoneticVariant, mergePayloads } = require('./search-suggest');
 
 // PROXY: Recherche de métadonnées sur Deezer (pas de clé API requise)
 app.get('/api/search', rateLimit, async (req, res) => {
@@ -327,6 +310,40 @@ app.get('/api/search', rateLimit, async (req, res) => {
       error: 'Erreur lors de la recherche de métadonnées',
       details: error.message
     });
+  }
+});
+
+// PROXY: Suggestions pendant la frappe (autocomplétion façon Spotify).
+// Deezer fournit les entités mixtes (artistes/titres/albums), le classement
+// côté serveur met le « top hit » en premier.
+const suggestCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 });
+app.get('/api/suggest', makeRateLimit(SUGGEST_RATE_LIMIT_PER_MINUTE), async (req, res) => {
+  const { q } = req.query;
+
+  if (!q || typeof q !== 'string' || q.trim().length < 2 || q.trim().length > 100) {
+    return res.status(400).json({ error: 'Paramètre q requis (2-100 caractères)' });
+  }
+
+  const cleanQ = q.trim();
+  const cacheKey = `suggest:${cleanQ.toLowerCase()}`;
+  const cached = suggestCache.get(cacheKey);
+  if (cached) {
+    return res.json({ ...cached, cached: true });
+  }
+
+  try {
+    const variant = phoneticVariant(cleanQ);
+    const [main, alt] = await Promise.all([
+      deezerGet(`/search/autocomplete?q=${encodeURIComponent(cleanQ)}&limit=10`),
+      variant ? deezerGet(`/search/autocomplete?q=${encodeURIComponent(variant)}&limit=10`).catch(() => null) : null
+    ]);
+    const data = mergePayloads(main, alt);
+    const payload = { query: cleanQ, items: rankSuggestions(cleanQ, data) };
+    suggestCache.set(cacheKey, payload);
+    res.json(payload);
+  } catch (error) {
+    console.error('[DEEZER SUGGEST ERROR]', error.message);
+    res.status(502).json({ error: 'Erreur lors de la suggestion', details: error.message });
   }
 });
 

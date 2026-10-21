@@ -4030,6 +4030,7 @@ body.player-hidden .app { height: 100vh; }
 
       <!-- Page profil (façon Spotify) -->
       <div class="playlist-detail profile-page" id="profileView"></div>
+      <div class="playlist-detail profile-page" id="profilePlView"></div>
 
       <section class="mobile-library-view" id="libraryView">
         <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="toggleMobileMenu()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openLibraryAddSheet()" aria-label="Ajouter"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
@@ -4546,7 +4547,7 @@ body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visi
 }
 
 @media (max-width: 768px) {
-  .main[data-view="artist"] .topbar, .main[data-view="album"] .topbar, .main[data-view="profile"] .topbar { display: none; }
+  .main[data-view="artist"] .topbar, .main[data-view="album"] .topbar, .main[data-view="profile"] .topbar, .main[data-view="profilePlaylists"] .topbar { display: none; }
   #artistView, #albumView { --sp-color: #333; margin: -8px -12px 0; padding-bottom: 140px; }
 
   /* Bouton retour rond posé sur l'en-tête, puis barre collante au défilement. */
@@ -4609,6 +4610,37 @@ body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visi
     background: none; color: #fff; font: 700 14px/1 'StyreneA', sans-serif;
   }
   .pf-empty { color: var(--gray); font-size: 14px; }
+  /* « Playlists sur votre profil » : mesures relevées sur Spotify Android. */
+  #profilePlView { margin: -8px -12px 0; padding-bottom: 160px; }
+  .pfm-head { padding: calc(12px + var(--safe-top)) 12px 8px; }
+  .pfm-head h1 { margin: 12px 0 6px; font: 700 24px/1.2 'StyreneA', sans-serif; }
+  .pfm-head p { margin: 0 0 12px; color: var(--gray); font-size: 14px; line-height: 1.4; }
+  .pfm-head p i { vertical-align: -2px; }
+  .pfm-all { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: #2a2a2a; color: #fff; font-size: 14px; }
+  .pfm-all i { font-size: 18px; }
+  .pfm-all.on i { color: var(--accent-primary); }
+  .pfm-list { padding: 0 12px; }
+  .pfm-row { display: flex; align-items: center; gap: 12px; min-height: 64px; background: var(--bg-primary); }
+  .pfm-row.dragging { background: #2a2a2a; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.5); position: relative; z-index: 2; }
+  .pfm-row .pf-pl-lines { flex: 1; }
+  .pfm-check {
+    width: 20px; height: 20px; flex: 0 0 20px; padding: 0; border: 2px solid #b3b3b3; border-radius: 3px;
+    background: none; color: transparent; display: grid; place-items: center; font-size: 14px;
+  }
+  .pfm-check.on { background: var(--accent-primary); border-color: var(--accent-primary); color: #000; }
+  .pfm-handle { width: 44px; height: 48px; display: grid; place-items: center; color: var(--gray); font-size: 22px; touch-action: none; }
+  .pfm-add { margin: 20px 8px 0; padding: 16px 12px 8px; background: #242424; border-radius: 12px; }
+  .pfm-add .pfm-row { background: none; }
+  .pfm-add-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .pfm-add-head h2 { margin: 0; font: 700 22px/1.2 'StyreneA', sans-serif; }
+  .pfm-add-head p { margin: 4px 0 0; color: var(--gray); font-size: 14px; }
+  .pfm-pill-outline { flex: 0 0 auto; height: 32px; padding: 0 14px; border: 1px solid #7c7c7c; border-radius: 999px; background: none; color: #fff; font: 700 14px/1 'StyreneA', sans-serif; }
+  .pfm-pill { flex: 0 0 auto; height: 32px; padding: 0 16px; border: 0; border-radius: 999px; background: #fff; color: #000; font: 700 14px/1 'StyreneA', sans-serif; }
+  .pfm-remove {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(150px + var(--safe-bottom, 0px)); z-index: 40;
+    height: 48px; padding: 0 28px; border: 0; border-radius: 999px; background: #fff; color: #000;
+    font: 700 16px/1 'StyreneA', sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  }
   .sp-scrolled .sp-back-top { opacity: 0; }
   .sp-sticky-title { flex: 1; min-width: 0; font: 700 16px/1.2 'StyreneA', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sp-play.play-big, .sp-play {
@@ -8454,7 +8486,7 @@ const spaStack = [];
 let spaIdx = -1;
 let spaNavigating = false; // évite les boucles lors de back/forward
 
-const ALL_VIEWS = ['playlistsView','playlistDetail','radioView','likedView','artistsView','albumsView','searchResults','searchExplore','artistView','albumView','libraryView','statsView','profileView'];
+const ALL_VIEWS = ['playlistsView','playlistDetail','radioView','likedView','artistsView','albumsView','searchResults','searchExplore','artistView','albumView','libraryView','statsView','profileView','profilePlView'];
 const HOME_SECTIONS = ['catsSection','bubbleSection','homeExtras','discoverySection'];
 
 function hideAllViews() {
@@ -8542,6 +8574,11 @@ function applyView(view, params={}) {
       document.getElementById('profileView').style.display='block';
       document.getElementById('profileView').classList.add('active');
       renderProfilePage();
+      break;
+    case 'profilePlaylists':
+      document.getElementById('profilePlView').style.display='block';
+      document.getElementById('profilePlView').classList.add('active');
+      renderProfilePlManage();
       break;
     case 'stats':
       document.getElementById('statsView').style.display='block';
@@ -15627,6 +15664,7 @@ async function loadFromCloud(uid) {
     localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
     _profilePhotoBase64 = _profilePhotoSaved = data.profile?.photoBase64 || null;
     _profileBio = data.profile?.bio || '';
+    if (data.profile?.playlists) setProfilePl(data.profile.playlists);
     updateMobileDrawerUser?.();
     // Appliquer la photo de profil custom si elle existe
     if (data.profile?.photoBase64) {
@@ -15755,6 +15793,147 @@ function paintProfileAvatar(el) {
   }
 }
 
+// ── Playlists affichées sur le profil ──
+// Comme Spotify : on choisit celles qui apparaissent, et les nouvelles s'y
+// ajoutent par défaut. En plus de Spotify : l'ordre se règle en glissant
+// la poignée ≡ (pour mettre une playlist en premier).
+let _profilePl = { order: [], hidden: [] };
+try { setProfilePl(JSON.parse(localStorage.getItem('sevenz_profile_pl') || 'null')); } catch (e) {}
+function setProfilePl(v) {
+  if (!v) return;
+  _profilePl = { order: Array.isArray(v.order) ? v.order : [], hidden: Array.isArray(v.hidden) ? v.hidden : [] };
+}
+function saveProfilePl() {
+  try { localStorage.setItem('sevenz_profile_pl', JSON.stringify(_profilePl)); } catch (e) {}
+  if (_currentUser && _db) {
+    _db.collection('users').doc(_currentUser.uid)
+      .set({ profile: { playlists: _profilePl } }, { merge: true })
+      .catch(e => console.error('saveProfilePl:', e));
+  }
+}
+function profileOwnPlaylists() {
+  return S.playlists.filter(p => !p.smart && (!p.ownerId || p.ownerId === _currentUser?.uid));
+}
+function profileShownPlaylists() {
+  const own = profileOwnPlaylists();
+  const hidden = new Set(_profilePl.hidden);
+  const byId = new Map(own.map(p => [p.id, p]));
+  const ordered = _profilePl.order.filter(id => byId.has(id) && !hidden.has(id)).map(id => byId.get(id));
+  const placed = new Set(ordered.map(p => p.id));
+  return [...ordered, ...own.filter(p => !placed.has(p.id) && !hidden.has(p.id))];
+}
+function profilePlThumb(pl) {
+  const img = pl.coverImage || pl.tracks?.find(t => t.thumb)?.thumb;
+  return img
+    ? `<img src="${esc(img)}" alt="">`
+    : `<span style="background:${getCoverGradient(pl.id)}"></span>`;
+}
+
+let _pfSel = new Set();
+function renderProfilePlManage() {
+  const view = document.getElementById('profilePlView');
+  if (!view) return;
+  const shown = profileShownPlaylists();
+  const shownIds = new Set(shown.map(p => p.id));
+  const others = profileOwnPlaylists().filter(p => !shownIds.has(p.id));
+  for (const id of [..._pfSel]) if (!shownIds.has(id)) _pfSel.delete(id);
+  const sub = pl => `${pl.tracks.length} titre${pl.tracks.length > 1 ? 's' : ''}`;
+  const allSel = shown.length > 0 && _pfSel.size === shown.length;
+  view.innerHTML = `
+    <div class="pfm-head">
+      <button class="pf-back" onclick="spaBack()" aria-label="Retour"><i class="ti ti-arrow-left"></i></button>
+      <h1>Playlists sur votre profil</h1>
+      <p>Cochez celles à retirer de votre profil. Faites glisser <i class="ti ti-menu-2"></i> pour changer l'ordre : la première s'affiche en tête.</p>
+      ${shown.length ? `<button class="pfm-all${allSel ? ' on' : ''}" onclick="pfToggleAll()"><i class="ti ti-circle-check"></i>Tout sélectionner</button>` : ''}
+    </div>
+    <div class="pfm-list" id="pfmList">
+      ${shown.map(pl => `
+        <div class="pfm-row" data-id="${esc(pl.id)}">
+          <button class="pfm-check${_pfSel.has(pl.id) ? ' on' : ''}" onclick="pfToggle('${esc(pl.id)}')" aria-label="Sélectionner ${esc(pl.name)}"><i class="ti ti-check"></i></button>
+          <span class="pf-pl-thumb">${profilePlThumb(pl)}</span>
+          <span class="pf-pl-lines"><span class="pf-pl-name">${esc(pl.name)}</span><span class="pf-pl-sub">${sub(pl)}</span></span>
+          <span class="pfm-handle" aria-label="Déplacer ${esc(pl.name)}"><i class="ti ti-menu-2"></i></span>
+        </div>`).join('') || '<p class="pf-empty" style="padding:0 16px">Aucune playlist sur votre profil.</p>'}
+    </div>
+    ${others.length ? `
+    <section class="pfm-add">
+      <div class="pfm-add-head">
+        <div><h2>Ajouter des playlists</h2><p>Elles apparaîtront sur votre profil.</p></div>
+        <button class="pfm-pill-outline" onclick="pfAdd(null)">Ajouter tout</button>
+      </div>
+      ${others.map(pl => `
+        <div class="pfm-row">
+          <span class="pf-pl-thumb">${profilePlThumb(pl)}</span>
+          <span class="pf-pl-lines"><span class="pf-pl-name">${esc(pl.name)}</span><span class="pf-pl-sub">${sub(pl)}</span></span>
+          <button class="pfm-pill" onclick="pfAdd('${esc(pl.id)}')">Ajouter</button>
+        </div>`).join('')}
+    </section>` : ''}
+    ${_pfSel.size ? `<button class="pfm-remove" onclick="pfRemoveSelected()">Retirer du profil (${_pfSel.size})</button>` : ''}`;
+  bindProfilePlDrag();
+}
+function pfToggle(id) { _pfSel.has(id) ? _pfSel.delete(id) : _pfSel.add(id); renderProfilePlManage(); }
+function pfToggleAll() {
+  const shown = profileShownPlaylists();
+  _pfSel = _pfSel.size === shown.length ? new Set() : new Set(shown.map(p => p.id));
+  renderProfilePlManage();
+}
+function pfRemoveSelected() {
+  _profilePl.hidden = [...new Set([..._profilePl.hidden, ..._pfSel])];
+  _profilePl.order = _profilePl.order.filter(id => !_pfSel.has(id));
+  _pfSel = new Set();
+  saveProfilePl();
+  renderProfilePlManage();
+}
+// id null = « Ajouter tout ». Une playlist remise s'ajoute en fin de liste.
+function pfAdd(id) {
+  const shown = profileShownPlaylists().map(p => p.id);
+  const add = id ? [id] : _profilePl.hidden.slice();
+  _profilePl.hidden = _profilePl.hidden.filter(h => !add.includes(h));
+  _profilePl.order = [...shown, ...add];
+  saveProfilePl();
+  renderProfilePlManage();
+}
+// Glisser la poignée : la ligne suit le doigt et échange sa place avec ses
+// voisines ; l'ordre est enregistré au lâcher.
+function bindProfilePlDrag() {
+  const list = document.getElementById('pfmList');
+  if (!list) return;
+  list.querySelectorAll('.pfm-handle').forEach(h => h.addEventListener('pointerdown', e => {
+    const row = h.closest('.pfm-row');
+    e.preventDefault();
+    h.setPointerCapture(e.pointerId);
+    row.classList.add('dragging');
+    let lastY = e.clientY;
+    const move = ev => {
+      const dy = ev.clientY - lastY;
+      const prev = row.previousElementSibling, next = row.nextElementSibling;
+      // On déplace toujours la VOISINE : retirer la ligne tenue du DOM lui
+      // ferait perdre la capture du doigt (plus de pointerup, ordre perdu).
+      if (dy < 0 && prev && ev.clientY < prev.getBoundingClientRect().top + prev.offsetHeight / 2) {
+        list.insertBefore(prev, row.nextSibling); lastY = ev.clientY;
+      } else if (dy > 0 && next && ev.clientY > next.getBoundingClientRect().top + next.offsetHeight / 2) {
+        list.insertBefore(next, row); lastY = ev.clientY;
+      }
+    };
+    let ended = false;
+    const up = () => {
+      if (ended) return;
+      ended = true;
+      h.removeEventListener('pointermove', move);
+      h.removeEventListener('pointerup', up);
+      h.removeEventListener('pointercancel', up);
+      h.removeEventListener('lostpointercapture', up);
+      row.classList.remove('dragging');
+      _profilePl.order = [...list.querySelectorAll('.pfm-row')].map(r => r.dataset.id);
+      saveProfilePl();
+    };
+    h.addEventListener('pointermove', move);
+    h.addEventListener('pointerup', up);
+    h.addEventListener('pointercancel', up);
+    h.addEventListener('lostpointercapture', up);
+  }));
+}
+
 function openProfilePage() {
   if (!_currentUser) { openAuthModal(); return; }
   navigateTo('profile');
@@ -15764,15 +15943,11 @@ function renderProfilePage() {
   const view = document.getElementById('profileView');
   if (!view) return;
   if (!_currentUser) { view.innerHTML = ''; return; }
-  const mine = S.playlists.filter(p => !p.smart && (!p.ownerId || p.ownerId === _currentUser.uid));
+  const own = profileOwnPlaylists();
+  const mine = profileShownPlaylists();
   const likes = S.favorites.length;
   const plural = (n, w) => `<b>${n}</b> ${w}${n > 1 ? 's' : ''}`;
-  const thumb = pl => {
-    const img = pl.coverImage || pl.tracks?.find(t => t.thumb)?.thumb;
-    return img
-      ? `<img src="${esc(img)}" alt="">`
-      : `<span style="background:${getCoverGradient(pl.id)}"></span>`;
-  };
+  const thumb = profilePlThumb;
   view.style.setProperty('--pf-color', profileColor());
   view.innerHTML = `
     <div class="pf-hero">
@@ -15793,14 +15968,14 @@ function renderProfilePage() {
     <section class="pf-section">
       <div class="pf-sec-head">
         <h2>Playlists</h2>
-        ${mine.length ? `<button class="pf-manage" onclick="navigateTo('playlists')"><i class="ti ti-pencil"></i>Gérer</button>` : ''}
+        ${own.length ? `<button class="pf-manage" onclick="navigateTo('profilePlaylists')"><i class="ti ti-pencil"></i>Gérer</button>` : ''}
       </div>
       ${mine.length ? mine.slice(0, 3).map(pl => `
         <button class="pf-pl" onclick="openPlaylist('${esc(pl.id)}')">
           <span class="pf-pl-thumb">${thumb(pl)}</span>
           <span class="pf-pl-lines"><span class="pf-pl-name">${esc(pl.name)}</span><span class="pf-pl-sub">${pl.tracks.length} titre${pl.tracks.length > 1 ? 's' : ''}</span></span>
-        </button>`).join('') : `<p class="pf-empty">Tu n'as pas encore créé de playlist.</p>`}
-      ${mine.length > 3 ? `<button class="pf-all" onclick="navigateTo('playlists')">Afficher toutes les playlists</button>` : ''}
+        </button>`).join('') : `<p class="pf-empty">${own.length ? 'Aucune playlist affichée sur ton profil.' : "Tu n'as pas encore créé de playlist."}</p>`}
+      ${mine.length > 3 ? `<button class="pf-all" onclick="navigateTo('library', { filter: 'playlists' })">Afficher toutes les playlists</button>` : ''}
     </section>`;
   paintProfileAvatar(document.getElementById('pfAvatar'));
   const photo = profilePhoto();

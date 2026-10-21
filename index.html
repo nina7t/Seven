@@ -4579,10 +4579,12 @@ body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visi
     transition: opacity .2s;
   }
   .sp-sticky {
-    display: flex; position: sticky; top: 0; z-index: 30; align-items: center; gap: 8px;
+    /* top: -8px compense le padding haut de #mainContent : à 0, la barre se
+       collait 8 px trop bas et laissait voir la page défiler sous l'heure. */
+    display: flex; position: sticky; top: -8px; z-index: 30; align-items: center; gap: 8px;
     height: calc(56px + var(--safe-top)); margin-bottom: calc(-56px - var(--safe-top));
     padding: var(--safe-top) 12px 0 8px;
-    background: color-mix(in srgb, var(--sp-color) 55%, #121212);
+    background: color-mix(in srgb, var(--sp-color) 38%, #121212);
     opacity: 0; pointer-events: none; transition: opacity .2s var(--ease-out);
   }
   .sp-scrolled .sp-sticky { opacity: 1; pointer-events: auto; }
@@ -4693,7 +4695,7 @@ body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visi
 }
 /* En-tête collant : occupe 0 de hauteur (marge négative) et apparaît en fondu. */
 .rp-sticky {
-  position: sticky; top: 0; z-index: 30;
+  position: sticky; top: -8px; z-index: 30; /* cf. .sp-sticky */
   height: calc(56px + var(--safe-top)); margin-bottom: calc(-56px - var(--safe-top));
   padding: var(--safe-top) 12px 0 8px;
   display: flex; align-items: center; gap: 8px;

@@ -214,7 +214,15 @@ function rankSuggestions(query, payload) {
     if (!cur || (t.rank || 0) > (cur.rank || 0)) trackByKey.set(key, t);
   }
   for (const t of trackByKey.values()) {
-    const titleTier = tier(t.title, query);
+    // « wonderwall oasis » : on compare aussi à « titre artiste », sinon une
+    // reprise intitulée « Wonderwall (Oasis) » battrait l'original.
+    // L'article est souvent omis à la frappe : « zombie cranberries ».
+    const bareArtist = (t.artist?.name || '').replace(/^the\s+/i, '');
+    const titleTier = Math.max(
+      tier(t.title, query),
+      tier(`${t.title} ${bareArtist}`, query),
+      tier(`${bareArtist} ${t.title}`, query)
+    );
     const artistTier = tier(t.artist?.name, query);
     const popularity = Math.log10((t.rank || 0) + 1);
     if (titleTier === 0 && artistTier === 0 && popularity < MIN_POPULARITY_UNMATCHED) continue;

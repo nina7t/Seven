@@ -118,6 +118,17 @@ describe('rankSuggestions', () => {
     assert.equal(items[0].name, "Sinéad O'Connor");
   });
 
+  test('« wonderwall oasis » / « zombie cranberries » : l\'original avant les reprises', () => {
+    let items = rankSuggestions('wonderwall oasis', payload({
+      tracks: [T('Wonderwall (Oasis)', 'The Fourth Floor', 300000), T('Wonderwall', 'Oasis', 900000)]
+    }));
+    assert.equal(items[0].artist, 'Oasis');
+    items = rankSuggestions('zombie cranberries', payload({
+      tracks: [T('Zombie Cranberries VS T.A.T.U (Remix)', 'Dee Jay Robson', 300000), T('Zombie', 'The Cranberries', 900000)]
+    }));
+    assert.equal(items[0].artist, 'The Cranberries');
+  });
+
   test('plafonds : au plus 1 top hit + 3 lignes artiste', () => {
     const items = rankSuggestions('test', payload({
       artists: ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta']

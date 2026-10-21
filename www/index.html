@@ -8697,6 +8697,7 @@ function removeRecentSearch(i){
 // (entités Deezer classées côté serveur) sont demandées pendant la frappe.
 let _suggestToken=0;
 let _suggestItems=[];
+let _suggestPrewarmTimer=null;
 const _suggestCache=new Map(); // query (minuscules) -> items, 100 entrées max
 // Même normalisation que le norm() de server/search-suggest.js : minuscules,
 // sans accents, apostrophes supprimées, ponctuation -> espaces.
@@ -8760,6 +8761,10 @@ function renderSuggestList(){
   if(!_suggestItems.length||q.length<2){ el.innerHTML=''; return; }
   el.innerHTML=_suggestItems.map((it,i)=>suggestRow(it,i)).join('')
     +`<div class="search-recent-item"><button type="button" class="sri-main" onmousedown="event.preventDefault()" onclick="submitExploreSearch()"><span class="sri-icon"><i class="ti ti-search"></i></span><span class="sri-lines"><span class="sri-text">Voir tous les résultats pour « ${esc(q)} »</span></span></button></div>`;
+  // Dès que la frappe marque une pause, on prépare les premiers titres proposés :
+  // au toucher, le son part sans les ~3 s de recherche et d'extraction.
+  clearTimeout(_suggestPrewarmTimer);
+  _suggestPrewarmTimer=setTimeout(()=>prewarmTracks(_suggestItems.filter(x=>x.type==='track').map(metaToQueueItem),2),400);
 }
 function suggestRow(it,i){
   const img=it.type==='artist'?it.picture:(it.thumbUrl||it.coverUrl);
@@ -10525,6 +10530,7 @@ function _openPlaylistDirect(id) {
     }
     return;
   }
+  prewarmTracks(pl.tracks);
   S.currentPlaylistId = id;
 
   document.getElementById('detailTitle').textContent = pl.name;
@@ -10785,6 +10791,7 @@ function sharePlaylist() {
 // ── LIKED TRACKS ───────────────────────────────────────────────────
 function renderLikedView() {
   const favs = S.favorites;
+  prewarmTracks(favs);
   const totalDur = favs.reduce((sum, t) => sum + (t.duration || 0), 0);
   const infoParts = [
     favs.length + ' titre' + (favs.length!==1?'s':''),

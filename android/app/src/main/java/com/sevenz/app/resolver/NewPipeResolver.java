@@ -125,16 +125,26 @@ public class NewPipeResolver {
      * Retourne null si aucun candidat ne dépasse le seuil de confiance.
      */
     public ResolvedTrack resolve() throws Exception {
+        List<ResolvedTrack> ranked = resolveRanked();
+        return ranked.isEmpty() ? null : ranked.get(0);
+    }
+
+    /**
+     * Comme resolve(), mais garde tous les candidats fiables, du meilleur au
+     * moins bon : si le son du premier ne peut pas être extrait, l'appelant
+     * essaie le suivant au lieu de sauter le titre.
+     */
+    public List<ResolvedTrack> resolveRanked() throws Exception {
         ensureNewPipeInitialized();
         StreamingService service = NewPipe.getService(0); // 0 = YouTube
 
         // Passe 1 : catalogue officiel YouTube Music. C'est LA réponse au problème
         // des « vieilles reprises pourries » : elles n'y figurent pas.
         List<InfoItem> musicItems = fetchSearchResults(service, query, MUSIC_FILTER);
-        ResolvedTrack best = pickBest(musicItems, true);
-        if (best != null) {
+        List<ResolvedTrack> music = rankItems(musicItems, true);
+        if (!music.isEmpty()) {
             Log.i(TAG, "Match trouvé dans le catalogue YouTube Music");
-            return best;
+            return music;
         }
 
         // Passe 2 : recherche YouTube classique (repli). Si la passe 1 échoue ou
@@ -143,9 +153,9 @@ public class NewPipeResolver {
         List<InfoItem> items = fetchSearchResults(service, query, Collections.<String>emptyList());
         if (items.isEmpty()) {
             Log.w(TAG, "Aucun résultat NewPipe pour: " + query);
-            return null;
+            return Collections.emptyList();
         }
-        return pickBest(items, false);
+        return rankItems(items, false);
     }
 
     /**
@@ -157,7 +167,12 @@ public class NewPipeResolver {
     }
 
     public ResolvedTrack pickBest(List<InfoItem> items, boolean fromMusicCatalog) {
-        if (items == null || items.isEmpty()) return null;
+        List<ResolvedTrack> ranked = rankItems(items, fromMusicCatalog);
+        return ranked.isEmpty() ? null : ranked.get(0);
+    }
+
+    private List<ResolvedTrack> rankItems(List<InfoItem> items, boolean fromMusicCatalog) {
+        if (items == null || items.isEmpty()) return Collections.emptyList();
 
         List<Candidate> candidates = new ArrayList<>();
         for (InfoItem item : items) {
@@ -176,7 +191,7 @@ public class NewPipeResolver {
                 safeViewCount(stream)
             ));
         }
-        return pickBestCandidate(candidates);
+        return rankCandidates(candidates);
     }
 
     private static long safeViewCount(StreamInfoItem s) {
@@ -190,7 +205,16 @@ public class NewPipeResolver {
      * les tests unitaires avec candidats mockés.
      */
     public ResolvedTrack pickBestCandidate(List<Candidate> candidates) {
-        if (candidates == null || candidates.isEmpty()) return null;
+        List<ResolvedTrack> ranked = rankCandidates(candidates);
+        return ranked.isEmpty() ? null : ranked.get(0);
+    }
+
+    /**
+     * Tous les candidats au-dessus de CONFIDENCE_THRESHOLD, du meilleur score
+     * au moins bon ; à score égal, le plus vu d'abord (puis l'ordre YouTube).
+     */
+    public List<ResolvedTrack> rankCandidates(List<Candidate> candidates) {
+        if (candidates == null || candidates.isEmpty()) return Collections.emptyList();
 
         // normalize() retire des mots comme "live" ou "deluxe" : pour un groupe qui
         // s'appelle justement ainsi, le nom disparaîtrait entièrement.
@@ -202,10 +226,8 @@ public class NewPipeResolver {
         // pénalise pas ces mots.
         String basicQuery = normalizeBasic(artist + " " + title);
 
-        ResolvedTrack best = null;
-        double bestScore = 0;
-        long bestViews = -1;
-
+        List<Candidate> kept = new ArrayList<>();
+        List<Double> scores = new ArrayList<>();
         int limit = Math.min(candidates.size(), MAX_CANDIDATES);
         for (int i = 0; i < limit; i++) {
             Candidate candidate = candidates.get(i);
@@ -216,24 +238,31 @@ public class NewPipeResolver {
                 i, scored.score, candidate.videoTitle, candidate.uploaderName,
                 String.valueOf(candidate.durationSec), scored.durationDiffSec));
 
-            // À score égal, l'ancien code gardait le premier dans l'ordre YouTube,
-            // c'est-à-dire arbitrairement. On départage par audience.
-            boolean better = scored.score > bestScore + 1e-9
-                || (Math.abs(scored.score - bestScore) < 1e-9 && candidate.viewCount > bestViews);
-            if (better) {
-                bestScore = scored.score;
-                bestViews = candidate.viewCount;
-                best = buildResolvedTrack(candidate, scored.score);
+            if (scored.score >= CONFIDENCE_THRESHOLD) {
+                kept.add(candidate);
+                scores.add(scored.score);
             }
         }
 
-        if (best == null || bestScore < CONFIDENCE_THRESHOLD) {
-            Log.w(TAG, "Aucun match fiable (meilleur score=" + bestScore + ") pour: " + query);
-            return null;
-        }
+        // Tri stable : à score et audience égaux, l'ordre YouTube est conservé.
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < kept.size(); i++) order.add(i);
+        Collections.sort(order, (a, b) -> {
+            int byScore = Double.compare(scores.get(b), scores.get(a));
+            if (Math.abs(scores.get(a) - scores.get(b)) >= 1e-9 && byScore != 0) return byScore;
+            return Long.compare(kept.get(b).viewCount, kept.get(a).viewCount);
+        });
 
-        Log.i(TAG, "Match choisi: " + best.videoId + " score=" + bestScore);
-        return best;
+        List<ResolvedTrack> ranked = new ArrayList<>();
+        for (int i : order) ranked.add(buildResolvedTrack(kept.get(i), scores.get(i)));
+
+        if (ranked.isEmpty()) {
+            Log.w(TAG, "Aucun match fiable pour: " + query);
+        } else {
+            Log.i(TAG, "Match choisi: " + ranked.get(0).videoId + " score=" + ranked.get(0).score
+                + " (" + ranked.size() + " candidats fiables)");
+        }
+        return ranked;
     }
 
     /**

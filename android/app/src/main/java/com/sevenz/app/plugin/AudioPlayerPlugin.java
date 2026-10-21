@@ -914,22 +914,44 @@ public class AudioPlayerPlugin extends Plugin {
         new Thread(() -> {
             try {
                 NewPipeResolver resolver = new NewPipeResolver(artist, title, durationSec);
-                NewPipeResolver.ResolvedTrack track = resolver.resolve();
+                java.util.List<NewPipeResolver.ResolvedTrack> ranked = resolver.resolveRanked();
 
-                if (track == null) {
+                if (ranked.isEmpty()) {
                     getActivity().runOnUiThread(() -> call.reject("No reliable match found"));
                     return;
                 }
 
+                // Le son d'une vidéo peut être inextractible (bloquée, « made for
+                // kids »…) : on essaie alors le candidat suivant au lieu de sauter
+                // le titre, dans la limite de quelques essais et de quelques secondes.
+                NewPipeResolver.ResolvedTrack chosen = ranked.get(0);
                 String audioUrl = null;
-                if (fetchAudio && track.videoId != null) {
-                    java.util.List<String> urls = extractAudioUrls(track.videoId);
-                    if (!urls.isEmpty()) {
-                        putUrls(track.videoId, urls);
-                        audioUrl = urls.get(0);
+                Exception lastError = null;
+                if (fetchAudio) {
+                    long deadline = System.currentTimeMillis() + 8000;
+                    for (int i = 0; i < Math.min(3, ranked.size()); i++) {
+                        NewPipeResolver.ResolvedTrack candidate = ranked.get(i);
+                        if (candidate.videoId == null) continue;
+                        if (i > 0 && System.currentTimeMillis() > deadline) break;
+                        try {
+                            java.util.List<String> urls = extractAudioUrls(candidate.videoId);
+                            if (!urls.isEmpty()) {
+                                putUrls(candidate.videoId, urls);
+                                chosen = candidate;
+                                audioUrl = urls.get(0);
+                                break;
+                            }
+                        } catch (Exception e) {
+                            lastError = e;
+                            Log.w(TAG, "Extraction impossible pour " + candidate.videoId + ", candidat suivant", e);
+                        }
                     }
+                    // Tous les essais ont planté : on échoue comme avant, le JS
+                    // passe alors à la résolution par le serveur.
+                    if (audioUrl == null && lastError != null) throw lastError;
                 }
 
+                final NewPipeResolver.ResolvedTrack track = chosen;
                 final String finalAudioUrl = audioUrl;
                 getActivity().runOnUiThread(() -> {
                     JSObject result = new JSObject();

@@ -221,6 +221,8 @@ function rankSuggestions(query, payload) {
     items.push({
       ...mapDeezerTrackToResult(t),
       type: 'track',
+      // coverUrl est en 1000 px pour le lecteur ; la liste n'a besoin que d'une vignette.
+      thumbUrl: t.album?.cover_medium || t.album?.cover || null,
       topHit: false,
       _score: TIER_WEIGHT * titleTier + (artistTier >= 1 ? ARTIST_MATCH_BONUS : 0)
         + popularityFor(Math.max(titleTier, artistTier), popularity)

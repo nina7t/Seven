@@ -8762,7 +8762,7 @@ function renderSuggestList(){
     +`<div class="search-recent-item"><button type="button" class="sri-main" onmousedown="event.preventDefault()" onclick="submitExploreSearch()"><span class="sri-icon"><i class="ti ti-search"></i></span><span class="sri-lines"><span class="sri-text">Voir tous les résultats pour « ${esc(q)} »</span></span></button></div>`;
 }
 function suggestRow(it,i){
-  const img=it.type==='artist'?it.picture:it.coverUrl;
+  const img=it.type==='artist'?it.picture:(it.thumbUrl||it.coverUrl);
   const media=img
     ?`<img class="sri-thumb${it.type==='artist'?' round':''}" src="${esc(img)}" alt="" loading="lazy">`
     :`<span class="sri-icon"><i class="ti ti-${it.type==='artist'?'user':it.type==='album'?'disc':'music'}"></i></span>`;

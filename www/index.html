@@ -2315,9 +2315,9 @@ body.player-hidden .app { height: 100vh; }
     position: fixed;
     top: 0;
     left: 0; /* s'ouvre du côté du bouton profil, comme Spotify */
-    width: 260px;
+    width: min(89vw, 374px);
     height: 100vh;
-    background: var(--bg-primary);
+    background: #1f1f1f;
     z-index: 301;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
@@ -2326,64 +2326,42 @@ body.player-hidden .app { height: 100vh; }
   }
   .mobile-drawer.active { transform: translateX(0); }
 
-  .md-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: calc(16px + var(--safe-top)) 20px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    font-size: 18px;
-    font-weight: 700;
-  }
-  .md-close {
-    background: none;
-    border: none;
-    color: var(--gray);
-    cursor: pointer;
-    font-size: 24px;
-    padding: 4px;
-  }
-  @media (hover: hover) { .md-close:hover { color: var(--white); } }
-
-  .md-user {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+  /* Mesures relevées sur Spotify Android (écran de 420 dp) : carte grise
+     arrondie en tête, photo 48, nom 20 gras, « Voir le profil » 14 gris. */
+  .md-card {
+    display: flex; align-items: center; gap: 12px; width: calc(100% - 16px);
+    margin: calc(8px + var(--safe-top)) 8px 8px; padding: 12px;
+    background: #2a2a2a; border: 0; border-radius: 8px; color: var(--white);
+    text-align: left; cursor: pointer;
   }
   .md-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--purple), var(--accent));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    width: 48px; height: 48px; flex: 0 0 48px; border-radius: 50%;
+    display: grid; place-items: center; overflow: hidden;
+    font: 700 22px/1 'StyreneA', sans-serif; color: #fff;
   }
-  .md-name { font-size: 16px; font-weight: 600; }
-  .md-email { font-size: 12px; color: var(--gray); }
+  .md-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .md-info { min-width: 0; }
+  .md-name { font: 700 20px/1.2 'StyreneA', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .md-email { font-size: 14px; color: var(--gray); margin-top: 2px; }
 
   .md-nav {
     display: flex;
     flex-direction: column;
-    padding: 12px;
-    gap: 4px;
+    padding: 0;
   }
   .md-item {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 14px 16px;
-    border-radius: 14px;
+    min-height: 56px;
+    padding: 0 16px;
     color: var(--white);
     cursor: pointer;
-    font-size: 15px;
+    font-size: 16px;
     transition: background 0.2s;
   }
   @media (hover: hover) { .md-item:hover { background: rgba(255,255,255,0.08); } }
-  .md-item i { font-size: 22px; color: var(--gray); }
+  .md-item i { font-size: 24px; color: var(--white); }
   @media (hover: hover) { .md-item:hover i { color: var(--white); } }
   .md-separator {
     margin-top: 8px;
@@ -4050,6 +4028,9 @@ body.player-hidden .app { height: 100vh; }
 
       <div class="playlist-detail album-view" id="albumView"></div>
 
+      <!-- Page profil (façon Spotify) -->
+      <div class="playlist-detail profile-page" id="profileView"></div>
+
       <section class="mobile-library-view" id="libraryView">
         <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="toggleMobileMenu()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openLibraryAddSheet()" aria-label="Ajouter"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
         <input class="library-search-input" id="librarySearchInput" type="search" enterkeyhint="search" placeholder="Rechercher dans ta bibliothèque" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();renderLibraryView()}" oninput="if(!this.value)renderLibraryView()">
@@ -4565,7 +4546,7 @@ body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visi
 }
 
 @media (max-width: 768px) {
-  .main[data-view="artist"] .topbar, .main[data-view="album"] .topbar { display: none; }
+  .main[data-view="artist"] .topbar, .main[data-view="album"] .topbar, .main[data-view="profile"] .topbar { display: none; }
   #artistView, #albumView { --sp-color: #333; margin: -8px -12px 0; padding-bottom: 140px; }
 
   /* Bouton retour rond posé sur l'en-tête, puis barre collante au défilement. */
@@ -4588,6 +4569,46 @@ body:has(#cplAdd.open) .toast { z-index: 10033; }   /* « Ajouté à … » visi
     opacity: 0; pointer-events: none; transition: opacity .2s var(--ease-out);
   }
   .sp-scrolled .sp-sticky { opacity: 1; pointer-events: auto; }
+  #profileView { --pf-color: #535353; margin: -8px -12px 0; padding-bottom: 140px; }
+  .pf-hero {
+    padding: calc(12px + var(--safe-top)) 16px 16px;
+    background: linear-gradient(to bottom, var(--pf-color), color-mix(in srgb, var(--pf-color) 35%, #121212) 75%, #121212);
+  }
+  .pf-back { width: 40px; height: 40px; margin-left: -8px; border: 0; background: none; color: #fff; font-size: 24px; display: grid; place-items: center; }
+  .pf-id { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+  .pf-avatar {
+    width: 112px; height: 112px; flex: 0 0 112px; border-radius: 50%; overflow: hidden;
+    display: grid; place-items: center; color: #fff; font: 700 56px/1 'StyreneA', sans-serif;
+    box-shadow: 0 4px 60px rgba(0,0,0,.5);
+  }
+  .pf-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .pf-names { min-width: 0; }
+  .pf-name { margin: 0; font: 700 32px/1.15 'StyreneA', sans-serif; color: #fff; overflow-wrap: anywhere; }
+  .pf-meta { margin-top: 6px; font-size: 14px; color: rgba(255,255,255,.7); }
+  .pf-meta b { color: #fff; font-weight: 700; }
+  .pf-actions { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+  .pf-edit {
+    height: 32px; padding: 0 15px; border: 1px solid rgba(255,255,255,.7); border-radius: 999px;
+    background: none; color: #fff; font: 700 14px/1 'StyreneA', sans-serif;
+  }
+  .pf-icon { border: 0; background: none; color: rgba(255,255,255,.7); font-size: 26px; padding: 0; display: grid; }
+  .pf-bio { margin: 4px 16px 0; color: var(--gray); font-size: 14px; line-height: 1.4; }
+  .pf-section { padding: 12px 16px 0; }
+  .pf-sec-head { display: flex; align-items: center; justify-content: space-between; min-height: 40px; margin-bottom: 4px; }
+  .pf-sec-head h2 { margin: 0; font: 700 20px/1.2 'StyreneA', sans-serif; }
+  .pf-manage { display: flex; align-items: center; gap: 6px; border: 0; background: none; color: #fff; font: 700 14px/1 'StyreneA', sans-serif; }
+  .pf-manage i { font-size: 20px; }
+  .pf-pl { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 0; border: 0; background: none; color: #fff; text-align: left; }
+  .pf-pl-thumb { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 4px; overflow: hidden; display: block; }
+  .pf-pl-thumb img, .pf-pl-thumb span { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pf-pl-lines { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .pf-pl-name { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pf-pl-sub { font-size: 14px; color: var(--gray); }
+  .pf-all {
+    display: block; margin: 16px auto 0; height: 50px; padding: 0 24px; border: 1px solid #7c7c7c; border-radius: 999px;
+    background: none; color: #fff; font: 700 14px/1 'StyreneA', sans-serif;
+  }
+  .pf-empty { color: var(--gray); font-size: 14px; }
   .sp-scrolled .sp-back-top { opacity: 0; }
   .sp-sticky-title { flex: 1; min-width: 0; font: 700 16px/1.2 'StyreneA', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sp-play.play-big, .sp-play {
@@ -8433,7 +8454,7 @@ const spaStack = [];
 let spaIdx = -1;
 let spaNavigating = false; // évite les boucles lors de back/forward
 
-const ALL_VIEWS = ['playlistsView','playlistDetail','radioView','likedView','artistsView','albumsView','searchResults','searchExplore','artistView','albumView','libraryView','statsView'];
+const ALL_VIEWS = ['playlistsView','playlistDetail','radioView','likedView','artistsView','albumsView','searchResults','searchExplore','artistView','albumView','libraryView','statsView','profileView'];
 const HOME_SECTIONS = ['catsSection','bubbleSection','homeExtras','discoverySection'];
 
 function hideAllViews() {
@@ -8516,6 +8537,11 @@ function applyView(view, params={}) {
       document.getElementById('libraryView').style.display='block';
       document.getElementById('libraryView').classList.add('active');
       renderLibraryView(params.filter || libraryFilter);
+      break;
+    case 'profile':
+      document.getElementById('profileView').style.display='block';
+      document.getElementById('profileView').classList.add('active');
+      renderProfilePage();
       break;
     case 'stats':
       document.getElementById('statsView').style.display='block';
@@ -13604,49 +13630,33 @@ document.addEventListener('DOMContentLoaded', () => {
 <!-- ── MOBILE MENU DRAWER ── -->
 <div class="mobile-drawer-overlay" id="mobileDrawerOverlay" onclick="closeMobileMenu()"></div>
 <div class="mobile-drawer" id="mobileDrawer">
-  <div class="md-header">
-    <span>Menu</span>
-    <button class="md-close" onclick="closeMobileMenu()"><i class="ti ti-x"></i></button>
-  </div>
-  <div class="md-user" id="mobileDrawerUser">
-    <div class="md-avatar" id="mdAvatar"><svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:32px;height:32px"><circle cx="16" cy="11" r="6" fill="rgba(255,255,255,0.85)"/><path d="M4 28c0-6.627 5.373-12 12-12s12 5.373 12 12" fill="rgba(255,255,255,0.85)"/></svg></div>
+  <button type="button" class="md-card" onclick="closeMobileMenu();_currentUser?openProfilePage():openAuthModal();">
+    <div class="md-avatar" id="mdAvatar"></div>
     <div class="md-info">
       <div class="md-name" id="mdUserName">Invité</div>
-      <div class="md-email" id="mdUserEmail"></div>
+      <div class="md-email" id="mdUserEmail">Se connecter</div>
     </div>
-  </div>
+  </button>
   <nav class="md-nav">
-    <div class="md-item" onclick="closeMobileMenu();showHome();">
-      <i class="ti ti-home"></i>
-      <span>Accueil</span>
-    </div>
-    <div class="md-item" onclick="closeMobileMenu();showLikedView();">
-      <i class="ti ti-heart"></i>
-      <span>Titres likés</span>
-    </div>
-    <div class="md-item" onclick="closeMobileMenu();showPlaylistsHome();">
-      <i class="ti ti-playlist"></i>
-      <span>Mes playlists</span>
-    </div>
-    <div class="md-item" onclick="closeMobileMenu();navigateTo('playlists');openDeezerImportModal();">
-      <i class="ti ti-brand-deezer"></i>
-      <span>Importer depuis Deezer</span>
+    <div class="md-item" onclick="closeMobileMenu();openListeningStats();">
+      <i class="ti ti-chart-line"></i>
+      <span>Stats d'écoute</span>
     </div>
     <div class="md-item" onclick="closeMobileMenu();openRadio();">
       <i class="ti ti-broadcast"></i>
       <span>Radio</span>
     </div>
-    <div class="md-item" onclick="closeMobileMenu();openListeningStats();">
-      <i class="ti ti-chart-bar"></i>
-      <span>Mes stats</span>
+    <div class="md-item" onclick="closeMobileMenu();navigateTo('playlists');openDeezerImportModal();">
+      <i class="ti ti-download"></i>
+      <span>Importer des playlists</span>
     </div>
     <div class="md-item" onclick="closeMobileMenu();openSleepTimer();">
       <i class="ti ti-moon"></i>
       <span>Minuterie d'arrêt</span>
     </div>
-    <div class="md-item" onclick="closeMobileMenu();openProfileModal();">
-      <i class="ti ti-user"></i>
-      <span>Mon profil</span>
+    <div class="md-item" onclick="closeMobileMenu();openEqualizer();">
+      <i class="ti ti-adjustments-horizontal"></i>
+      <span>Égaliseur</span>
     </div>
     <div class="md-item md-separator" onclick="closeMobileMenu();_currentUser?logOut():openAuthModal();">
       <i class="ti ti-login" id="mdAuthIcon"></i>
@@ -13948,16 +13958,17 @@ function updateMobileDrawerUser() {
   const authLabel = document.getElementById('mdAuthLabel');
 
   if (user) {
-    nameEl.textContent = user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'Utilisateur';
-    emailEl.textContent = user.email || '';
+    nameEl.textContent = profileDisplayName();
+    emailEl.textContent = 'Voir le profil';
     authIcon.className = 'ti ti-logout';
     authLabel.textContent = 'Déconnexion';
   } else {
     nameEl.textContent = 'Invité';
-    emailEl.textContent = '';
+    emailEl.textContent = 'Se connecter';
     authIcon.className = 'ti ti-login';
     authLabel.textContent = 'Connexion';
   }
+  paintProfileAvatar(document.getElementById('mdAvatar'));
 }
 
 // ── PARTAGE ─────────────────────────────────────────────────────────
@@ -15614,6 +15625,9 @@ async function loadFromCloud(uid) {
     S.favorites = data.favorites || [];
     savePlaylists();
     localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
+    _profilePhotoBase64 = data.profile?.photoBase64 || null;
+    _profileBio = data.profile?.bio || '';
+    updateMobileDrawerUser?.();
     // Appliquer la photo de profil custom si elle existe
     if (data.profile?.photoBase64) {
       const av = document.getElementById('userAvatar');
@@ -15703,6 +15717,95 @@ function handleProfilePhoto(input) {
   reader.readAsDataURL(file);
 }
 
+// ── PAGE PROFIL (façon Spotify) ─────────────────────────────────────
+// Mesures relevées sur Spotify Android : photo 112, nom 32 gras, dégradé de
+// la couleur de la photo vers le fond, bouton « Modifier » cerclé, section
+// Playlists avec pochettes 48 et « Afficher toutes les playlists ».
+let _profileBio = '';
+const PROFILE_COLORS = ['#C2774F', '#8D67AB', '#509BF5', '#E8115B', '#148A08', '#AF2896', '#E91429', '#1E3264'];
+
+function profileDisplayName() {
+  const u = _currentUser;
+  return u?.displayName || u?.email?.split('@')[0] || 'Utilisateur';
+}
+// Sans photo : initiale sur une couleur stable par compte, comme Spotify.
+function profileColor() {
+  const id = _currentUser?.uid || 'x';
+  let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return PROFILE_COLORS[Math.abs(h) % PROFILE_COLORS.length];
+}
+function profilePhoto() {
+  // Google sert la photo du compte en 96 px (« =s96-c ») : floue à 112 dp.
+  const google = _currentUser?.photoURL?.replace(/=s\d+-c$/, '=s400-c');
+  return _profilePhotoBase64 || google || null;
+}
+function paintProfileAvatar(el) {
+  if (!el) return;
+  const photo = _currentUser && profilePhoto();
+  if (photo) {
+    el.style.background = '';
+    el.innerHTML = `<img src="${esc(photo)}" alt="">`;
+  } else if (_currentUser) {
+    el.style.background = profileColor();
+    el.textContent = profileDisplayName().charAt(0).toUpperCase();
+  } else {
+    el.style.background = '#535353';
+    el.innerHTML = '<i class="ti ti-user"></i>';
+  }
+}
+
+function openProfilePage() {
+  if (!_currentUser) { openAuthModal(); return; }
+  navigateTo('profile');
+}
+
+function renderProfilePage() {
+  const view = document.getElementById('profileView');
+  if (!view) return;
+  if (!_currentUser) { view.innerHTML = ''; return; }
+  const mine = S.playlists.filter(p => !p.smart && (!p.ownerId || p.ownerId === _currentUser.uid));
+  const likes = S.favorites.length;
+  const plural = (n, w) => `<b>${n}</b> ${w}${n > 1 ? 's' : ''}`;
+  const thumb = pl => {
+    const img = pl.coverImage || pl.tracks?.find(t => t.thumb)?.thumb;
+    return img
+      ? `<img src="${esc(img)}" alt="">`
+      : `<span style="background:${getCoverGradient(pl.id)}"></span>`;
+  };
+  view.style.setProperty('--pf-color', profileColor());
+  view.innerHTML = `
+    <div class="pf-hero">
+      <button class="pf-back" onclick="spaBack()" aria-label="Retour"><i class="ti ti-arrow-left"></i></button>
+      <div class="pf-id">
+        <div class="pf-avatar" id="pfAvatar"></div>
+        <div class="pf-names">
+          <h1 class="pf-name">${esc(profileDisplayName())}</h1>
+          <div class="pf-meta">${plural(mine.length, 'playlist')} • <b>${likes}</b> titre${likes > 1 ? 's' : ''} liké${likes > 1 ? 's' : ''}</div>
+        </div>
+      </div>
+      <div class="pf-actions">
+        <button class="pf-edit" onclick="openProfileModal()">Modifier</button>
+        <button class="pf-icon" onclick="openEqualizer()" aria-label="Réglages du son"><i class="ti ti-settings"></i></button>
+      </div>
+    </div>
+    ${_profileBio ? `<p class="pf-bio">${esc(_profileBio)}</p>` : ''}
+    <section class="pf-section">
+      <div class="pf-sec-head">
+        <h2>Playlists</h2>
+        ${mine.length ? `<button class="pf-manage" onclick="navigateTo('playlists')"><i class="ti ti-pencil"></i>Gérer</button>` : ''}
+      </div>
+      ${mine.length ? mine.slice(0, 3).map(pl => `
+        <button class="pf-pl" onclick="openPlaylist('${esc(pl.id)}')">
+          <span class="pf-pl-thumb">${thumb(pl)}</span>
+          <span class="pf-pl-lines"><span class="pf-pl-name">${esc(pl.name)}</span><span class="pf-pl-sub">${pl.tracks.length} titre${pl.tracks.length > 1 ? 's' : ''}</span></span>
+        </button>`).join('') : `<p class="pf-empty">Tu n'as pas encore créé de playlist.</p>`}
+      ${mine.length > 3 ? `<button class="pf-all" onclick="navigateTo('playlists')">Afficher toutes les playlists</button>` : ''}
+    </section>`;
+  paintProfileAvatar(document.getElementById('pfAvatar'));
+  const photo = profilePhoto();
+  if (photo) getDominantColor(photo).then(c => { if (c && view.isConnected) view.style.setProperty('--pf-color', c); });
+}
+
 async function saveProfile() {
   const name = document.getElementById('profileName').value.trim();
   const bio  = document.getElementById('profileBio').value.trim();
@@ -15726,7 +15829,10 @@ async function saveProfile() {
       document.getElementById('userAvatar').innerHTML = `<img src="${_profilePhotoBase64}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
     }
 
+    _profileBio = bio;
     closeProfileModal();
+    updateMobileDrawerUser();
+    if (document.getElementById('profileView')?.classList.contains('active')) renderProfilePage();
     showToast('Profil mis à jour');
   } catch(e) {
     err.textContent = e.message;

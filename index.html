@@ -2314,12 +2314,12 @@ body.player-hidden .app { height: 100vh; }
   .mobile-drawer {
     position: fixed;
     top: 0;
-    right: 0;
+    left: 0; /* s'ouvre du côté du bouton profil, comme Spotify */
     width: 260px;
     height: 100vh;
     background: var(--bg-primary);
     z-index: 301;
-    transform: translateX(100%);
+    transform: translateX(-100%);
     transition: transform 0.3s ease;
     display: flex;
     flex-direction: column;
@@ -2330,7 +2330,7 @@ body.player-hidden .app { height: 100vh; }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: calc(16px + var(--safe-top)) 20px 16px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
     font-size: 18px;
     font-weight: 700;
@@ -3853,7 +3853,7 @@ body.player-hidden .app { height: 100vh; }
     </div>
 
     <div class="mobile-home-filters" aria-label="Filtres de l’accueil">
-      <button class="mobile-home-avatar" onclick="handleUserBtnClick()" aria-label="Profil"><img src="sevenz-icone-192.png" alt=""></button>
+      <button class="mobile-home-avatar" onclick="toggleMobileMenu()" aria-label="Profil"><img src="sevenz-icone-192.png" alt=""></button>
       <button class="mobile-home-filter active" data-view="home" onclick="setHomeFilter('home')">Tout</button>
       <button class="mobile-home-filter" data-view="liked" onclick="setHomeFilter('liked')">Musique</button>
       <button class="mobile-home-filter" data-view="playlists" onclick="setHomeFilter('playlists')">Playlists</button>
@@ -3910,7 +3910,7 @@ body.player-hidden .app { height: 100vh; }
       <div class="search-results" id="searchResults"></div>
 
       <section class="search-explore" id="searchExplore">
-        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Rechercher</h1></div>
+        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="toggleMobileMenu()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Rechercher</h1></div>
         <div class="explore-search-row"><div class="explore-search"><i class="ti ti-search"></i><input id="exploreSearchInput" placeholder="Que souhaitez-vous écouter&#8239;?" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" oninput="exploreInputChanged(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitExploreSearch();}"><button type="button" class="explore-search-mic" id="exploreMicBtn" onclick="startVoiceSearch(this)" aria-label="Recherche vocale"><i class="ti ti-microphone"></i></button><button type="button" class="explore-search-go" id="exploreSearchGo" hidden onclick="submitExploreSearch()" aria-label="Lancer la recherche"><i class="ti ti-arrow-right"></i></button></div><button type="button" class="explore-search-cancel" onmousedown="event.preventDefault()" onclick="cancelExploreSearch()" aria-label="Annuler"><i class="ti ti-arrow-left"></i></button></div>
         <div class="search-recent" id="searchRecentSection"><h2>Récents</h2><div class="search-recent-list" id="searchRecentChips"></div><button type="button" class="search-recent-clear" onmousedown="event.preventDefault()" onclick="clearRecentSearches()">Effacer les recherches récentes</button></div>
         <div class="search-focus-hint" id="searchFocusHint"></div>
@@ -4051,7 +4051,7 @@ body.player-hidden .app { height: 100vh; }
       <div class="playlist-detail album-view" id="albumView"></div>
 
       <section class="mobile-library-view" id="libraryView">
-        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="handleUserBtnClick()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openLibraryAddSheet()" aria-label="Ajouter"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
+        <div class="mobile-page-head"><button class="mobile-page-avatar" onclick="toggleMobileMenu()"><img src="sevenz-icone-192.png" alt="Profil"></button><h1>Bibliothèque</h1><button onclick="toggleLibrarySearch()" aria-label="Rechercher"><i class="ti ti-search"></i></button><button class="lib-head-plus" onclick="openLibraryAddSheet()" aria-label="Ajouter"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 0v22M0 11h22" fill="none" stroke="currentColor" stroke-width="2.2"/></svg></button></div>
         <input class="library-search-input" id="librarySearchInput" type="search" enterkeyhint="search" placeholder="Rechercher dans ta bibliothèque" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();renderLibraryView()}" oninput="if(!this.value)renderLibraryView()">
         <div class="library-filter-bar" id="libraryFilterBar">
           <button class="lib-chip lib-chip-clear" onclick="setLibraryFilter('all')" aria-label="Effacer la sélection du filtre"><i class="ti ti-x"></i></button>
@@ -13648,7 +13648,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <i class="ti ti-user"></i>
       <span>Mon profil</span>
     </div>
-    <div class="md-item md-separator" onclick="closeMobileMenu();handleUserBtnClick();">
+    <div class="md-item md-separator" onclick="closeMobileMenu();_currentUser?logOut():openAuthModal();">
       <i class="ti ti-login" id="mdAuthIcon"></i>
       <span id="mdAuthLabel">Connexion</span>
     </div>

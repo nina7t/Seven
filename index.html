@@ -15625,7 +15625,7 @@ async function loadFromCloud(uid) {
     S.favorites = data.favorites || [];
     savePlaylists();
     localStorage.setItem('sevenz_favs', JSON.stringify(S.favorites));
-    _profilePhotoBase64 = data.profile?.photoBase64 || null;
+    _profilePhotoBase64 = _profilePhotoSaved = data.profile?.photoBase64 || null;
     _profileBio = data.profile?.bio || '';
     updateMobileDrawerUser?.();
     // Appliquer la photo de profil custom si elle existe
@@ -15657,7 +15657,8 @@ function syncToCloud() {
 }
 
 // ── PROFIL ──────────────────────────────────────────────────────────
-let _profilePhotoBase64 = null;
+let _profilePhotoBase64 = null; // photo affichée (brouillon pendant l'édition)
+let _profilePhotoSaved = null;  // photo enregistrée : « Annuler » y revient
 
 function openProfileModal() {
   if (!_currentUser) return;
@@ -15671,7 +15672,7 @@ function openProfileModal() {
   _db.collection('users').doc(_currentUser.uid).get().then(doc => {
     const data = doc.exists ? doc.data() : {};
     document.getElementById('profileBio').value = data.profile?.bio || '';
-    _profilePhotoBase64 = data.profile?.photoBase64 || null;
+    _profilePhotoBase64 = _profilePhotoSaved = data.profile?.photoBase64 || null;
     refreshProfileAvatar();
   });
 }
@@ -15680,7 +15681,7 @@ function closeProfileModal() {
   const modal = document.getElementById('profileModal');
   modal.classList.remove('active');
   setTimeout(() => { modal.style.display = 'none'; }, 200);
-  _profilePhotoBase64 = null;
+  _profilePhotoBase64 = _profilePhotoSaved;
 }
 
 function refreshProfileAvatar() {
@@ -15702,7 +15703,7 @@ function handleProfilePhoto(input) {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const size = 128;
+      const size = 400; // affichée jusqu'à 112 dp (336 px) sur la page profil
       canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
       const min = Math.min(img.width, img.height);
@@ -15830,6 +15831,7 @@ async function saveProfile() {
     }
 
     _profileBio = bio;
+    _profilePhotoSaved = _profilePhotoBase64;
     closeProfileModal();
     updateMobileDrawerUser();
     if (document.getElementById('profileView')?.classList.contains('active')) renderProfilePage();

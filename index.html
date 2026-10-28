@@ -7580,10 +7580,55 @@ async function preresolveUpcoming(indices) {
   return faits;
 }
 
+// Bout de file : la suite (radio de l'artiste) n'était cherchée qu'à la fin du
+// dernier titre, par le JS — qui dort écran verrouillé. Le natif enchaînait ses
+// quelques titres d'avance puis la musique s'arrêtait. On la cherche donc dès
+// qu'il reste moins de NATIVE_UPCOMING_COUNT titres, tant que le JS est éveillé.
+let _queueExtending = false;
+let _queueExtendFailed = null;   // file pour laquelle la radio n'a rien donné
+async function extendQueueAhead() {
+  if (S.radioMode) {
+    const avant = S.queue.length;
+    await maybeExtendRadio();
+    return S.queue.length > avant;
+  }
+  if (_queueExtending || S.shuffle || S.repeat !== 0 || S._sleepAfterTrack) return false;
+  const seed = S.currentTrack;
+  const q = S.queue;
+  if (!seed?.channel || q === _queueExtendFailed) return false;
+  let restants = 0;
+  for (let i = S.currentIndex; restants < NATIVE_UPCOMING_COUNT; restants++) {
+    i = nextLiveIndex(i);
+    if (i === null) break;
+  }
+  if (restants >= NATIVE_UPCOMING_COUNT) return false;
+
+  _queueExtending = true;
+  try {
+    const existing = new Set(q.map(t => trackTitleKey(t.title)));
+    const disliked = new Set(lsParse('sevenz_disliked', []));
+    const more = (await fetchDeezerRadio(seed.channel, seed.title))
+      .filter(t => !existing.has(trackTitleKey(t.title)) && (!t.id || !disliked.has(t.id)));
+    if (S.queue !== q) return false;   // l'utilisateur a lancé autre chose entre-temps
+    if (!more.length) { _queueExtendFailed = q; return false; }
+    S.queue = [...q, ...more];
+    console.log('[Queue] suite ajoutée d\'avance :', more.length, 'titres');
+    return true;
+  } catch (e) {
+    console.warn('[Queue] suite indisponible', e?.message || e);
+    _queueExtendFailed = q;
+    return false;
+  } finally {
+    _queueExtending = false;
+  }
+}
+
 async function pushUpcomingToNative() {
   const plugin = window.Capacitor?.Plugins?.AudioPlayerPlugin;
   if (!plugin?.setUpcoming) return;   // web, ou APK plus ancien que ce code
 
+  // La file actuelle part tout de suite ; si la suite arrive, on la renvoie complétée.
+  extendQueueAhead().then(ajout => { if (ajout) pushUpcomingToNative(); });
   let tracks = [];
   if (S._sleepAfterTrack) {
     // Minuterie d'arrêt armée : la file reste vide, sinon le natif
@@ -12651,7 +12696,9 @@ let _radioFetching = false;
 async function maybeExtendRadio() {
   if (!S.radioMode || S.queue !== S._radioQueueRef) { S.radioMode = false; return; }
   if (_radioFetching) return;
-  if (S.currentIndex < S.queue.length - 2) return; // encore de la marge
+  // Marge = la file d'avance native : écran verrouillé, le JS ne pourra pas
+  // rallonger la radio avant que le natif ait tout joué.
+  if (S.currentIndex < S.queue.length - NATIVE_UPCOMING_COUNT) return;
 
   const seed = S.currentTrack;
   if (!seed) return;

@@ -125,3 +125,20 @@ describe('garde-fou de genre Deezer', () => {
     assert.deepEqual(out.map(c => c.artist), ['Ninho']);
   });
 });
+
+describe('filtre d\'époque', () => {
+  const { decadesFromTags, eraCompatible } = require('../scoring');
+
+  test('lit les décennies dans les tags Last.fm', () => {
+    assert.deepEqual(decadesFromTags(['40s', { name: '1950s' }, 'oldies', '90s', '10s', '20s', 'pop']).sort(), [1940, 1950, 1960, 1990, 2010, 2020]);
+    assert.deepEqual(decadesFromTags(['pop', 'french']), []);
+  });
+
+  test('écarte une époque éloignée (Piaf vs pop actuelle), pas l\'inconnu', () => {
+    const piaf = { eras: [1940, 1950] };
+    assert.equal(eraCompatible({ eras: [2010] }, piaf), false);
+    assert.equal(eraCompatible({ eras: [1970] }, piaf), true);
+    assert.equal(eraCompatible({ eras: [] }, piaf), true);
+    assert.equal(eraCompatible({ eras: [2010] }, { eras: [] }), true);
+  });
+});

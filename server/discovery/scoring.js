@@ -7,6 +7,37 @@ function styleTags(tags = []) {
   return tags.map(tag => String(tag).trim().toLowerCase()).filter(tag => tag && !BROAD_TAGS.has(tag));
 }
 
+/**
+ * Décennies citées par des tags Last.fm : « 50s », « 1980s », « oldies ».
+ * Retourne des années de début de décennie (1950, 1980…). « 00s », « 10s » et « 20s » sont lus comme 2000, 2010 et 2020
+ * (usage actuel de Last.fm). Tableau vide = époque inconnue.
+ */
+function decadesFromTags(tags = []) {
+  const out = new Set();
+  tags.forEach(raw => {
+    const tag = String(raw?.name ?? raw).trim().toLowerCase();
+    let m = tag.match(/^(19|20)(\d)0s$/);
+    if (m) return out.add(parseInt(m[1] + m[2] + '0', 10));
+    m = tag.match(/^(\d)0s$/);
+    if (m) return out.add(parseInt(m[1], 10) < 3 ? 2000 + parseInt(m[1], 10) * 10 : 1900 + parseInt(m[1], 10) * 10);
+    if (tag === 'oldies') { out.add(1950); out.add(1960); }
+  });
+  return [...out];
+}
+
+/**
+ * Deux musiques à plus de 30 ans d'écart ne sont pas de la même époque, même
+ * sous la même étiquette « pop » (Piaf et la pop actuelle). Si l'une des deux
+ * époques est inconnue, on ne tranche pas.
+ */
+const MAX_ERA_GAP_YEARS = 30;
+function eraCompatible(candidate, seed) {
+  const ce = candidate.eras || [];
+  const se = seed.eras || [];
+  if (!ce.length || !se.length) return true;
+  return ce.some(c => se.some(s => Math.abs(c - s) <= MAX_ERA_GAP_YEARS));
+}
+
 function jaccard(a, b) {
   const setA = new Set(a || []);
   const setB = new Set(b || []);
@@ -128,7 +159,7 @@ function genreCompatible(candidate, seed) {
 }
 
 function coherentCandidates(allCandidates, seed) {
-  const candidates = allCandidates.filter(c => genreCompatible(c, seed));
+  const candidates = allCandidates.filter(c => genreCompatible(c, seed) && eraCompatible(c, seed));
   const annotated = candidates.some(c => c.rawScores?.trackSimilar || c.rawScores?.artistRelated || c.rawScores?.tagTop);
   if (!annotated) return candidates;
 
@@ -155,6 +186,8 @@ function rankCandidates(candidates, seed, opts = {}) {
 module.exports = {
   jaccard,
   genreCompatible,
+  eraCompatible,
+  decadesFromTags,
   tagFamiliarity,
   sourceMatchScore,
   popularityScore,

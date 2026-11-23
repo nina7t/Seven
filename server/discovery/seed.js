@@ -4,6 +4,7 @@ const cache = require('./cache');
 const deezer = require('./providers/deezer');
 const lastfm = require('./providers/lastfm');
 const { normalizeForDedupe } = require('./normalize');
+const { decadesFromTags } = require('./scoring');
 
 const DEEZER = CONFIG.sources.DEEZER;
 const LASTFM = CONFIG.sources.LASTFM;
@@ -187,6 +188,7 @@ async function resolveTrackSeed(input) {
     artistMeta: dzArtist ? { name: dzArtist.name, id: dzArtist.id, nbFan: dzArtist.nbFan } : null,
     tags,
     genres,
+    eras: decadesFromTags([...(trackTags || []), ...(artistTags || [])]),
     trackTags: titleTags,
     normalizedKey: trackTitleKey(seed.title, seed.artist)
   };

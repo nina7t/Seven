@@ -4,13 +4,15 @@ const lastfm = require('./providers/lastfm');
 const tidal = require('./providers/tidal');
 const { trackTitleKey } = require('./seed');
 const { isBadVariant } = require('./filters');
-const { styleTags } = require('./scoring');
+const { styleTags, decadesFromTags } = require('./scoring');
 
 const TIMEOUT = CONFIG.radio.sourceTimeoutMs;
 const LIMIT = CONFIG.radio.candidateLimit;
 const TAG_LIMIT = CONFIG.radio.tagTopTracksLimit;
 const SIMILAR_LIMIT = CONFIG.radio.similarTracksLimit;
 const TOP_LIMIT = CONFIG.radio.topTracksPerArtist;
+const ERA_ARTIST_LIMIT = 80;
+const ERA_TIMEOUT = 2500;
 const TIDAL_ARTISTS = CONFIG.radio.tidalSimilarArtists;
 const TIDAL_CALL_TIMEOUT = CONFIG.radio.tidalCallTimeoutMs;
 const TIDAL_RADIO_PAGES = CONFIG.radio.tidalRadioPages;
@@ -253,6 +255,24 @@ async function fetchMoreCandidates(seed, { excludeKeys = [] } = {}) {
   return fresh;
 }
 
+/**
+ * Époque (décennies) de chaque artiste candidat, d'après ses tags Last.fm.
+ * Inutile, donc non faite, si la graine n'a pas d'époque connue. Un appel par
+ * artiste (mis en cache 24 h), par petits groupes pour ménager Last.fm.
+ */
+async function attachEras(list, seed) {
+  if (!lastfm.isConfigured() || !(seed.eras || []).length) return;
+  const artists = [...new Set(list.map(c => c.artist))].slice(0, ERA_ARTIST_LIMIT);
+  const erasByArtist = new Map();
+  for (let i = 0; i < artists.length; i += 8) {
+    await Promise.all(artists.slice(i, i + 8).map(async name => {
+      const tags = await safeCall(() => lastfm.getArtistTopTags(name), `lastfm/era:${name}`, ERA_TIMEOUT);
+      erasByArtist.set(name, decadesFromTags(tags));
+    }));
+  }
+  list.forEach(c => { c.eras = erasByArtist.get(c.artist) || []; });
+}
+
 async function fetchCandidates(seed) {
   const start = Date.now();
   const [similarTracks, artistTopTracks, tagTracks] = await Promise.all([
@@ -275,6 +295,7 @@ async function fetchCandidates(seed) {
   // Exclure la graine elle-même
   const seedKey = seed.normalizedKey;
   const filtered = all.filter(c => c.normalizedKey !== seedKey);
+  await attachEras(filtered, seed);
 
   console.log(`[candidates] ${filtered.length} candidats en ${Date.now() - start}ms`);
   return filtered.slice(0, LIMIT);

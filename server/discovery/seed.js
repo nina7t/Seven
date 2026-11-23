@@ -156,7 +156,12 @@ async function resolveTrackSeed(input) {
   ]);
 
   // Genre Deezer de l'album : garde-fou indépendant de Last.fm (cf. coherentCandidates).
-  const genres = await deezer.fetchAlbumGenres(dzTrack?.ids?.albumDeezer).catch(() => []);
+  let genres = await deezer.fetchAlbumGenres(dzTrack?.ids?.albumDeezer).catch(() => []);
+  // Album sans genre (compilation, titre mal classé) : on se rabat sur les
+  // albums de l'artiste plutôt que de laisser la radio sans garde-fou.
+  if (!genres.length) {
+    genres = await deezer.fetchArtistGenres(dzTrack?.ids?.artistDeezer || dzArtist?.id).catch(() => []);
+  }
 
   // Un artiste peut couvrir plusieurs styles : les tags du morceau restent la référence.
   const titleTags = topTags(trackTags, [], 5);

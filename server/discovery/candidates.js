@@ -108,16 +108,12 @@ async function lastfmSimilarTracks(seed) {
 }
 
 /**
- * Top titres Deezer d'un artiste similaire, étiquetés avec le genre de l'album
- * du premier titre (un seul appel par artiste, mis en cache).
+ * Top titres Deezer d'un artiste similaire, étiquetés avec les genres de leurs albums
+ * (3 albums au plus, appels mis en cache).
  */
 async function deezerTopWithGenres(artistId) {
   const tracks = await deezer.fetchTopTracks(artistId, TOP_LIMIT);
-  // Le genre d'un seul album est trop bruité (un rappeur y est parfois classé
-  // « pop ») : on réunit les genres de ses 3 premiers albums distincts.
-  const albumIds = [...new Set(tracks.map(t => t.ids?.albumDeezer).filter(Boolean))].slice(0, 3);
-  const groups = await Promise.all(albumIds.map(id => deezer.fetchAlbumGenres(id).catch(() => [])));
-  const genres = [...new Set(groups.flat())];
+  const genres = await deezer.fetchGenresOfAlbums(tracks.map(t => t.ids?.albumDeezer));
   return tracks.map(t => normalizeCandidate({ ...t, genres, source: CONFIG.sources.DEEZER, rank: t.rank, rawScores: { artistRelated: 1 } }));
 }
 

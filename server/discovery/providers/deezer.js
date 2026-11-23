@@ -153,11 +153,44 @@ async function fetchAlbumGenres(albumId) {
   const cached = cache.get('search', String(albumId), 'deezer-album-genres');
   if (cached) return cached;
 
-  const data = await deezerGet(`/album/${albumId}`);
-  const genres = (data?.genres?.data || [])
-    .map(g => String(g.name || '').trim().toLowerCase())
-    .filter(Boolean);
-  return cache.set('search', String(albumId), 'deezer-album-genres', genres);
+  // Deezer répond « quota dépassé » en HTTP 200 quand plusieurs radios
+  // démarrent en même temps : withRetry ne le voit pas (il ne gère que 429).
+  // On réessaie ici, et un échec n'est jamais mis en cache (sinon le genre
+  // resterait vide pour une heure).
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const data = await deezerGet(`/album/${albumId}`);
+      const genres = (data?.genres?.data || [])
+        .map(g => String(g.name || '').trim().toLowerCase())
+        .filter(Boolean);
+      return cache.set('search', String(albumId), 'deezer-album-genres', genres);
+    } catch (e) {
+      lastError = e;
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * Union des genres de plusieurs albums (3 au plus). Un seul album est trop
+ * bruité : un rappeur y est parfois classé « pop », une compilation n'a aucun
+ * genre. Les albums en échec sont ignorés.
+ */
+async function fetchGenresOfAlbums(albumIds) {
+  const ids = [...new Set((albumIds || []).filter(Boolean))].slice(0, 3);
+  const groups = await Promise.all(ids.map(id => fetchAlbumGenres(id).catch(() => [])));
+  return [...new Set(groups.flat())];
+}
+
+/**
+ * Genres d'un artiste, déduits des albums de ses top titres.
+ */
+async function fetchArtistGenres(artistId) {
+  if (!artistId) return [];
+  const tracks = await fetchTopTracks(artistId, 5);
+  return fetchGenresOfAlbums(tracks.map(t => t.ids?.albumDeezer));
 }
 
 /**
@@ -175,4 +208,4 @@ async function fetchTrackIsrc(trackId) {
   return cache.set('search', String(trackId), 'deezer-isrc', isrc);
 }
 
-module.exports = { searchArtists, findArtist, findArtistById, fetchSimilarArtistsById, fetchSimilarArtists, fetchTopTracks, fetchAlbumGenres, fetchTrackIsrc };
+module.exports = { searchArtists, findArtist, findArtistById, fetchSimilarArtistsById, fetchSimilarArtists, fetchTopTracks, fetchAlbumGenres, fetchGenresOfAlbums, fetchArtistGenres, fetchTrackIsrc };

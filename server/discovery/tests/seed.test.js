@@ -115,3 +115,26 @@ describe('selectBestDeezerTrack', () => {
     assert.equal(best.artist.name, 'Daft Punk');
   });
 });
+
+describe('genres Deezer de la graine', () => {
+  const deezer = require('../providers/deezer');
+  const seedMod = require('../seed');
+  const axios = require('axios');
+  test('retombe sur les albums de l\'artiste quand l\'album du titre n\'a pas de genre', async () => {
+    const orig = { get: axios.get };
+    const calls = [];
+    axios.get = async (url) => {
+      calls.push(url);
+      if (url.includes('/search/track')) return { data: { data: [{ id: 1, title: 'La Vie en rose', artist: { name: 'Édith Piaf', id: 9 }, album: { id: 100, title: 'Compil' } }] } };
+      if (url.includes('/search/artist')) return { data: { data: [{ id: 9, name: 'Édith Piaf' }] } };
+      if (url.includes('/artist/9/top')) return { data: { data: [{ id: 5, title: 'x', artist: { name: 'Édith Piaf' }, album: { id: 200 } }] } };
+      if (url.includes('/album/100')) return { data: { genres: { data: [] } } };
+      if (url.includes('/album/200')) return { data: { genres: { data: [{ name: 'Chanson française' }] } } };
+      throw new Error('inattendu ' + url);
+    };
+    try {
+      const seed = await seedMod.resolveTrackSeed({ title: 'La Vie en rose', artist: 'Édith Piaf' });
+      assert.deepEqual(seed.genres, ['chanson française']);
+    } finally { axios.get = orig.get; }
+  });
+});

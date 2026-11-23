@@ -208,6 +208,9 @@ app.use(express.json());
 // Moteur radio à partir d'un titre
 app.use('/api/radio', rateLimit, require('./discovery/routes/radio'));
 
+// Radios par décennie (sources éditoriales Deezer)
+app.use('/api/decades', rateLimit, require('./discovery/routes/decades'));
+
 // Route de santé avec monitoring quota
 app.get('/api/health', (req, res) => {
   // Reset quota si nouveau jour

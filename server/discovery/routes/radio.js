@@ -7,6 +7,7 @@ const { rankCandidates } = require('../scoring');
 const { buildQueue } = require('../sequencer');
 const { normalizeForDedupe } = require('../normalize');
 const lastfm = require('../providers/lastfm');
+const musicbrainz = require('../providers/musicbrainz');
 const {
   createSession,
   getSession,
@@ -127,7 +128,7 @@ router.post('/start', async (req, res) => {
       tracks: tracks.map(formatTrack),
       strategy: determineStrategy(seed, tracks),
       degradedSources: degradedSources(seed, candidates),
-      meta: { candidatePool: candidates.length, batchSize: tracks.length }
+      meta: { candidatePool: candidates.length, batchSize: tracks.length, musicbrainz: musicbrainz.stats() }
     });
   } catch (e) {
     console.error('[radio/start]', e);

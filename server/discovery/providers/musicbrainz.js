@@ -12,6 +12,7 @@ const MAX_ENTRIES = 5000;
 const known = new Map();
 const pending = new Map();
 let chain = Promise.resolve();
+const counters = { found: 0, notFound: 0, failed: 0, lastProblem: null };
 
 /**
  * Décennie de début de carrière. Pour une personne, `begin` est sa naissance :
@@ -37,15 +38,20 @@ function pickArtist(list, name) {
 async function lookup(name) {
   const url = `${API}?query=${encodeURIComponent(`artist:"${name}"`)}&fmt=json&limit=5`;
   for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await axios.get(url, { timeout: 6000, headers: { 'User-Agent': USER_AGENT } }).catch(() => null);
+    let problem = null;
+    const res = await axios.get(url, { timeout: 6000, headers: { 'User-Agent': USER_AGENT } })
+      .catch(e => { problem = e.response?.status ? `http ${e.response.status}` : (e.code || e.message); return null; });
     const data = res?.data;
     if (data?.artists) {
       const decade = careerDecade(pickArtist(data.artists, name));
+      decade ? counters.found++ : counters.notFound++;
       return decade ? [decade] : null;
     }
+    counters.lastProblem = problem || String(data?.error || 'réponse vide').slice(0, 60);
     // « serveur occupé » ou réseau : on patiente puis on réessaie.
     await new Promise(r => setTimeout(r, GAP_MS * (attempt + 2)));
   }
+  counters.failed++;
   throw new Error('musicbrainz indisponible');
 }
 
@@ -86,4 +92,9 @@ async function prefetchEras(names, { budgetMs = 3000, max = 30 } = {}) {
   await Promise.race([all, new Promise(r => setTimeout(r, budgetMs))]);
 }
 
-module.exports = { prefetchEras, cachedEras, careerDecade, pickArtist };
+/** Diagnostic : combien d'artistes résolus, introuvables, en échec, et pourquoi. */
+function stats() {
+  return { ...counters, cached: known.size, queued: pending.size };
+}
+
+module.exports = { stats, prefetchEras, cachedEras, careerDecade, pickArtist };

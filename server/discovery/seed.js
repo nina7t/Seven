@@ -5,6 +5,7 @@ const deezer = require('./providers/deezer');
 const lastfm = require('./providers/lastfm');
 const { normalizeForDedupe } = require('./normalize');
 const { decadesFromTags } = require('./scoring');
+const musicbrainz = require('./providers/musicbrainz');
 
 const DEEZER = CONFIG.sources.DEEZER;
 const LASTFM = CONFIG.sources.LASTFM;
@@ -168,6 +169,13 @@ async function resolveTrackSeed(input) {
   const titleTags = topTags(trackTags, [], 5);
   const tags = titleTags.length ? titleTags : topTags([], artistTags, 5);
 
+  // Pas de tag de décennie : MusicBrainz, avec une courte attente (3 s).
+  let eras = decadesFromTags([...(trackTags || []), ...(artistTags || [])]);
+  if (!eras.length) {
+    await musicbrainz.prefetchEras([dzTrack?.artist || seed.artist], { budgetMs: 3000 });
+    eras = musicbrainz.cachedEras(dzTrack?.artist || seed.artist);
+  }
+
   return {
     title: dzTrack?.title || seed.title,
     artist: dzTrack?.artist || seed.artist,
@@ -188,7 +196,7 @@ async function resolveTrackSeed(input) {
     artistMeta: dzArtist ? { name: dzArtist.name, id: dzArtist.id, nbFan: dzArtist.nbFan } : null,
     tags,
     genres,
-    eras: decadesFromTags([...(trackTags || []), ...(artistTags || [])]),
+    eras,
     trackTags: titleTags,
     normalizedKey: trackTitleKey(seed.title, seed.artist)
   };

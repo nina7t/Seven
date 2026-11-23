@@ -1,5 +1,6 @@
 const W = require('./weights');
 const { normalizeForDedupe } = require('./normalize');
+const musicbrainz = require('./providers/musicbrainz');
 
 const BROAD_TAGS = new Set(['pop', 'rock', 'electronic', 'alternative', 'indie', 'music', 'seen live', 'favorites', 'favourites']);
 
@@ -32,8 +33,10 @@ function decadesFromTags(tags = []) {
  */
 const MAX_ERA_GAP_YEARS = 30;
 function eraCompatible(candidate, seed) {
-  const ce = candidate.eras || [];
-  const se = seed.eras || [];
+  // Tags Last.fm d'abord, sinon MusicBrainz (rempli en tâche de fond : un
+  // artiste encore inconnu peut donc devenir filtrable aux lots suivants).
+  const ce = candidate.eras?.length ? candidate.eras : musicbrainz.cachedEras(candidate.artist);
+  const se = seed.eras?.length ? seed.eras : musicbrainz.cachedEras(seed.artist);
   if (!ce.length || !se.length) return true;
   return ce.some(c => se.some(s => Math.abs(c - s) <= MAX_ERA_GAP_YEARS));
 }

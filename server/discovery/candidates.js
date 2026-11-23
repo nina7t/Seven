@@ -1,6 +1,7 @@
 const CONFIG = require('./config');
 const deezer = require('./providers/deezer');
 const lastfm = require('./providers/lastfm');
+const musicbrainz = require('./providers/musicbrainz');
 const tidal = require('./providers/tidal');
 const { trackTitleKey } = require('./seed');
 const { isBadVariant } = require('./filters');
@@ -13,6 +14,8 @@ const SIMILAR_LIMIT = CONFIG.radio.similarTracksLimit;
 const TOP_LIMIT = CONFIG.radio.topTracksPerArtist;
 const ERA_ARTIST_LIMIT = 80;
 const ERA_TIMEOUT = 2500;
+const MB_BUDGET_MS = 3000;
+const MB_MAX_ARTISTS = 30;
 const TIDAL_ARTISTS = CONFIG.radio.tidalSimilarArtists;
 const TIDAL_CALL_TIMEOUT = CONFIG.radio.tidalCallTimeoutMs;
 const TIDAL_RADIO_PAGES = CONFIG.radio.tidalRadioPages;
@@ -256,21 +259,26 @@ async function fetchMoreCandidates(seed, { excludeKeys = [] } = {}) {
 }
 
 /**
- * Époque (décennies) de chaque artiste candidat, d'après ses tags Last.fm.
- * Inutile, donc non faite, si la graine n'a pas d'époque connue. Un appel par
- * artiste (mis en cache 24 h), par petits groupes pour ménager Last.fm.
+ * Époque (décennies) de chaque artiste candidat : tags Last.fm d'abord (un
+ * appel par artiste, mis en cache 24 h, par groupes de 8 pour ménager Last.fm),
+ * puis MusicBrainz pour ceux qui n'ont aucun tag de décennie.
  */
-async function attachEras(list, seed) {
-  if (!lastfm.isConfigured() || !(seed.eras || []).length) return;
-  const artists = [...new Set(list.map(c => c.artist))].slice(0, ERA_ARTIST_LIMIT);
-  const erasByArtist = new Map();
-  for (let i = 0; i < artists.length; i += 8) {
-    await Promise.all(artists.slice(i, i + 8).map(async name => {
-      const tags = await safeCall(() => lastfm.getArtistTopTags(name), `lastfm/era:${name}`, ERA_TIMEOUT);
-      erasByArtist.set(name, decadesFromTags(tags));
-    }));
+async function attachEras(list) {
+  if (lastfm.isConfigured()) {
+    const artists = [...new Set(list.map(c => c.artist))].slice(0, ERA_ARTIST_LIMIT);
+    const erasByArtist = new Map();
+    for (let i = 0; i < artists.length; i += 8) {
+      await Promise.all(artists.slice(i, i + 8).map(async name => {
+        const tags = await safeCall(() => lastfm.getArtistTopTags(name), `lastfm/era:${name}`, ERA_TIMEOUT);
+        erasByArtist.set(name, decadesFromTags(tags));
+      }));
+    }
+    list.forEach(c => { c.eras = erasByArtist.get(c.artist) || []; });
   }
-  list.forEach(c => { c.eras = erasByArtist.get(c.artist) || []; });
+  // Artistes sans tag de décennie : MusicBrainz, 1 par seconde. On n'attend
+  // que quelques secondes ; la suite se remplit en tâche de fond.
+  const unknown = list.filter(c => !c.eras?.length).map(c => c.artist);
+  await musicbrainz.prefetchEras(unknown, { budgetMs: MB_BUDGET_MS, max: MB_MAX_ARTISTS });
 }
 
 async function fetchCandidates(seed) {
@@ -295,7 +303,7 @@ async function fetchCandidates(seed) {
   // Exclure la graine elle-même
   const seedKey = seed.normalizedKey;
   const filtered = all.filter(c => c.normalizedKey !== seedKey);
-  await attachEras(filtered, seed);
+  await attachEras(filtered);
 
   console.log(`[candidates] ${filtered.length} candidats en ${Date.now() - start}ms`);
   return filtered.slice(0, LIMIT);

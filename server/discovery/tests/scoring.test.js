@@ -142,3 +142,22 @@ describe('filtre d\'époque', () => {
     assert.equal(eraCompatible({ eras: [2010] }, { eras: [] }), true);
   });
 });
+
+describe('MusicBrainz : époque de carrière', () => {
+  const { careerDecade, pickArtist } = require('../providers/musicbrainz');
+  test('personne : naissance + 20 ans ; groupe : formation', () => {
+    assert.equal(careerDecade({ type: 'Person', 'life-span': { begin: '1915-12-19' } }), 1930);
+    assert.equal(careerDecade({ type: 'Person', 'life-span': { begin: '1997-04-15' } }), 2010);
+    assert.equal(careerDecade({ type: 'Group', 'life-span': { begin: '1993' } }), 1990);
+    assert.equal(careerDecade({ type: 'Person', 'life-span': {} }), null);
+  });
+  test('ne retient qu\'un nom exact, bien noté, daté', () => {
+    const list = [
+      { name: 'PLK', score: 87, 'life-span': { begin: '1998' } },
+      { name: 'PLK', score: 100, 'life-span': { begin: '1997-04-15' } },
+      { name: 'Autre', score: 100, 'life-span': { begin: '1900' } }
+    ];
+    assert.equal(pickArtist(list, 'plk')['life-span'].begin, '1997-04-15');
+    assert.equal(pickArtist([{ name: 'Zaz', score: 100, 'life-span': {} }], 'Zaz'), null);
+  });
+});

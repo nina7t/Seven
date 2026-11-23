@@ -21,11 +21,6 @@ function countAlbum(queue, album) {
   return queue.filter(t => normalizeForDedupe(t.album) === norm).length;
 }
 
-function countDecadeRecent(queue, decade) {
-  if (decade == null) return 0;
-  return queue.slice(-5).filter(t => getDecade(t.year) === decade).length;
-}
-
 function candidateKey(candidate) {
   return candidate.normalizedKey || `${normalizeForDedupe(candidate.artist)}|${normalizeForDedupe(candidate.title)}`;
 }
@@ -50,10 +45,6 @@ function isValid(candidate, queue, constraints, context = {}) {
       return false;
     }
   }
-
-  // Répartition des époques : pas plus de 3 titres de la même décennie dans les 5 derniers
-  const decade = getDecade(candidate.year);
-  if (decade != null && countDecadeRecent(queue, decade) >= 3) return false;
 
   return true;
 }

@@ -5,6 +5,7 @@ const {
   popularityScore,
   noveltyScore,
   tempoEraScore,
+  sourceMatchScore,
   scoreCandidate,
   rankCandidates
 } = require('../scoring');
@@ -71,5 +72,56 @@ describe('rankCandidates', () => {
     const ranked = rankCandidates(candidates, seed, {});
     assert.ok(ranked[0].score >= ranked[1].score);
     assert.ok(ranked[1].score >= ranked[2].score);
+  });
+
+  test('un hit populaire sans lien au titre ne revient pas grâce aux likes ou à la découverte', () => {
+    const seed = { trackTags: ['trip-hop'], trackSimilarityAvailable: true };
+    const direct = { title: 'Glory Box', artist: 'Portishead', match: 0.4, rawScores: { trackSimilar: 1 } };
+    const unrelated = { title: 'Worldwide hit', artist: 'Other', rank: 1, tags: ['pop'], rawScores: { artistRelated: 1 } };
+    const ranked = rankCandidates([direct, unrelated], seed, { feedbackWeights: { artist: { other: 1 } } });
+    assert.deepEqual(ranked.map(c => c.title), ['Glory Box']);
+    assert.ok(sourceMatchScore(direct) > sourceMatchScore(unrelated));
+  });
+
+  test('un tag précis doit être corroboré par un artiste directement lié', () => {
+    const seed = { trackTags: ['trip-hop'], trackSimilarityAvailable: true };
+    const tagOnly = { title: 'Tag hit', artist: 'A', tags: ['trip-hop'], rawScores: { tagTop: 1 } };
+    const corroborated = { title: 'Angel', artist: 'Massive Attack', tags: ['trip-hop'], rawScores: { tagTop: 1, artistRelated: 1 } };
+    assert.deepEqual(rankCandidates([tagOnly, corroborated], seed).map(c => c.title), ['Angel']);
+  });
+
+  test('la fin du vivier proche ne relâche pas le filtre sur un top artiste', () => {
+    const unrelated = { title: 'Unverified', artist: 'A', rank: 1, rawScores: { artistRelated: 1 } };
+    assert.deepEqual(rankCandidates([unrelated], { trackTags: ['soul'], trackSimilarityAvailable: true }), []);
+  });
+
+  test('un tag générique ne suffit pas à corroborer un titre', () => {
+    const broad = { title: 'Rock hit', artist: 'A', tags: ['rock'], rawScores: { artistRelated: 1, tagTop: 1 } };
+    assert.deepEqual(rankCandidates([broad], { trackTags: ['rock'], trackSimilarityAvailable: true }), []);
+  });
+
+  test('sans similarité titre exploitable le repli reste limité aux artistes directs', () => {
+    const directArtist = { title: 'Related', artist: 'A', rawScores: { artistRelated: 1 } };
+    const zeroMatch = { title: 'Zero', artist: 'B', match: 0, rawScores: { trackSimilar: 1 } };
+    const tagOnly = { title: 'Tag hit', artist: 'C', tags: ['soul'], rawScores: { tagTop: 1 } };
+    assert.deepEqual(rankCandidates([zeroMatch, tagOnly, directArtist], { trackTags: ['soul'] }).map(c => c.title), ['Related']);
+  });
+});
+
+describe('garde-fou de genre Deezer', () => {
+  const { genreCompatible, coherentCandidates } = require('../scoring');
+  const seed = { genres: ['rap/hip hop'], tags: [], trackTags: [] };
+  const mk = (artist, genres) => ({ artist, title: 't', genres, rawScores: { artistRelated: 1 } });
+
+  test('écarte un genre connu sans rapport, garde l\'inconnu', () => {
+    assert.equal(genreCompatible(mk('Zaz', ['variété française']), seed), false);
+    assert.equal(genreCompatible(mk('Ninho', ['rap/hip hop', 'musique']), seed), true);
+    assert.equal(genreCompatible(mk('Inconnu', []), seed), true);
+    assert.equal(genreCompatible(mk('Zaz', ['pop']), { genres: [] }), true);
+  });
+
+  test('Zaz est retiré même quand le repli « tout artistRelated » s\'applique', () => {
+    const out = coherentCandidates([mk('Zaz', ['variété française']), mk('Ninho', ['rap/hip hop'])], seed);
+    assert.deepEqual(out.map(c => c.artist), ['Ninho']);
   });
 });

@@ -89,12 +89,14 @@ router.post('/start', async (req, res) => {
     const normalizedHistoryArtists = userHistoryArtists.map(normalizeForDedupe).filter(Boolean);
     const dislikedKeys = toTrackSet(req.body.dislikedKeys || []);
     const recentKeys = toTrackSet(req.body.recentKeys || []);
+    const playedKeys = toTrackSet(req.body.playedKeys || []);
 
     const seed = await resolveTrackSeed({ title, artist, album, year });
     let candidates = await fetchCandidates(seed);
 
     candidates = filterCandidates(candidates, {
       seedKey: seed.normalizedKey,
+      excludeKeys: playedKeys,
       dislikedKeys
     });
 
@@ -113,6 +115,10 @@ router.post('/start', async (req, res) => {
     const tracks = buildQueue(scored, { adventurousness });
 
     const radioId = createSession(seed, normalizedHistoryArtists, scored, recentKeys);
+    const session = getSession(radioId);
+    session.dislikedKeys = dislikedKeys;
+    session.servedKeys = new Set([...playedKeys, ...tracks.map(t => t.normalizedKey)]);
+    session.lastBatch = tracks.slice(-1);
     addKnownArtists(radioId, tracks.map(t => t.artist));
 
     res.json({
@@ -150,22 +156,29 @@ router.post('/next', async (req, res) => {
     const weights = getFeedbackWeights(radioId);
     const knownArtists = new Set([...session.knownArtists]);
     const rejected = new Set(weights.rejectedArtists);
-    const playedKeys = toTrackSet(req.body.playedKeys || []);
+    const playedKeys = new Set([
+      ...(session.servedKeys || []),
+      ...toTrackSet(req.body.playedKeys || [])
+    ]);
+    session.servedKeys = playedKeys;
 
-    const isAvailable = candidate =>
-      !playedKeys.has(candidate.normalizedKey) && !rejected.has(normalizeForDedupe(candidate.artist));
-    if (session.candidates.filter(isAvailable).length < CONFIG.radio.replenishThreshold) {
+    const available = candidates => filterCandidates(candidates, {
+      seedKey: session.seed.normalizedKey,
+      excludeKeys: playedKeys,
+      dislikedKeys: session.dislikedKeys || new Set()
+    }).filter(candidate => !rejected.has(normalizeForDedupe(candidate.artist)));
+    if (available(session.candidates).length < CONFIG.radio.replenishThreshold) {
       try {
-        const existingKeys = new Set(session.candidates.map(candidate => candidate.normalizedKey));
+        const existingKeys = new Set([...playedKeys, ...session.candidates.map(candidate => candidate.normalizedKey)]);
         const fresh = await fetchMoreCandidates(session.seed, {
           excludeKeys: existingKeys,
           artists: session.candidates.map(candidate => candidate.artist)
         });
-        session.candidates.push(...fresh);
+        session.candidates.push(...available(fresh));
         // Plafond mémoire : on évince d'abord les titres joués ou rejetés,
         // puis les plus anciens
         if (session.candidates.length > CONFIG.radio.maxSessionCandidates) {
-          session.candidates = session.candidates.filter(isAvailable).slice(-CONFIG.radio.maxSessionCandidates);
+          session.candidates = available(session.candidates).slice(-CONFIG.radio.maxSessionCandidates);
         }
       } catch (error) {
         console.warn('[radio/next] candidate replenishment failed:', error.message);
@@ -173,9 +186,7 @@ router.post('/next', async (req, res) => {
     }
 
     // Rescorer les candidats non encore joués en appliquant les poids de feedback
-    let remaining = session.candidates
-      .filter(isAvailable)
-      .map(c => ({ ...c }));
+    const remaining = available(session.candidates).map(c => ({ ...c }));
 
     const rescored = rankCandidates(remaining, session.seed, {
       knownArtists,
@@ -185,7 +196,12 @@ router.post('/next', async (req, res) => {
     const nextAdventurousness = Number.isFinite(parseFloat(req.body.adventurousness))
       ? parseFloat(req.body.adventurousness)
       : undefined;
-    const tracks = buildQueue(rescored, { adventurousness: nextAdventurousness });
+    const tracks = buildQueue(rescored, {
+      adventurousness: nextAdventurousness,
+      existingQueue: session.lastBatch || []
+    });
+    tracks.forEach(track => session.servedKeys.add(track.normalizedKey));
+    if (tracks.length) session.lastBatch = tracks.slice(-1);
     addKnownArtists(radioId, tracks.map(t => t.artist));
 
     res.json({

@@ -36,6 +36,16 @@ describe('isValid', () => {
 });
 
 describe('buildQueue', () => {
+  test('une radio peut rester dans la même décennie sans forcer un changement de style', () => {
+    const candidates = Array.from({ length: 20 }, (_, i) => ({
+      title: `Disco ${i}`, artist: `Artist ${i}`, year: 1982,
+      bpm: 117, score: 0.8
+    }));
+    const batch = buildQueue(candidates);
+    assert.equal(batch.length, 20);
+    assert.ok(batch.every(track => track.year === 1982));
+  });
+
   test('produit un lot de la bonne taille avec contraintes respectées', () => {
     const candidates = [];
     for (let i = 0; i < 80; i++) {

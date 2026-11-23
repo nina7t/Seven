@@ -1,6 +1,12 @@
 const W = require('./weights');
 const { normalizeForDedupe } = require('./normalize');
 
+const BROAD_TAGS = new Set(['pop', 'rock', 'electronic', 'alternative', 'indie', 'music', 'seen live', 'favorites', 'favourites']);
+
+function styleTags(tags = []) {
+  return tags.map(tag => String(tag).trim().toLowerCase()).filter(tag => tag && !BROAD_TAGS.has(tag));
+}
+
 function jaccard(a, b) {
   const setA = new Set(a || []);
   const setB = new Set(b || []);
@@ -10,6 +16,12 @@ function jaccard(a, b) {
 }
 
 function sourceMatchScore(candidate) {
+  // Un classement de popularité chez un artiste n'est pas une similarité titre.
+  if (candidate.rawScores?.trackSimilar && candidate.match > 0) {
+    return 0.5 + 0.5 * Math.max(0, Math.min(1, candidate.match || 0));
+  }
+  if (candidate.rawScores?.artistRelated) return 0.35 / Math.max(1, candidate.rank || 1);
+  if (candidate.rawScores?.tagTop) return 0.15 / Math.max(1, candidate.rank || 1);
   let score = 0;
   if (typeof candidate.match === 'number' && candidate.match > 0) {
     score += candidate.match;
@@ -103,9 +115,35 @@ function tagFamiliarity(candidate, knownArtists, knownTrackKeys) {
   return Boolean(knownArtists?.has(normalizeForDedupe(candidate.artist)));
 }
 
+/**
+ * Garde-fou de genre Deezer : écarte un candidat dont le genre est connu et
+ * n'a rien en commun avec celui de la graine (ex. Zaz dans une radio PLK).
+ * Si l'un des deux genres est inconnu, on ne tranche pas.
+ */
+function genreCompatible(candidate, seed) {
+  const cg = candidate.genres || [];
+  const sg = seed.genres || [];
+  if (!cg.length || !sg.length) return true;
+  return cg.some(g => sg.includes(g));
+}
+
+function coherentCandidates(allCandidates, seed) {
+  const candidates = allCandidates.filter(c => genreCompatible(c, seed));
+  const annotated = candidates.some(c => c.rawScores?.trackSimilar || c.rawScores?.artistRelated || c.rawScores?.tagTop);
+  if (!annotated) return candidates;
+
+  const tags = styleTags(seed.trackTags || seed.tags || []);
+  const supported = candidates.filter(c => (c.rawScores?.trackSimilar && c.match > 0) ||
+    (c.rawScores?.artistRelated && jaccard(styleTags(c.tags), tags) > 0));
+  // Le quota découverte et les likes ne doivent jamais réintroduire des titres
+  // sans lien : filtrer avant de calculer ces bonus, y compris dans /next.
+  if (seed.trackSimilarityAvailable || supported.length) return supported;
+  return candidates.filter(c => c.rawScores?.artistRelated);
+}
+
 function rankCandidates(candidates, seed, opts = {}) {
   const { knownArtists = new Set(), knownTrackKeys = new Set() } = opts;
-  return candidates
+  return coherentCandidates(candidates, seed)
     .map(c => ({
       ...c,
       score: scoreCandidate(c, seed, opts),
@@ -116,11 +154,14 @@ function rankCandidates(candidates, seed, opts = {}) {
 
 module.exports = {
   jaccard,
+  genreCompatible,
   tagFamiliarity,
   sourceMatchScore,
   popularityScore,
   noveltyScore,
   tempoEraScore,
+  coherentCandidates,
+  styleTags,
   scoreCandidate,
   rankCandidates
 };

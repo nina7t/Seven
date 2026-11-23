@@ -2,6 +2,39 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { trackTitleKey, normalizeSeed, topTags, selectBestDeezerTrack } = require('../seed');
 
+test('les tags du morceau priment sur le style global de son artiste', async () => {
+  const axios = require('axios');
+  const deezer = require('../providers/deezer');
+  const lastfm = require('../providers/lastfm');
+  const { resolveTrackSeed } = require('../seed');
+  const originals = {
+    get: axios.get, findArtist: deezer.findArtist,
+    configured: lastfm.isConfigured, trackTags: lastfm.getTrackTopTags,
+    artistTags: lastfm.getArtistTopTags
+  };
+  try {
+    axios.get = async () => ({ data: { data: [] } });
+    deezer.findArtist = async () => null;
+    lastfm.isConfigured = () => true;
+    lastfm.getTrackTopTags = async () => [{ name: 'acoustic', count: 20 }];
+    lastfm.getArtistTopTags = async () => [{ name: 'hip-hop', count: 100 }];
+    const seed = await resolveTrackSeed({ title: 'Quiet session', artist: 'Mixed styles test' });
+    assert.deepEqual(seed.tags, ['acoustic']);
+    assert.deepEqual(seed.trackTags, ['acoustic']);
+
+    lastfm.getTrackTopTags = async () => [];
+    const fallback = await resolveTrackSeed({ title: 'Unknown tags', artist: 'Mixed styles test' });
+    assert.deepEqual(fallback.tags, ['hip-hop']);
+    assert.deepEqual(fallback.trackTags, []);
+  } finally {
+    axios.get = originals.get;
+    deezer.findArtist = originals.findArtist;
+    lastfm.isConfigured = originals.configured;
+    lastfm.getTrackTopTags = originals.trackTags;
+    lastfm.getArtistTopTags = originals.artistTags;
+  }
+});
+
 describe('trackTitleKey', () => {
   test('normalise titre et artiste pour dédoublonnage', () => {
     assert.equal(

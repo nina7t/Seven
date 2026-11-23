@@ -155,7 +155,12 @@ async function resolveTrackSeed(input) {
     lfm ? lastfm.getArtistTopTags(seed.artist).catch(() => []) : []
   ]);
 
-  const tags = topTags(trackTags, artistTags, 5);
+  // Genre Deezer de l'album : garde-fou indépendant de Last.fm (cf. coherentCandidates).
+  const genres = await deezer.fetchAlbumGenres(dzTrack?.ids?.albumDeezer).catch(() => []);
+
+  // Un artiste peut couvrir plusieurs styles : les tags du morceau restent la référence.
+  const titleTags = topTags(trackTags, [], 5);
+  const tags = titleTags.length ? titleTags : topTags([], artistTags, 5);
 
   return {
     title: dzTrack?.title || seed.title,
@@ -176,6 +181,8 @@ async function resolveTrackSeed(input) {
     },
     artistMeta: dzArtist ? { name: dzArtist.name, id: dzArtist.id, nbFan: dzArtist.nbFan } : null,
     tags,
+    genres,
+    trackTags: titleTags,
     normalizedKey: trackTitleKey(seed.title, seed.artist)
   };
 }

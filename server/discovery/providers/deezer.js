@@ -136,10 +136,28 @@ async function fetchTopTracks(artistId, limit = 5) {
       artist: t.artist.name,
       rank: index + 1,
       source: DEEZER,
-      ids: { deezer: String(t.id) }
+      ids: { deezer: String(t.id), albumDeezer: t.album?.id ? String(t.album.id) : null }
     }));
 
   return cache.set('search', String(artistId), 'deezer-toptracks', results);
+}
+
+/**
+ * Genres Deezer d'un album (ex. « Rap/Hip Hop »), en minuscules. Deezer ne
+ * donne pas de genre par artiste ni par titre : l'album est la seule porte.
+ * Tableau vide si inconnu (compilation, album sans genre) : l'appelant ne doit
+ * alors rien en déduire.
+ */
+async function fetchAlbumGenres(albumId) {
+  if (!albumId) return [];
+  const cached = cache.get('search', String(albumId), 'deezer-album-genres');
+  if (cached) return cached;
+
+  const data = await deezerGet(`/album/${albumId}`);
+  const genres = (data?.genres?.data || [])
+    .map(g => String(g.name || '').trim().toLowerCase())
+    .filter(Boolean);
+  return cache.set('search', String(albumId), 'deezer-album-genres', genres);
 }
 
 /**
@@ -157,4 +175,4 @@ async function fetchTrackIsrc(trackId) {
   return cache.set('search', String(trackId), 'deezer-isrc', isrc);
 }
 
-module.exports = { searchArtists, findArtist, findArtistById, fetchSimilarArtistsById, fetchSimilarArtists, fetchTopTracks, fetchTrackIsrc };
+module.exports = { searchArtists, findArtist, findArtistById, fetchSimilarArtistsById, fetchSimilarArtists, fetchTopTracks, fetchAlbumGenres, fetchTrackIsrc };

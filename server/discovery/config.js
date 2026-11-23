@@ -60,7 +60,7 @@ const CONFIG = {
     // 28 % à 40 %, sans perte de variété entre deux écoutes.
     pickSharpness: 3,
     tagTopTracksLimit: 30,
-    similarTracksLimit: 30,
+    similarTracksLimit: 100,
     topTracksPerArtist: 5,
     // TIDAL est sérialisé (rate limit) : au-delà de 5 artistes, les derniers
     // appels épuisent leur budget de timeout avant même d'être émis.

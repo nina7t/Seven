@@ -1,6 +1,6 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeCandidate, dedupeCandidates, lastfmSimilarTracks, similarArtistsTopTracks } = require('../candidates');
+const { normalizeCandidate, dedupeCandidates, lastfmSimilarTracks, similarArtistsTopTracks, fetchMoreCandidates } = require('../candidates');
 const lastfm = require('../providers/lastfm');
 const deezer = require('../providers/deezer');
 
@@ -37,6 +37,22 @@ describe('dedupeCandidates', () => {
 });
 
 describe('lastfmSimilarTracks safeCall', () => {
+  test('conserve la provenance titre à la fusion avec un top artiste', async () => {
+    const originals = { isConfigured: lastfm.isConfigured, getSimilarTracks: lastfm.getSimilarTracks };
+    try {
+      lastfm.isConfigured = () => true;
+      lastfm.getSimilarTracks = async (artist, title, limit) => {
+        assert.ok(limit >= 100);
+        return [{ title: 'Glory Box', artist: 'Portishead', match: 0.7, rank: 4, source: 'lastfm' }];
+      };
+      const [direct] = await lastfmSimilarTracks({ artist: 'Massive Attack', title: 'Teardrop' });
+      const [merged] = dedupeCandidates([direct, normalizeCandidate({ title: direct.title, artist: direct.artist, source: 'deezer', rank: 1, rawScores: { artistRelated: 1 } })]);
+      assert.equal(merged.rawScores.trackSimilar, 1);
+      assert.equal(merged.rawScores.artistRelated, 1);
+      assert.equal(merged.match, 0.7);
+    } finally { Object.assign(lastfm, originals); }
+  });
+
   test('ne plante pas si Last.fm échoue', async () => {
     const originals = {
       isConfigured: lastfm.isConfigured,
@@ -49,6 +65,35 @@ describe('lastfmSimilarTracks safeCall', () => {
       assert.deepEqual(result, []);
     } finally {
       Object.assign(lastfm, originals);
+    }
+  });
+});
+
+describe('réapprovisionnement ancré au titre', () => {
+  test('ne cherche jamais les voisins des artistes découverts dans les lots précédents', async () => {
+    const originals = { isConfigured: lastfm.isConfigured, getSimilarTracks: lastfm.getSimilarTracks,
+      fetchSimilarArtists: lastfm.fetchSimilarArtists, getTopTracks: lastfm.getTopTracks, getTopTracksByTag: lastfm.getTopTracksByTag };
+    const originalDeezer = { fetchSimilarArtistsById: deezer.fetchSimilarArtistsById, fetchTopTracks: deezer.fetchTopTracks };
+    const calls = [];
+    try {
+      lastfm.isConfigured = () => true;
+      lastfm.getSimilarTracks = async (artist, title) => {
+        calls.push([artist, title]);
+        return [{ title: 'Glory Box', artist: 'Portishead', match: 0.7, rank: 1, source: 'lastfm' }];
+      };
+      lastfm.fetchSimilarArtists = async artist => { assert.equal(artist, 'Massive Attack'); return []; };
+      lastfm.getTopTracks = async () => [];
+      lastfm.getTopTracksByTag = async () => [];
+      deezer.fetchSimilarArtistsById = async () => [];
+      deezer.fetchTopTracks = async () => [];
+      const seed = { artist: 'Massive Attack', title: 'Teardrop', tags: [], ids: { artistDeezer: '1' } };
+      const result = await fetchMoreCandidates(seed, { artists: ['Unrelated artist'], excludeKeys: ['portishead|glorybox'] });
+      assert.deepEqual(calls, [['Massive Attack', 'Teardrop']]);
+      assert.deepEqual(result, []);
+      assert.equal(seed.trackSimilarityAvailable, true);
+    } finally {
+      Object.assign(lastfm, originals);
+      Object.assign(deezer, originalDeezer);
     }
   });
 });
